@@ -1,37 +1,26 @@
 # og-cal
 
-Open-source Google Calendar event display. Drop it on any website.
+Display Google Calendar events on any website. Six views, responsive design, full theming, no framework dependencies.
 
-Six views — month, week, day, grid, list, and event detail — with hash routing, responsive design, and full theming. Zero framework dependencies.
-
-**Live example:** [nobigbendwall.org/event-calendar/](https://nobigbendwall.org/event-calendar/)
+**Live:** [nobigbendwall.org/event-calendar/](https://nobigbendwall.org/event-calendar/)
 
 ## Quick Start
 
-### Zero JavaScript (data attributes)
-
 ```html
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/stavxyz/og-cal@main/dist/og-cal.min.css">
 <script src="https://cdn.jsdelivr.net/gh/stavxyz/og-cal@main/dist/og-cal.min.js"></script>
 
+<!-- Zero JS — just data attributes -->
 <div data-og-cal
      data-api-key="YOUR_GOOGLE_API_KEY"
      data-calendar-id="YOUR_CALENDAR_ID@group.calendar.google.com"
-     data-default-view="month"
-     data-theme-primary="#8B4513"
-     data-theme-font-family="'Georgia', serif">
+     data-default-view="grid">
 </div>
 ```
 
-That's it. No `<script>` init call needed. og-cal auto-detects elements with `data-og-cal` and initializes them.
+Or initialize with JavaScript for more control:
 
-### JavaScript
-
-```html
-<div id="cal"></div>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/stavxyz/og-cal@main/dist/og-cal.min.css">
-<script src="https://cdn.jsdelivr.net/gh/stavxyz/og-cal@main/dist/og-cal.min.js"></script>
-<script>
+```js
 OgCal.init({
   el: '#cal',
   google: {
@@ -39,117 +28,88 @@ OgCal.init({
     calendarId: 'YOUR_CALENDAR_ID@group.calendar.google.com',
   },
 });
-</script>
 ```
 
-## Data Modes
+## How It Works
 
-### 1. Pre-loaded data (recommended for production)
+Put URLs in your Google Calendar event descriptions — og-cal does the rest:
 
-Embed event data as JSON server-side. The API key stays on your server. You can pass either og-cal schema or **raw Google Calendar API JSON** — og-cal auto-detects the format.
+- **Image URLs** (`.png`, `.jpg`, etc.) become the event thumbnail and detail gallery
+- **Platform URLs** (Eventbrite, Instagram, Zoom, etc.) become action buttons
+- **Google Calendar attachments** with `image/*` MIME types are added to the gallery
+- **Descriptions** are auto-detected as HTML, markdown, or plain text and rendered accordingly
+
+Everything is extracted and cleaned up automatically. Raw URLs are removed from the rendered description so they don't clutter the text.
+
+## Data Sources
+
+### 1. Pre-loaded (recommended for production)
+
+Pass event data server-side. Accepts og-cal schema **or raw Google Calendar API JSON** — og-cal auto-detects the format. Your server can just proxy and cache the Google Calendar API response with zero transform.
 
 ```js
-// og-cal schema
-OgCal.init({
-  el: '#cal',
-  data: {
-    events: [/* og-cal schema */],
-    calendar: { name: 'My Calendar', timezone: 'America/Chicago' },
-  },
-});
-
-// Or pass raw Google Calendar API response directly — og-cal transforms it
 OgCal.init({
   el: '#cal',
   data: googleCalendarApiResponse, // { items: [...], summary: '...', timeZone: '...' }
 });
 ```
 
-This means your server-side proxy can just fetch and cache the Google Calendar API response with zero transform logic.
-
 ### 2. Fetch URL
 
-Point og-cal at your own API endpoint. Can return og-cal schema or raw Google Calendar API JSON.
+Point at your own endpoint returning og-cal schema or raw Google Calendar API JSON.
 
 ```js
-OgCal.init({
-  el: '#cal',
-  fetchUrl: 'https://your-api.com/events',
-});
+OgCal.init({ el: '#cal', fetchUrl: 'https://your-api.com/events' });
 ```
 
 ### 3. Direct Google Calendar API
 
-og-cal fetches from Google Calendar API v3 client-side. The API key is visible in page source — restrict it to the Calendar API and lock it to your domain in the Google Cloud Console.
+Fetches client-side. The API key is visible in page source — restrict it in the Google Cloud Console.
 
 ```js
 OgCal.init({
   el: '#cal',
-  google: {
-    apiKey: 'YOUR_API_KEY',
-    calendarId: 'YOUR_CALENDAR_ID',
-    maxResults: 50,           // default 50
-  },
+  google: { apiKey: 'YOUR_API_KEY', calendarId: 'YOUR_CALENDAR_ID' },
 });
 ```
 
 ## Views
 
-| View | Hash Route | Description |
-|------|-----------|-------------|
+| View | Hash | Description |
+|------|------|-------------|
 | Month | `#month` | Calendar grid with event chips |
 | Week | `#week` | 7-column layout |
-| Day | `#day` or `#day/2026-04-04` | Single day events |
-| Grid | `#grid` | Card layout with flyer images |
+| Day | `#day` or `#day/2026-04-04` | Single day |
+| Grid | `#grid` | Card layout with thumbnails |
 | List | `#list` | Compact chronological list |
-| Detail | `#event/<id>` | Two-column layout with image gallery + event info |
+| Detail | `#event/<id>` | Two-column: image gallery + event info |
 
-The view selector bar lets visitors switch between views. Selection is saved in localStorage.
-
-Detail view uses a **two-column layout** when an event has images: gallery on the left, event details on the right. Stacks vertically on mobile.
+Visitors can switch views via the selector bar. Their preference is saved in localStorage. Detail view shows a gallery with arrow navigation when an event has multiple images.
 
 ## Configuration
 
-Every option has a sensible default. Pass only what you want to customize.
+Every option has a sensible default. Pass only what you need.
 
 ```js
 OgCal.init({
-  // --- Required ---
   el: '#cal',                          // CSS selector or DOM element
 
   // --- Data (pick one) ---
-  data: { /* og-cal schema or raw Google Calendar API JSON */ },
-  fetchUrl: 'https://...',             // fetch from URL
-  google: { apiKey, calendarId },      // Google Calendar API (client-side)
+  data: { /* og-cal or Google Calendar API JSON */ },
+  fetchUrl: 'https://...',
+  google: { apiKey, calendarId },
 
   // --- Header ---
-  showHeader: true,                    // show calendar name + description + subscribe
-  headerTitle: null,                   // override calendar name (default: from data)
-  headerDescription: null,             // override calendar description (default: from data)
-  headerIcon: null,                    // URL to icon/logo image
-  subscribeUrl: null,                  // subscribe button URL (auto-generated from calendarId)
+  showHeader: true,                    // calendar name + description + subscribe button
+  headerTitle: null,                   // override calendar name from data
+  headerDescription: null,             // override calendar description from data
+  headerIcon: null,                    // URL to icon/logo
+  subscribeUrl: null,                  // auto-generated from calendarId if not set
 
   // --- Views ---
-  defaultView: 'month',               // initial view
+  defaultView: 'month',
   views: ['month', 'week', 'day', 'grid', 'list'],
-  showPastEvents: false,               // toggle-able by visitors
-
-  // --- Locale & i18n ---
-  locale: 'en-US',                     // default: navigator.language
-  weekStartDay: 0,                     // 0=Sunday, 1=Monday, ...6=Saturday
-  i18n: {
-    viewLabels: { month: 'Month', week: 'Week', day: 'Day', grid: 'Grid', list: 'List' },
-    noUpcomingEvents: 'No upcoming events.',
-    showPastEvents: 'Show past events',
-    hidePastEvents: 'Hide past events',
-    couldNotLoad: 'Could not load events.',
-    retry: 'Retry',
-    allDay: 'All Day',
-    noEventsThisDay: 'No events this day.',
-    back: '← Back',
-    moreEvents: '+{count} more',       // {count} is replaced with the number
-    subscribe: 'Subscribe',
-  },
+  showPastEvents: false,               // visitors can toggle this
 
   // --- Theming ---
   theme: {
@@ -163,24 +123,40 @@ OgCal.init({
     fontFamily: 'system-ui, sans-serif',
   },
 
+  // --- Locale ---
+  locale: 'en-US',                     // default: navigator.language
+  weekStartDay: 0,                     // 0=Sunday, 1=Monday
+  i18n: {
+    viewLabels: { month: 'Month', week: 'Week', day: 'Day', grid: 'Grid', list: 'List' },
+    noUpcomingEvents: 'No upcoming events.',
+    showPastEvents: 'Show past events',
+    hidePastEvents: 'Hide past events',
+    couldNotLoad: 'Could not load events.',
+    retry: 'Retry',
+    allDay: 'All Day',
+    noEventsThisDay: 'No events this day.',
+    back: '← Back',
+    moreEvents: '+{count} more',
+    subscribe: 'Subscribe',
+  },
+
   // --- Responsive ---
-  mobileBreakpoint: 768,              // px
-  mobileDefaultView: 'list',          // view on small screens
-  mobileHiddenViews: ['week'],        // views hidden on mobile
+  mobileBreakpoint: 768,
+  mobileDefaultView: 'list',
+  mobileHiddenViews: ['week'],
 
   // --- Behavior ---
-  maxEventsPerDay: 3,                  // month view chips before "+N more"
+  maxEventsPerDay: 3,                  // month view: chips before "+N more"
   locationLinkTemplate: 'https://maps.google.com/?q={location}',
-  storageKeyPrefix: 'ogcal',          // localStorage key prefix (for multiple instances)
+  storageKeyPrefix: 'ogcal',          // for multiple instances
   imageExtensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'],
 
   // --- Link extraction ---
-  // 18 built-in platforms: Eventbrite, Google Forms, Google Maps, Zoom,
-  // Google Meet, Instagram, Facebook, X/Twitter, Reddit, YouTube, TikTok,
-  // LinkedIn, Discord, Luma, Mobilize, Action Network, GoFundMe, Partiful.
-  // Social platforms auto-detect handles from URLs:
+  // 18 built-in: Eventbrite, Google Forms, Google Maps, Zoom, Google Meet,
+  // Instagram, Facebook, X/Twitter, Reddit, YouTube, TikTok, LinkedIn,
+  // Discord, Luma, Mobilize, Action Network, GoFundMe, Partiful.
+  // Social platforms auto-detect handles:
   //   "https://instagram.com/savebigbend" → "Follow @savebigbend on Instagram"
-  // Extend the defaults or override entirely:
   knownPlatforms: [
     ...OgCal.DEFAULTS.knownPlatforms,
     { pattern: /your-site\.com/i, label: 'Visit Our Site' },
@@ -200,19 +176,19 @@ OgCal.init({
   onError: (error) => {},
 
   // --- Data hooks ---
-  eventFilter: (event) => true,        // filter events before display
-  eventTransform: (event) => event,    // transform events after loading
+  eventFilter: (event) => true,
+  eventTransform: (event) => event,
 
   // --- Custom renderers ---
-  renderEmpty: null,     // (hasPastEvents) => '<div>...</div>' or DOM element
-  renderLoading: null,   // () => '<div>...</div>' or DOM element
-  renderError: null,     // (error) => '<div>...</div>' or DOM element
+  renderEmpty: null,
+  renderLoading: null,
+  renderError: null,
 });
 ```
 
-### Data attributes
+All options also work as HTML `data-` attributes for zero-JS setup. See the [data attributes table](#data-attributes) below.
 
-All config options can be set via HTML `data-` attributes for zero-JS setup:
+### Data attributes
 
 | Attribute | Maps to |
 |-----------|---------|
@@ -229,141 +205,11 @@ All config options can be set via HTML `data-` attributes for zero-JS setup:
 | `data-mobile-default-view` | `mobileDefaultView` |
 | `data-max-events-per-day` | `maxEventsPerDay` |
 | `data-storage-key-prefix` | `storageKeyPrefix` |
-| `data-theme-primary` | `theme.primary` |
-| `data-theme-primary-text` | `theme.primaryText` |
-| `data-theme-background` | `theme.background` |
-| `data-theme-surface` | `theme.surface` |
-| `data-theme-text` | `theme.text` |
-| `data-theme-text-secondary` | `theme.textSecondary` |
-| `data-theme-radius` | `theme.radius` |
-| `data-theme-font-family` | `theme.fontFamily` |
+| `data-theme-*` | `theme.*` (e.g. `data-theme-primary="#333"`) |
 
-## Event Schema
+## Link Extraction
 
-og-cal consumes this JSON format from any source. Most fields are optional — og-cal auto-enriches events by extracting images, links, and format from descriptions.
-
-**Minimal input** (what you need to provide):
-
-```json
-{
-  "events": [
-    {
-      "id": "abc123",
-      "title": "Community Rally",
-      "description": "Join us! https://example.com/flyer.png\n\nhttps://eventbrite.com/e/rally-123",
-      "location": "City Hall, Austin, TX",
-      "start": "2026-04-04T16:00:00-05:00",
-      "end": "2026-04-04T19:00:00-05:00",
-      "allDay": false,
-      "attachments": [
-        { "url": "https://example.com/photo.jpg", "mimeType": "image/jpeg" }
-      ]
-    }
-  ],
-  "calendar": {
-    "name": "My Calendar",
-    "timezone": "America/Chicago"
-  },
-  "generated": "2026-03-18T20:00:00Z"
-}
-```
-
-**After auto-enrichment**, og-cal adds these fields internally:
-
-| Field | Source |
-|-------|--------|
-| `image` | First image URL from description, or first `image/*` attachment |
-| `images` | All image URLs (description + attachments), in order |
-| `links` | Platform URLs extracted from description (Eventbrite, Instagram, etc.) |
-| `descriptionFormat` | Auto-detected: `html`, `markdown`, or `plain` |
-
-The description is cleaned up — extracted image URLs and platform links are removed from the rendered text so they don't show as raw URLs.
-
-### Smart description rendering
-
-Descriptions are auto-detected and rendered:
-- **HTML** — sanitized with configurable allowlist and rendered
-- **Markdown** — parsed with [marked](https://github.com/markedjs/marked) and sanitized
-- **Plain text** — escaped with line breaks preserved
-
-### Event images
-
-og-cal extracts **all** image URLs from descriptions and attachments, building an `images` array. The first image is the primary thumbnail (used in grid/list views). In detail view, multiple images display as a **gallery** with ← → navigation and keyboard support.
-
-Image sources (combined in order):
-
-1. **Image URLs in description** — all URLs ending in `.png`, `.jpg`, `.gif`, `.webp` (or configured `imageExtensions`) are extracted from the description and removed from the rendered text. The first one becomes the primary image.
-
-2. **Google Calendar attachments** — og-cal checks the event's `attachments` for all `image/*` MIME types and appends them after description images. Attachments can point to any public URL — they don't have to be Google Drive files.
-
-   To add an image attachment programmatically, use the [Google Calendar API](https://developers.google.com/calendar/api/v3/reference/events/update) with a service account or OAuth2 credentials:
-
-   **Python** (using `google-api-python-client`):
-   ```python
-   from google.oauth2 import service_account
-   from googleapiclient.discovery import build
-
-   creds = service_account.Credentials.from_service_account_file(
-       'service-account-key.json',
-       scopes=['https://www.googleapis.com/auth/calendar'],
-   )
-   service = build('calendar', 'v3', credentials=creds)
-
-   # Fetch the event, add an attachment, and update
-   event = service.events().get(calendarId=CALENDAR_ID, eventId=EVENT_ID).execute()
-   event['attachments'] = [{
-       'fileUrl': 'https://example.com/poster.png',
-       'title': 'Event Poster',
-       'mimeType': 'image/png',
-   }]
-   service.events().update(
-       calendarId=CALENDAR_ID,
-       eventId=EVENT_ID,
-       body=event,
-       supportsAttachments=True,
-   ).execute()
-   ```
-
-   **JavaScript** (using `googleapis` npm package):
-   ```js
-   const { google } = require('googleapis');
-   const auth = new google.auth.GoogleAuth({
-     keyFile: 'service-account-key.json',
-     scopes: ['https://www.googleapis.com/auth/calendar'],
-   });
-   const calendar = google.calendar({ version: 'v3', auth });
-
-   const { data: event } = await calendar.events.get({
-     calendarId: CALENDAR_ID, eventId: EVENT_ID,
-   });
-   event.attachments = [{
-     fileUrl: 'https://example.com/poster.png',
-     title: 'Event Poster',
-     mimeType: 'image/png',
-   }];
-   await calendar.events.update({
-     calendarId: CALENDAR_ID, eventId: EVENT_ID,
-     requestBody: event, supportsAttachments: true,
-   });
-   ```
-
-3. **No image** — grid view shows a placeholder; detail view shows no image column.
-
-Images display with `object-fit: contain` in the detail gallery (full image visible) and `object-fit: cover` in grid view (cropped to 16:9 cards). The gallery supports keyboard navigation (← → arrow keys).
-
-### Automatic enrichment
-
-og-cal enriches events from **all data sources** — not just Google API mode. If you provide pre-loaded data or use a fetch URL, og-cal will still:
-- Extract image URLs from descriptions
-- Extract platform links from descriptions (even when wrapped in `<a>` tags)
-- Detect description format (HTML, markdown, plain text)
-- Check attachments for image thumbnails
-
-This means your server-side code can pass raw event data without duplicating extraction logic.
-
-### Link extraction
-
-URLs matching `knownPlatforms` patterns are extracted from descriptions and rendered as action buttons. Built-in platforms:
+URLs in event descriptions matching known platforms are extracted and rendered as action buttons. The URL is removed from the description text.
 
 | Platform | Example label |
 |----------|--------------|
@@ -386,113 +232,37 @@ URLs matching `knownPlatforms` patterns are extracted from descriptions and rend
 | GoFundMe | Donate on GoFundMe |
 | Partiful | RSVP on Partiful |
 
-Social platforms auto-detect handles from the URL path. Add your own with static `label` or dynamic `labelFn`:
+Social platforms auto-detect handles from the URL path. Add your own via `knownPlatforms` config.
 
-```js
-OgCal.init({
-  knownPlatforms: [
-    ...OgCal.DEFAULTS.knownPlatforms,
-    { pattern: /your-org\.com/i, label: 'Visit Our Site' },
-    { pattern: /custom\.app/i, labelFn: (url) => `Open ${new URL(url).pathname}` },
-  ],
-});
-```
+## Event Images
 
-## Callbacks
+og-cal collects images from two sources:
 
-```js
-OgCal.init({
-  el: '#cal',
-  google: { apiKey: '...', calendarId: '...' },
+1. **Image URLs in the description** — extracted and removed from rendered text
+2. **Attachments** with `image/*` MIME type — from Google Calendar or your own data
 
-  // Custom click behavior (return false to prevent navigation to detail view)
-  onEventClick: (event, view) => {
-    if (event.links.length) {
-      window.open(event.links[0].url);
-      return false;
-    }
-  },
+The first image is the thumbnail (grid/list views). Multiple images show as a gallery in detail view with ← → navigation and keyboard support.
 
-  // Track view changes
-  onViewChange: (newView, oldView) => {
-    analytics.track('calendar_view_change', { from: oldView, to: newView });
-  },
+To add image attachments via the Google Calendar API, use `supportsAttachments: true` in your update call. Attachments can point to any public URL.
 
-  // Post-load processing
-  onDataLoad: (data) => {
-    console.log(`Loaded ${data.events.length} events`);
-  },
+## Responsive
 
-  // Custom error handling
-  onError: (error) => {
-    Sentry.captureException(error);
-  },
+- **Desktop (>1024px)** — all views, full grid
+- **Tablet (768–1024px)** — condensed month, 2-column grid
+- **Mobile (<768px)** — defaults to list view, single-column, week view hidden
 
-  // Filter events (e.g. only show events with images)
-  eventFilter: (event) => event.image !== null,
-
-  // Transform events after loading (e.g. add computed fields)
-  eventTransform: (event) => ({
-    ...event,
-    title: event.title.toUpperCase(),
-  }),
-});
-```
-
-## Responsive Design
-
-Breakpoints and mobile behavior are configurable:
-
-```js
-OgCal.init({
-  mobileBreakpoint: 768,          // default
-  mobileDefaultView: 'list',      // what mobile users see first
-  mobileHiddenViews: ['week'],    // hide complex views on small screens
-});
-```
-
-Defaults:
-- **Desktop (>1024px)** — all views, full grid layouts
-- **Tablet (768–1024px)** — condensed month view, 2-column grid
-- **Mobile (<768px)** — defaults to list view, single-column grid, week view hidden
-
-## Multiple Instances
-
-Use `storageKeyPrefix` to avoid localStorage collisions:
-
-```html
-<div id="events-a"></div>
-<div id="events-b"></div>
-<script>
-OgCal.init({ el: '#events-a', storageKeyPrefix: 'cal-a', ... });
-OgCal.init({ el: '#events-b', storageKeyPrefix: 'cal-b', ... });
-</script>
-```
+All breakpoints and mobile behavior are configurable.
 
 ## Internationalization
 
-og-cal respects the browser's locale by default. Override with `locale` and `i18n`:
+og-cal uses `Intl.DateTimeFormat` for all date/time formatting. Set `locale` and `weekStartDay` to match your audience. All UI strings are overridable via `i18n`.
+
+## Multiple Instances
 
 ```js
-OgCal.init({
-  locale: 'es',
-  weekStartDay: 1,  // Monday
-  i18n: {
-    viewLabels: { month: 'Mes', week: 'Semana', day: 'Dia', grid: 'Cuadricula', list: 'Lista' },
-    noUpcomingEvents: 'No hay eventos proximos.',
-    showPastEvents: 'Mostrar eventos pasados',
-    hidePastEvents: 'Ocultar eventos pasados',
-    couldNotLoad: 'No se pudieron cargar los eventos.',
-    retry: 'Reintentar',
-    allDay: 'Todo el dia',
-    noEventsThisDay: 'No hay eventos hoy.',
-    back: '← Volver',
-    moreEvents: '+{count} mas',
-  },
-});
+OgCal.init({ el: '#events-a', storageKeyPrefix: 'cal-a', ... });
+OgCal.init({ el: '#events-b', storageKeyPrefix: 'cal-b', ... });
 ```
-
-Day names, month names, and date/time formatting all use `Intl.DateTimeFormat` with the configured locale automatically.
 
 ## Development
 
@@ -510,7 +280,7 @@ open dev.html     # local preview with mock data
 - [esbuild](https://esbuild.github.io/) for bundling
 - [marked](https://github.com/markedjs/marked) for markdown (bundled)
 - CSS custom properties for theming
-- `Intl.DateTimeFormat` for locale-aware, timezone-correct formatting
+- `Intl.DateTimeFormat` for locale-aware formatting
 
 ## License
 

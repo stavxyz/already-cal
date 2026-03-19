@@ -24,6 +24,7 @@ const DEFAULT_PLATFORMS = [
   { pattern: /mobilize\.us/i, label: 'RSVP on Mobilize' },
   { pattern: /actionnetwork\.org/i, label: 'Take Action' },
   { pattern: /gofundme\.com/i, label: 'Donate on GoFundMe' },
+  { pattern: /partiful\.com/i, label: 'RSVP on Partiful' },
 ];
 
 const URL_PATTERN = /https?:\/\/[^\s<>"]+/gi;

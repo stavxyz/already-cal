@@ -342,6 +342,7 @@ URLs matching `knownPlatforms` patterns are extracted from descriptions and rend
 | Mobilize | RSVP on Mobilize |
 | Action Network | Take Action |
 | GoFundMe | Donate on GoFundMe |
+| Partiful | RSVP on Partiful |
 
 Social platforms auto-detect handles from the URL path. Add your own with static `label` or dynamic `labelFn`:
 

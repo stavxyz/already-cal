@@ -82,7 +82,8 @@ var OgCal = (() => {
     { pattern: /lu\.ma/i, label: "RSVP on Luma" },
     { pattern: /mobilize\.us/i, label: "RSVP on Mobilize" },
     { pattern: /actionnetwork\.org/i, label: "Take Action" },
-    { pattern: /gofundme\.com/i, label: "Donate on GoFundMe" }
+    { pattern: /gofundme\.com/i, label: "Donate on GoFundMe" },
+    { pattern: /partiful\.com/i, label: "RSVP on Partiful" }
   ];
   var URL_PATTERN = /https?:\/\/[^\s<>"]+/gi;
   function extractLinks(description, config) {

@@ -2958,16 +2958,20 @@ ${text}</tr>
     backBtn.textContent = backLabel;
     backBtn.addEventListener("click", onBack);
     detail.appendChild(backBtn);
+    const body = document.createElement("div");
+    body.className = event.image ? "ogcal-detail-body ogcal-detail-body--has-image" : "ogcal-detail-body";
     if (event.image) {
-      const img = document.createElement("div");
-      img.className = "ogcal-detail-image";
-      img.innerHTML = `<img src="${event.image}" alt="${escapeHtml(event.title)}" loading="lazy">`;
-      detail.appendChild(img);
+      const imgCol = document.createElement("div");
+      imgCol.className = "ogcal-detail-image";
+      imgCol.innerHTML = `<img src="${event.image}" alt="${escapeHtml(event.title)}" loading="lazy">`;
+      body.appendChild(imgCol);
     }
+    const content = document.createElement("div");
+    content.className = "ogcal-detail-content";
     const title = document.createElement("h2");
     title.className = "ogcal-detail-title";
     title.textContent = event.title;
-    detail.appendChild(title);
+    content.appendChild(title);
     const meta = document.createElement("div");
     meta.className = "ogcal-detail-meta";
     const dateStr = event.allDay ? formatDate(event.start, timezone, locale) : formatDatetime(event.start, timezone, locale);
@@ -2976,12 +2980,12 @@ ${text}</tr>
       const mapsUrl = locationTemplate.replace("{location}", encodeURIComponent(event.location));
       meta.innerHTML += `<div class="ogcal-detail-location"><a href="${mapsUrl}" target="_blank" rel="noopener">${escapeHtml(event.location)}</a></div>`;
     }
-    detail.appendChild(meta);
+    content.appendChild(meta);
     if (event.description) {
       const desc = document.createElement("div");
       desc.className = "ogcal-detail-description";
       desc.innerHTML = renderDescription(event.description, config);
-      detail.appendChild(desc);
+      content.appendChild(desc);
     }
     if (event.links && event.links.length > 0) {
       const linksDiv = document.createElement("div");
@@ -2995,8 +2999,10 @@ ${text}</tr>
         a.textContent = link2.label;
         linksDiv.appendChild(a);
       }
-      detail.appendChild(linksDiv);
+      content.appendChild(linksDiv);
     }
+    body.appendChild(content);
+    detail.appendChild(body);
     container.innerHTML = "";
     container.appendChild(detail);
     backBtn.focus();

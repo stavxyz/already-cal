@@ -2321,6 +2321,13 @@ ${text}</tr>
     const data = await res.json();
     return transformGoogleEvents(data, config);
   }
+  function getImageFromAttachments(attachments) {
+    if (!attachments) return null;
+    const imageAttachment = attachments.find(
+      (a) => a.mimeType && a.mimeType.startsWith("image/")
+    );
+    return imageAttachment ? imageAttachment.fileUrl : null;
+  }
   function transformGoogleEvents(googleData, config) {
     const events = (googleData.items || []).map((item) => {
       let description = item.description || "";
@@ -2335,7 +2342,7 @@ ${text}</tr>
         start: item.start?.dateTime || item.start?.date || "",
         end: item.end?.dateTime || item.end?.date || "",
         allDay: !item.start?.dateTime,
-        image,
+        image: image || getImageFromAttachments(item.attachments),
         links,
         attachments: (item.attachments || []).map((a) => ({
           title: a.title,

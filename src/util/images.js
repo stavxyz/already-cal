@@ -2,24 +2,35 @@ const DEFAULT_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
 
 function buildImagePattern(extensions) {
   const ext = extensions.join('|');
-  return new RegExp(`(?:^|\\s)(https?:\\/\\/\\S+\\.(?:${ext})(?:\\?\\S*)?)(?:\\s|$)`, 'gi');
+  // Match image URLs whether bare, inside href="...", or inside >...</a> tags
+  return new RegExp(`(https?://[^\\s<>"]+\\.(?:${ext})(?:\\?[^\\s<>"]*)?)`, 'gi');
 }
 
 export function extractImage(description, config) {
   if (!description) return { image: null, images: [], description };
   const extensions = (config && config.imageExtensions) || DEFAULT_IMAGE_EXTENSIONS;
   const pattern = buildImagePattern(extensions);
+  const seen = new Set();
   const images = [];
-  let cleaned = description;
   let match;
   while ((match = pattern.exec(description)) !== null) {
-    images.push(match[1]);
+    const url = match[1];
+    if (!seen.has(url)) {
+      seen.add(url);
+      images.push(url);
+    }
   }
-  // Remove all image URLs from description
+  // Remove image URLs and any <a> tags wrapping them from description
+  let cleaned = description;
   for (const img of images) {
-    cleaned = cleaned.replace(img, '').trim();
+    // Remove <a ...>img</a> pattern
+    const escapedImg = img.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escapedImg}</a>`, 'gi'), '');
+    // Remove bare URL
+    cleaned = cleaned.replace(img, '');
   }
-  // Clean up leftover whitespace
+  // Clean up leftover whitespace and empty lines
+  cleaned = cleaned.replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '\n\n');
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
   return { image: images[0] || null, images, description: cleaned };
 }

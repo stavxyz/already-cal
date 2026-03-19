@@ -27,21 +27,29 @@ var OgCal = (() => {
   var DEFAULT_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
   function buildImagePattern(extensions) {
     const ext = extensions.join("|");
-    return new RegExp(`(?:^|\\s)(https?:\\/\\/\\S+\\.(?:${ext})(?:\\?\\S*)?)(?:\\s|$)`, "gi");
+    return new RegExp(`(https?://[^\\s<>"]+\\.(?:${ext})(?:\\?[^\\s<>"]*)?)`, "gi");
   }
   function extractImage(description, config) {
     if (!description) return { image: null, images: [], description };
     const extensions = config && config.imageExtensions || DEFAULT_IMAGE_EXTENSIONS;
     const pattern = buildImagePattern(extensions);
+    const seen = /* @__PURE__ */ new Set();
     const images = [];
-    let cleaned = description;
     let match;
     while ((match = pattern.exec(description)) !== null) {
-      images.push(match[1]);
+      const url = match[1];
+      if (!seen.has(url)) {
+        seen.add(url);
+        images.push(url);
+      }
     }
+    let cleaned = description;
     for (const img of images) {
-      cleaned = cleaned.replace(img, "").trim();
+      const escapedImg = img.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escapedImg}</a>`, "gi"), "");
+      cleaned = cleaned.replace(img, "");
     }
+    cleaned = cleaned.replace(/<br\s*\/?>\s*<br\s*\/?>/gi, "\n\n");
     cleaned = cleaned.replace(/\n{3,}/g, "\n\n").trim();
     return { image: images[0] || null, images, description: cleaned };
   }
@@ -97,17 +105,24 @@ var OgCal = (() => {
     const platforms = config && config.knownPlatforms || DEFAULT_PLATFORMS;
     const links = [];
     let cleaned = description;
+    const seen = /* @__PURE__ */ new Set();
     const urls = description.match(URL_PATTERN) || [];
     for (const url of urls) {
+      if (seen.has(url)) continue;
       for (const platform of platforms) {
         if (platform.pattern.test(url)) {
+          seen.add(url);
           const label = platform.labelFn ? platform.labelFn(url) : platform.label;
           links.push({ label, url });
-          cleaned = cleaned.replace(url, "").trim();
+          const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escapedUrl}</a>`, "gi"), "");
+          cleaned = cleaned.replace(url, "");
           break;
         }
       }
     }
+    cleaned = cleaned.replace(/(<br\s*\/?>[\s]*){2,}/gi, "\n\n");
+    cleaned = cleaned.trim();
     return { links, description: cleaned };
   }
 

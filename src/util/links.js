@@ -34,18 +34,28 @@ export function extractLinks(description, config) {
   const platforms = (config && config.knownPlatforms) || DEFAULT_PLATFORMS;
   const links = [];
   let cleaned = description;
+  const seen = new Set();
 
   const urls = description.match(URL_PATTERN) || [];
   for (const url of urls) {
+    if (seen.has(url)) continue;
     for (const platform of platforms) {
       if (platform.pattern.test(url)) {
+        seen.add(url);
         const label = platform.labelFn ? platform.labelFn(url) : platform.label;
         links.push({ label, url });
-        cleaned = cleaned.replace(url, '').trim();
+        // Remove <a> tag wrapping the URL if present, then the bare URL
+        const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escapedUrl}</a>`, 'gi'), '');
+        cleaned = cleaned.replace(url, '');
         break;
       }
     }
   }
+
+  // Clean up leftover empty <br> pairs
+  cleaned = cleaned.replace(/(<br\s*\/?>[\s]*){2,}/gi, '\n\n');
+  cleaned = cleaned.trim();
 
   return { links, description: cleaned };
 }

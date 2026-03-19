@@ -254,9 +254,32 @@ Descriptions are auto-detected and rendered:
 - **Markdown** — parsed with [marked](https://github.com/markedjs/marked) and sanitized
 - **Plain text** — escaped with line breaks preserved
 
-### Image extraction
+### Event images
 
-The first image URL in an event description (matching configured `imageExtensions`) is extracted and displayed as the event thumbnail in grid and detail views.
+og-cal looks for a thumbnail image in this order:
+
+1. **Image URL in description** — the first URL ending in `.png`, `.jpg`, `.gif`, `.webp` (or configured `imageExtensions`) is extracted from the description and used as the thumbnail. The URL is removed from the rendered description to avoid duplication.
+
+2. **Google Calendar attachment** — if no image URL is found in the description, og-cal checks the event's `attachments` for the first `image/*` MIME type and uses its `fileUrl`. Attachments can be added via the Google Calendar API:
+
+   ```python
+   service.events().update(
+     calendarId=CALENDAR_ID,
+     eventId=event_id,
+     body={**event, 'attachments': [{
+       'fileUrl': 'https://example.com/poster.png',
+       'title': 'Event Poster',
+       'mimeType': 'image/png',
+     }]},
+     supportsAttachments=True,
+   ).execute()
+   ```
+
+   Note: attachments can reference any public URL — they don't have to be Google Drive files.
+
+3. **No image** — grid view shows a placeholder; detail view shows no image header.
+
+Images display with `object-fit: contain` in detail view (full image visible) and `object-fit: cover` in grid view (cropped to 16:9 cards).
 
 ### Link extraction
 

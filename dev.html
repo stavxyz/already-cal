@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>og-cal dev</title>
+  <link rel="stylesheet" href="dist/og-cal.css">
+</head>
+<body style="max-width:900px;margin:2em auto;padding:0 1em;">
+  <h1>og-cal dev</h1>
+  <div id="og-cal"></div>
+  <script src="dist/og-cal.js"></script>
+  <script>
+    OgCal.init({
+      el: '#og-cal',
+      defaultView: 'month',
+      theme: {
+        primary: '#8B4513',
+        fontFamily: "'Red Hat Display', sans-serif",
+      },
+      data: {
+        events: [
+          {
+            id: 'rally-april-4',
+            title: 'Save Big Bend Rally at the Capitol',
+            description: '<p><strong>Rally at the Texas Capitol to Save Big Bend.</strong> Join thousands of Texans at the South Steps.</p>',
+            descriptionFormat: 'html',
+            location: 'Texas Capitol, South Steps, Austin, TX',
+            start: '2026-04-04T16:00:00-05:00',
+            end: '2026-04-04T19:00:00-05:00',
+            allDay: false,
+            image: 'https://nobigbendwall.org/wp-content/uploads/2026/03/SBB_poster_1.png',
+            links: [{ label: 'RSVP on Eventbrite', url: 'https://www.eventbrite.com/e/save-big-bend-atx-capitol-rally-44-tickets-1984004583116' }],
+            attachments: [],
+          },
+          {
+            id: 'forum-april-12',
+            title: 'Border Wall Forum & Film Screening',
+            description: 'Join us for a screening of **The River and The Wall** followed by a community forum.',
+            descriptionFormat: 'markdown',
+            location: 'Crowley Theater, Marfa, TX',
+            start: '2026-04-12T19:00:00-05:00',
+            end: '2026-04-12T22:00:00-05:00',
+            allDay: false,
+            image: null,
+            links: [],
+            attachments: [],
+          },
+          {
+            id: 'past-event',
+            title: 'Alpine Border Wall Forum',
+            description: 'This event has already happened.',
+            descriptionFormat: 'plain',
+            location: 'The Granada Theatre, Alpine, TX',
+            start: '2026-03-14T19:00:00-05:00',
+            end: '2026-03-14T22:00:00-05:00',
+            allDay: false,
+            image: null,
+            links: [],
+            attachments: [],
+          },
+        ],
+        calendar: {
+          name: 'NBBW PUBLIC WEBSITE',
+          timezone: 'America/Chicago',
+        },
+        generated: new Date().toISOString(),
+      },
+    });
+  </script>
+</body>
+</html>

@@ -46,22 +46,30 @@ OgCal.init({
 
 ### 1. Pre-loaded data (recommended for production)
 
-Embed event data as JSON server-side. The API key stays on your server.
+Embed event data as JSON server-side. The API key stays on your server. You can pass either og-cal schema or **raw Google Calendar API JSON** — og-cal auto-detects the format.
 
 ```js
+// og-cal schema
 OgCal.init({
   el: '#cal',
   data: {
     events: [/* og-cal schema */],
     calendar: { name: 'My Calendar', timezone: 'America/Chicago' },
-    generated: new Date().toISOString(),
   },
+});
+
+// Or pass raw Google Calendar API response directly — og-cal transforms it
+OgCal.init({
+  el: '#cal',
+  data: googleCalendarApiResponse, // { items: [...], summary: '...', timeZone: '...' }
 });
 ```
 
+This means your server-side proxy can just fetch and cache the Google Calendar API response with zero transform logic.
+
 ### 2. Fetch URL
 
-Point og-cal at your own API endpoint that returns og-cal schema JSON.
+Point og-cal at your own API endpoint. Can return og-cal schema or raw Google Calendar API JSON.
 
 ```js
 OgCal.init({
@@ -110,9 +118,16 @@ OgCal.init({
   el: '#cal',                          // CSS selector or DOM element
 
   // --- Data (pick one) ---
-  data: { /* og-cal schema */ },       // pre-loaded
+  data: { /* og-cal schema or raw Google Calendar API JSON */ },
   fetchUrl: 'https://...',             // fetch from URL
-  google: { apiKey, calendarId },      // Google Calendar API
+  google: { apiKey, calendarId },      // Google Calendar API (client-side)
+
+  // --- Header ---
+  showHeader: true,                    // show calendar name + description + subscribe
+  headerTitle: null,                   // override calendar name (default: from data)
+  headerDescription: null,             // override calendar description (default: from data)
+  headerIcon: null,                    // URL to icon/logo image
+  subscribeUrl: null,                  // subscribe button URL (auto-generated from calendarId)
 
   // --- Views ---
   defaultView: 'month',               // initial view
@@ -133,6 +148,7 @@ OgCal.init({
     noEventsThisDay: 'No events this day.',
     back: '← Back',
     moreEvents: '+{count} more',       // {count} is replaced with the number
+    subscribe: 'Subscribe',
   },
 
   // --- Theming ---

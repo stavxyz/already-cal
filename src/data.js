@@ -44,19 +44,31 @@ export async function loadData(config) {
 function enrichEvent(event, config) {
   let description = event.description || '';
   let image = event.image || null;
+  let images = (event.images && event.images.length > 0) ? event.images : [];
   let links = (event.links && event.links.length > 0) ? event.links : [];
 
-  // Extract image from description if not already set
-  if (!image && description) {
+  // Extract images from description if not already set
+  if (images.length === 0 && description) {
     const result = extractImage(description, config);
     image = result.image;
+    images = result.images;
     description = result.description;
   }
 
-  // Fallback: check attachments for image
-  if (!image) {
-    image = getImageFromAttachments(event.attachments);
+  // Fallback: check attachments for images
+  const attachmentImages = getImagesFromAttachments(event.attachments);
+  if (attachmentImages.length > 0) {
+    // Append attachment images that aren't already in the list
+    const existing = new Set(images);
+    for (const ai of attachmentImages) {
+      if (!existing.has(ai)) {
+        images.push(ai);
+      }
+    }
   }
+
+  // Set primary image
+  if (!image && images.length > 0) image = images[0];
 
   // Extract links from description if not already populated
   if (links.length === 0 && description) {
@@ -68,7 +80,7 @@ function enrichEvent(event, config) {
   // Detect format if not set
   const descriptionFormat = event.descriptionFormat || detectFormat(description);
 
-  return { ...event, description, descriptionFormat, image, links };
+  return { ...event, description, descriptionFormat, image, images, links };
 }
 
 async function fetchGoogleCalendar({ apiKey, calendarId, maxResults = 50 }, config) {
@@ -82,19 +94,28 @@ async function fetchGoogleCalendar({ apiKey, calendarId, maxResults = 50 }, conf
   return transformGoogleEvents(data, config);
 }
 
-function getImageFromAttachments(attachments) {
-  if (!attachments) return null;
-  const imageAttachment = attachments.find(a =>
-    a.mimeType && a.mimeType.startsWith('image/')
-  );
-  return imageAttachment ? (imageAttachment.fileUrl || imageAttachment.url) : null;
+function getImagesFromAttachments(attachments) {
+  if (!attachments) return [];
+  return attachments
+    .filter(a => a.mimeType && a.mimeType.startsWith('image/'))
+    .map(a => a.fileUrl || a.url)
+    .filter(Boolean);
 }
 
 export function transformGoogleEvents(googleData, config) {
   const events = (googleData.items || []).map(item => {
     let description = item.description || '';
-    const { image, description: descAfterImage } = extractImage(description, config);
+    const { image, images, description: descAfterImage } = extractImage(description, config);
     const { links, description: descAfterLinks } = extractLinks(descAfterImage, config);
+
+    const attachmentImages = getImagesFromAttachments(
+      (item.attachments || []).map(a => ({ ...a, url: a.fileUrl }))
+    );
+    const allImages = [...images];
+    const existing = new Set(allImages);
+    for (const ai of attachmentImages) {
+      if (!existing.has(ai)) allImages.push(ai);
+    }
 
     return {
       id: item.id,
@@ -105,7 +126,8 @@ export function transformGoogleEvents(googleData, config) {
       start: item.start?.dateTime || item.start?.date || '',
       end: item.end?.dateTime || item.end?.date || '',
       allDay: !item.start?.dateTime,
-      image: image || getImageFromAttachments(item.attachments),
+      image: image || allImages[0] || null,
+      images: allImages,
       links,
       attachments: (item.attachments || []).map(a => ({
         title: a.title,

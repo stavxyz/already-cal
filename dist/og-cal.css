@@ -519,11 +519,60 @@
   overflow: hidden;
   background: var(--ogcal-background);
 }
-.ogcal-detail-image img {
+.ogcal-detail-gallery {
+  position: relative;
+  user-select: none;
+}
+.ogcal-detail-gallery-img {
   width: 100%;
   height: auto;
   object-fit: contain;
   display: block;
+}
+.ogcal-detail-gallery-prev,
+.ogcal-detail-gallery-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  border: none;
+  font-size: 1.75rem;
+  line-height: 1;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.ogcal-detail-gallery-prev:hover,
+.ogcal-detail-gallery-next:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+.ogcal-detail-gallery-prev:focus-visible,
+.ogcal-detail-gallery-next:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.ogcal-detail-gallery-prev {
+  left: 0.5rem;
+}
+.ogcal-detail-gallery-next {
+  right: 0.5rem;
+}
+.ogcal-detail-gallery-counter {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
 }
 .ogcal-detail-content {
   min-width: 0;

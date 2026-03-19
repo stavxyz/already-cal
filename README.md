@@ -235,6 +235,11 @@ og-cal consumes this JSON format from any source:
       "end": "2026-04-04T19:00:00-05:00",
       "allDay": false,
       "image": "https://example.com/flyer.png",
+      "images": [
+        "https://example.com/flyer.png",
+        "https://example.com/photo1.jpg",
+        "https://example.com/photo2.jpg"
+      ],
       "links": [
         { "label": "RSVP on Eventbrite", "url": "https://eventbrite.com/..." }
       ],
@@ -258,11 +263,13 @@ Descriptions are auto-detected and rendered:
 
 ### Event images
 
-og-cal looks for a thumbnail image in this order:
+og-cal extracts **all** image URLs from descriptions and attachments, building an `images` array. The first image is the primary thumbnail (used in grid/list views). In detail view, multiple images display as a **gallery** with ← → navigation and keyboard support.
 
-1. **Image URL in description** — the first URL ending in `.png`, `.jpg`, `.gif`, `.webp` (or configured `imageExtensions`) is extracted from the description and used as the thumbnail. The URL is removed from the rendered description to avoid duplication.
+Image sources (combined in order):
 
-2. **Google Calendar attachment** — if no image URL is found in the description, og-cal checks the event's `attachments` for the first `image/*` MIME type and uses its `fileUrl`. Attachments can point to any public URL — they don't have to be Google Drive files.
+1. **Image URLs in description** — all URLs ending in `.png`, `.jpg`, `.gif`, `.webp` (or configured `imageExtensions`) are extracted from the description and removed from the rendered text. The first one becomes the primary image.
+
+2. **Google Calendar attachments** — og-cal checks the event's `attachments` for all `image/*` MIME types and appends them after description images. Attachments can point to any public URL — they don't have to be Google Drive files.
 
    To add an image attachment programmatically, use the [Google Calendar API](https://developers.google.com/calendar/api/v3/reference/events/update) with a service account or OAuth2 credentials:
 

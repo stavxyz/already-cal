@@ -27,17 +27,23 @@ var OgCal = (() => {
   var DEFAULT_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
   function buildImagePattern(extensions) {
     const ext = extensions.join("|");
-    return new RegExp(`(?:^|\\s)(https?:\\/\\/\\S+\\.(?:${ext})(?:\\?\\S*)?)(?:\\s|$)`, "i");
+    return new RegExp(`(?:^|\\s)(https?:\\/\\/\\S+\\.(?:${ext})(?:\\?\\S*)?)(?:\\s|$)`, "gi");
   }
   function extractImage(description, config) {
-    if (!description) return { image: null, description };
+    if (!description) return { image: null, images: [], description };
     const extensions = config && config.imageExtensions || DEFAULT_IMAGE_EXTENSIONS;
     const pattern = buildImagePattern(extensions);
-    const match = description.match(pattern);
-    if (!match) return { image: null, description };
-    const image = match[1];
-    const cleaned = description.replace(match[0], " ").trim();
-    return { image, description: cleaned };
+    const images = [];
+    let cleaned = description;
+    let match;
+    while ((match = pattern.exec(description)) !== null) {
+      images.push(match[1]);
+    }
+    for (const img of images) {
+      cleaned = cleaned.replace(img, "").trim();
+    }
+    cleaned = cleaned.replace(/\n{3,}/g, "\n\n").trim();
+    return { image: images[0] || null, images, description: cleaned };
   }
 
   // src/util/links.js
@@ -2357,22 +2363,31 @@ ${text}</tr>
   function enrichEvent(event, config) {
     let description = event.description || "";
     let image = event.image || null;
+    let images = event.images && event.images.length > 0 ? event.images : [];
     let links = event.links && event.links.length > 0 ? event.links : [];
-    if (!image && description) {
+    if (images.length === 0 && description) {
       const result = extractImage(description, config);
       image = result.image;
+      images = result.images;
       description = result.description;
     }
-    if (!image) {
-      image = getImageFromAttachments(event.attachments);
+    const attachmentImages = getImagesFromAttachments(event.attachments);
+    if (attachmentImages.length > 0) {
+      const existing = new Set(images);
+      for (const ai of attachmentImages) {
+        if (!existing.has(ai)) {
+          images.push(ai);
+        }
+      }
     }
+    if (!image && images.length > 0) image = images[0];
     if (links.length === 0 && description) {
       const result = extractLinks(description, config);
       links = result.links;
       description = result.description;
     }
     const descriptionFormat = event.descriptionFormat || detectFormat(description);
-    return { ...event, description, descriptionFormat, image, links };
+    return { ...event, description, descriptionFormat, image, images, links };
   }
   async function fetchGoogleCalendar({ apiKey, calendarId, maxResults = 50 }, config) {
     const now = (/* @__PURE__ */ new Date()).toISOString();
@@ -2382,18 +2397,23 @@ ${text}</tr>
     const data = await res.json();
     return transformGoogleEvents(data, config);
   }
-  function getImageFromAttachments(attachments) {
-    if (!attachments) return null;
-    const imageAttachment = attachments.find(
-      (a) => a.mimeType && a.mimeType.startsWith("image/")
-    );
-    return imageAttachment ? imageAttachment.fileUrl || imageAttachment.url : null;
+  function getImagesFromAttachments(attachments) {
+    if (!attachments) return [];
+    return attachments.filter((a) => a.mimeType && a.mimeType.startsWith("image/")).map((a) => a.fileUrl || a.url).filter(Boolean);
   }
   function transformGoogleEvents(googleData, config) {
     const events = (googleData.items || []).map((item) => {
       let description = item.description || "";
-      const { image, description: descAfterImage } = extractImage(description, config);
+      const { image, images, description: descAfterImage } = extractImage(description, config);
       const { links, description: descAfterLinks } = extractLinks(descAfterImage, config);
+      const attachmentImages = getImagesFromAttachments(
+        (item.attachments || []).map((a) => ({ ...a, url: a.fileUrl }))
+      );
+      const allImages = [...images];
+      const existing = new Set(allImages);
+      for (const ai of attachmentImages) {
+        if (!existing.has(ai)) allImages.push(ai);
+      }
       return {
         id: item.id,
         title: item.summary || "Untitled Event",
@@ -2403,7 +2423,8 @@ ${text}</tr>
         start: item.start?.dateTime || item.start?.date || "",
         end: item.end?.dateTime || item.end?.date || "",
         allDay: !item.start?.dateTime,
-        image: image || getImageFromAttachments(item.attachments),
+        image: image || allImages[0] || null,
+        images: allImages,
         links,
         attachments: (item.attachments || []).map((a) => ({
           title: a.title,
@@ -3006,12 +3027,59 @@ ${text}</tr>
   }
 
   // src/views/detail.js
+  function renderGallery(images, altText) {
+    const gallery = document.createElement("div");
+    gallery.className = "ogcal-detail-gallery";
+    const imgEl = document.createElement("img");
+    imgEl.className = "ogcal-detail-gallery-img";
+    imgEl.src = images[0];
+    imgEl.alt = altText;
+    imgEl.loading = "lazy";
+    gallery.appendChild(imgEl);
+    if (images.length <= 1) return gallery;
+    let current = 0;
+    const counter = document.createElement("div");
+    counter.className = "ogcal-detail-gallery-counter";
+    counter.textContent = `1 / ${images.length}`;
+    gallery.appendChild(counter);
+    const prevBtn = document.createElement("button");
+    prevBtn.className = "ogcal-detail-gallery-prev";
+    prevBtn.innerHTML = "&#8249;";
+    prevBtn.setAttribute("aria-label", "Previous image");
+    gallery.appendChild(prevBtn);
+    const nextBtn = document.createElement("button");
+    nextBtn.className = "ogcal-detail-gallery-next";
+    nextBtn.innerHTML = "&#8250;";
+    nextBtn.setAttribute("aria-label", "Next image");
+    gallery.appendChild(nextBtn);
+    function goTo(idx) {
+      current = (idx + images.length) % images.length;
+      imgEl.src = images[current];
+      counter.textContent = `${current + 1} / ${images.length}`;
+    }
+    prevBtn.addEventListener("click", () => goTo(current - 1));
+    nextBtn.addEventListener("click", () => goTo(current + 1));
+    gallery.setAttribute("tabindex", "0");
+    gallery.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") {
+        goTo(current - 1);
+        e.preventDefault();
+      }
+      if (e.key === "ArrowRight") {
+        goTo(current + 1);
+        e.preventDefault();
+      }
+    });
+    return gallery;
+  }
   function renderDetailView(container, event, timezone, onBack, config) {
     config = config || {};
     const locale = config.locale;
     const i18n = config.i18n || {};
     const backLabel = i18n.back || "\u2190 Back";
     const locationTemplate = config.locationLinkTemplate || "https://maps.google.com/?q={location}";
+    const images = event.images && event.images.length > 0 ? event.images : event.image ? [event.image] : [];
+    const hasImages = images.length > 0;
     const detail = document.createElement("div");
     detail.className = "ogcal-detail";
     const backBtn = document.createElement("button");
@@ -3020,12 +3088,12 @@ ${text}</tr>
     backBtn.addEventListener("click", onBack);
     detail.appendChild(backBtn);
     const body = document.createElement("div");
-    body.className = event.image ? "ogcal-detail-body ogcal-detail-body--has-image" : "ogcal-detail-body";
-    if (event.image) {
-      const imgCol = document.createElement("div");
-      imgCol.className = "ogcal-detail-image";
-      imgCol.innerHTML = `<img src="${event.image}" alt="${escapeHtml(event.title)}" loading="lazy">`;
-      body.appendChild(imgCol);
+    body.className = hasImages ? "ogcal-detail-body ogcal-detail-body--has-image" : "ogcal-detail-body";
+    if (hasImages) {
+      const galleryCol = document.createElement("div");
+      galleryCol.className = "ogcal-detail-image";
+      galleryCol.appendChild(renderGallery(images, escapeHtml(event.title)));
+      body.appendChild(galleryCol);
     }
     const content = document.createElement("div");
     content.className = "ogcal-detail-content";

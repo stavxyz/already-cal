@@ -2,12 +2,66 @@ import { formatDatetime, formatDate } from '../util/dates.js';
 import { renderDescription } from '../util/description.js';
 import { escapeHtml } from '../util/sanitize.js';
 
+function renderGallery(images, altText) {
+  const gallery = document.createElement('div');
+  gallery.className = 'ogcal-detail-gallery';
+
+  const imgEl = document.createElement('img');
+  imgEl.className = 'ogcal-detail-gallery-img';
+  imgEl.src = images[0];
+  imgEl.alt = altText;
+  imgEl.loading = 'lazy';
+  gallery.appendChild(imgEl);
+
+  if (images.length <= 1) return gallery;
+
+  let current = 0;
+
+  const counter = document.createElement('div');
+  counter.className = 'ogcal-detail-gallery-counter';
+  counter.textContent = `1 / ${images.length}`;
+  gallery.appendChild(counter);
+
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'ogcal-detail-gallery-prev';
+  prevBtn.innerHTML = '&#8249;';
+  prevBtn.setAttribute('aria-label', 'Previous image');
+  gallery.appendChild(prevBtn);
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'ogcal-detail-gallery-next';
+  nextBtn.innerHTML = '&#8250;';
+  nextBtn.setAttribute('aria-label', 'Next image');
+  gallery.appendChild(nextBtn);
+
+  function goTo(idx) {
+    current = (idx + images.length) % images.length;
+    imgEl.src = images[current];
+    counter.textContent = `${current + 1} / ${images.length}`;
+  }
+
+  prevBtn.addEventListener('click', () => goTo(current - 1));
+  nextBtn.addEventListener('click', () => goTo(current + 1));
+
+  // Keyboard navigation when gallery is focused
+  gallery.setAttribute('tabindex', '0');
+  gallery.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { goTo(current - 1); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { goTo(current + 1); e.preventDefault(); }
+  });
+
+  return gallery;
+}
+
 export function renderDetailView(container, event, timezone, onBack, config) {
   config = config || {};
   const locale = config.locale;
   const i18n = config.i18n || {};
   const backLabel = i18n.back || '\u2190 Back';
   const locationTemplate = config.locationLinkTemplate || 'https://maps.google.com/?q={location}';
+
+  const images = event.images && event.images.length > 0 ? event.images : (event.image ? [event.image] : []);
+  const hasImages = images.length > 0;
 
   const detail = document.createElement('div');
   detail.className = 'ogcal-detail';
@@ -18,15 +72,15 @@ export function renderDetailView(container, event, timezone, onBack, config) {
   backBtn.addEventListener('click', onBack);
   detail.appendChild(backBtn);
 
-  // Two-column layout: image left, content right
+  // Two-column layout: gallery left, content right
   const body = document.createElement('div');
-  body.className = event.image ? 'ogcal-detail-body ogcal-detail-body--has-image' : 'ogcal-detail-body';
+  body.className = hasImages ? 'ogcal-detail-body ogcal-detail-body--has-image' : 'ogcal-detail-body';
 
-  if (event.image) {
-    const imgCol = document.createElement('div');
-    imgCol.className = 'ogcal-detail-image';
-    imgCol.innerHTML = `<img src="${event.image}" alt="${escapeHtml(event.title)}" loading="lazy">`;
-    body.appendChild(imgCol);
+  if (hasImages) {
+    const galleryCol = document.createElement('div');
+    galleryCol.className = 'ogcal-detail-image';
+    galleryCol.appendChild(renderGallery(images, escapeHtml(event.title)));
+    body.appendChild(galleryCol);
   }
 
   const content = document.createElement('div');

@@ -4,6 +4,8 @@ Open-source Google Calendar event display. Drop it on any website.
 
 Six views — month, week, day, grid, list, and event detail — with hash routing, responsive design, and full theming. Zero framework dependencies.
 
+**Live example:** [nobigbendwall.org/event-calendar/](https://nobigbendwall.org/event-calendar/)
+
 ## Quick Start
 
 ### Zero JavaScript (data attributes)
@@ -157,14 +159,14 @@ OgCal.init({
   imageExtensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'],
 
   // --- Link extraction ---
-  // All built-in: Eventbrite, Google Forms, Google Maps, Zoom, Google Meet,
-  // Instagram, Facebook, X/Twitter, Reddit, YouTube, TikTok, LinkedIn,
-  // Discord, Luma, Mobilize, Action Network, GoFundMe.
+  // 18 built-in platforms: Eventbrite, Google Forms, Google Maps, Zoom,
+  // Google Meet, Instagram, Facebook, X/Twitter, Reddit, YouTube, TikTok,
+  // LinkedIn, Discord, Luma, Mobilize, Action Network, GoFundMe, Partiful.
   // Social platforms auto-detect handles from URLs:
   //   "https://instagram.com/savebigbend" → "Follow @savebigbend on Instagram"
-  // Override with your own array, or use labelFn for dynamic labels:
+  // Extend the defaults or override entirely:
   knownPlatforms: [
-    ...OgCal.DEFAULTS?.knownPlatforms || [],
+    ...OgCal.DEFAULTS.knownPlatforms,
     { pattern: /your-site\.com/i, label: 'Visit Our Site' },
     { pattern: /custom\.app/i, labelFn: (url) => `Open ${new URL(url).pathname}` },
   ],
@@ -222,7 +224,9 @@ All config options can be set via HTML `data-` attributes for zero-JS setup:
 
 ## Event Schema
 
-og-cal consumes this JSON format from any source:
+og-cal consumes this JSON format from any source. Most fields are optional — og-cal auto-enriches events by extracting images, links, and format from descriptions.
+
+**Minimal input** (what you need to provide):
 
 ```json
 {
@@ -230,22 +234,14 @@ og-cal consumes this JSON format from any source:
     {
       "id": "abc123",
       "title": "Community Rally",
-      "description": "<p>Join us!</p>",
-      "descriptionFormat": "html",
+      "description": "Join us! https://example.com/flyer.png\n\nhttps://eventbrite.com/e/rally-123",
       "location": "City Hall, Austin, TX",
       "start": "2026-04-04T16:00:00-05:00",
       "end": "2026-04-04T19:00:00-05:00",
       "allDay": false,
-      "image": "https://example.com/flyer.png",
-      "images": [
-        "https://example.com/flyer.png",
-        "https://example.com/photo1.jpg",
-        "https://example.com/photo2.jpg"
-      ],
-      "links": [
-        { "label": "RSVP on Eventbrite", "url": "https://eventbrite.com/..." }
-      ],
-      "attachments": []
+      "attachments": [
+        { "url": "https://example.com/photo.jpg", "mimeType": "image/jpeg" }
+      ]
     }
   ],
   "calendar": {
@@ -255,6 +251,17 @@ og-cal consumes this JSON format from any source:
   "generated": "2026-03-18T20:00:00Z"
 }
 ```
+
+**After auto-enrichment**, og-cal adds these fields internally:
+
+| Field | Source |
+|-------|--------|
+| `image` | First image URL from description, or first `image/*` attachment |
+| `images` | All image URLs (description + attachments), in order |
+| `links` | Platform URLs extracted from description (Eventbrite, Instagram, etc.) |
+| `descriptionFormat` | Auto-detected: `html`, `markdown`, or `plain` |
+
+The description is cleaned up — extracted image URLs and platform links are removed from the rendered text so they don't show as raw URLs.
 
 ### Smart description rendering
 
@@ -368,7 +375,7 @@ Social platforms auto-detect handles from the URL path. Add your own with static
 ```js
 OgCal.init({
   knownPlatforms: [
-    ...OgCal.DEFAULTS?.knownPlatforms || [],
+    ...OgCal.DEFAULTS.knownPlatforms,
     { pattern: /your-org\.com/i, label: 'Visit Our Site' },
     { pattern: /custom\.app/i, labelFn: (url) => `Open ${new URL(url).pathname}` },
   ],

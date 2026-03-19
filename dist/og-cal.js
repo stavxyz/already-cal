@@ -20,6 +20,7 @@ var OgCal = (() => {
   // src/og-cal.js
   var og_cal_exports = {};
   __export(og_cal_exports, {
+    DEFAULTS: () => DEFAULTS,
     init: () => init
   });
 
@@ -3170,8 +3171,7 @@ ${text}</tr>
     locationLinkTemplate: "https://maps.google.com/?q={location}",
     imageExtensions: null,
     // null = use defaults in images.js
-    knownPlatforms: null,
-    // null = use defaults in links.js
+    knownPlatforms: DEFAULT_PLATFORMS,
     sanitization: null,
     // null = use defaults in description.js
     eventFilter: null,

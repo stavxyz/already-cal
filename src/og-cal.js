@@ -10,6 +10,7 @@ import { renderGridView } from './views/grid.js';
 import { renderListView } from './views/list.js';
 import { renderDetailView } from './views/detail.js';
 import { isPast } from './util/dates.js';
+import { DEFAULT_PLATFORMS } from './util/links.js';
 
 const DEFAULTS = {
   defaultView: 'month',
@@ -25,7 +26,7 @@ const DEFAULTS = {
   maxEventsPerDay: 3,
   locationLinkTemplate: 'https://maps.google.com/?q={location}',
   imageExtensions: null, // null = use defaults in images.js
-  knownPlatforms: null, // null = use defaults in links.js
+  knownPlatforms: DEFAULT_PLATFORMS,
   sanitization: null, // null = use defaults in description.js
   eventFilter: null,
   eventTransform: null,
@@ -62,6 +63,9 @@ const THEME_DEFAULTS = {
   radius: '8px',
   fontFamily: 'system-ui, sans-serif',
 };
+
+// Expose defaults so consumers can extend (e.g. OgCal.DEFAULTS.knownPlatforms)
+export { DEFAULTS };
 
 export function init(userConfig) {
   const config = { ...DEFAULTS, ...userConfig };

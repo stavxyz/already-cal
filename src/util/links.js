@@ -6,7 +6,7 @@ function handleAt(url) {
   } catch { return null; }
 }
 
-const DEFAULT_PLATFORMS = [
+export const DEFAULT_PLATFORMS = [
   { pattern: /eventbrite\.com/i, label: 'RSVP on Eventbrite' },
   { pattern: /docs\.google\.com\/forms/i, label: 'Fill Out Form' },
   { pattern: /goo\.gl\/maps|maps\.app\.goo\.gl|google\.com\/maps/i, label: 'View on Map' },

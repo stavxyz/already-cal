@@ -260,22 +260,58 @@ og-cal looks for a thumbnail image in this order:
 
 1. **Image URL in description** — the first URL ending in `.png`, `.jpg`, `.gif`, `.webp` (or configured `imageExtensions`) is extracted from the description and used as the thumbnail. The URL is removed from the rendered description to avoid duplication.
 
-2. **Google Calendar attachment** — if no image URL is found in the description, og-cal checks the event's `attachments` for the first `image/*` MIME type and uses its `fileUrl`. Attachments can be added via the Google Calendar API:
+2. **Google Calendar attachment** — if no image URL is found in the description, og-cal checks the event's `attachments` for the first `image/*` MIME type and uses its `fileUrl`. Attachments can point to any public URL — they don't have to be Google Drive files.
 
+   To add an image attachment programmatically, use the [Google Calendar API](https://developers.google.com/calendar/api/v3/reference/events/update) with a service account or OAuth2 credentials:
+
+   **Python** (using `google-api-python-client`):
    ```python
-   service.events().update(
-     calendarId=CALENDAR_ID,
-     eventId=event_id,
-     body={**event, 'attachments': [{
+   from google.oauth2 import service_account
+   from googleapiclient.discovery import build
+
+   creds = service_account.Credentials.from_service_account_file(
+       'service-account-key.json',
+       scopes=['https://www.googleapis.com/auth/calendar'],
+   )
+   service = build('calendar', 'v3', credentials=creds)
+
+   # Fetch the event, add an attachment, and update
+   event = service.events().get(calendarId=CALENDAR_ID, eventId=EVENT_ID).execute()
+   event['attachments'] = [{
        'fileUrl': 'https://example.com/poster.png',
        'title': 'Event Poster',
        'mimeType': 'image/png',
-     }]},
-     supportsAttachments=True,
+   }]
+   service.events().update(
+       calendarId=CALENDAR_ID,
+       eventId=EVENT_ID,
+       body=event,
+       supportsAttachments=True,
    ).execute()
    ```
 
-   Note: attachments can reference any public URL — they don't have to be Google Drive files.
+   **JavaScript** (using `googleapis` npm package):
+   ```js
+   const { google } = require('googleapis');
+   const auth = new google.auth.GoogleAuth({
+     keyFile: 'service-account-key.json',
+     scopes: ['https://www.googleapis.com/auth/calendar'],
+   });
+   const calendar = google.calendar({ version: 'v3', auth });
+
+   const { data: event } = await calendar.events.get({
+     calendarId: CALENDAR_ID, eventId: EVENT_ID,
+   });
+   event.attachments = [{
+     fileUrl: 'https://example.com/poster.png',
+     title: 'Event Poster',
+     mimeType: 'image/png',
+   }];
+   await calendar.events.update({
+     calendarId: CALENDAR_ID, eventId: EVENT_ID,
+     requestBody: event, supportsAttachments: true,
+   });
+   ```
 
 3. **No image** — grid view shows a placeholder; detail view shows no image header.
 

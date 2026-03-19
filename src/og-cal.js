@@ -164,8 +164,7 @@ export function init(userConfig) {
           }
           selectorContainer.innerHTML = '';
           renderDetailView(viewContainer, event, timezone, () => {
-            if (lastView) setView(lastView, config);
-            else window.history.back();
+            setView(lastView || config.defaultView, config);
           }, config);
         } else {
           renderError(viewContainer, 'Event not found.', () => renderView({ view: config.defaultView }), config);

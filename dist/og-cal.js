@@ -24,6 +24,17 @@ var OgCal = (() => {
     init: () => init
   });
 
+  // src/util/sanitize.js
+  var ESC_MAP = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  function escapeHtml(str) {
+    if (!str) return "";
+    return String(str).replace(/[&<>"']/g, (c) => ESC_MAP[c]);
+  }
+  function cleanupHtml(str) {
+    if (!str) return "";
+    return str.replace(/(<br\s*\/?>[\s]*){2,}/gi, "<br><br>").replace(/^(\s*<br\s*\/?>[\s]*)+/gi, "").replace(/(\s*<br\s*\/?>[\s]*)+$/gi, "").replace(/\n{3,}/g, "\n\n").trim();
+  }
+
   // src/util/images.js
   var DEFAULT_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
   function buildImagePattern(extensions) {
@@ -50,8 +61,7 @@ var OgCal = (() => {
       cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escapedImg}</a>`, "gi"), "");
       cleaned = cleaned.replace(img, "");
     }
-    cleaned = cleaned.replace(/<br\s*\/?>\s*<br\s*\/?>/gi, "\n\n");
-    cleaned = cleaned.replace(/\n{3,}/g, "\n\n").trim();
+    cleaned = cleanupHtml(cleaned);
     return { image: images[0] || null, images, description: cleaned };
   }
 
@@ -122,8 +132,7 @@ var OgCal = (() => {
         }
       }
     }
-    cleaned = cleaned.replace(/(<br\s*\/?>[\s]*){2,}/gi, "\n\n");
-    cleaned = cleaned.trim();
+    cleaned = cleanupHtml(cleaned);
     return { links, description: cleaned };
   }
 
@@ -2262,13 +2271,6 @@ ${text}</tr>
   var parseInline = marked.parseInline;
   var parser = _Parser.parse;
   var lexer = _Lexer.lex;
-
-  // src/util/sanitize.js
-  var ESC_MAP = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
-  function escapeHtml(str) {
-    if (!str) return "";
-    return String(str).replace(/[&<>"']/g, (c) => ESC_MAP[c]);
-  }
 
   // src/util/description.js
   var DEFAULT_ALLOWED_TAGS = [

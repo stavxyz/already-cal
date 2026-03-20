@@ -1,3 +1,5 @@
+import { cleanupHtml } from './sanitize.js';
+
 const DEFAULT_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
 
 function buildImagePattern(extensions) {
@@ -29,8 +31,6 @@ export function extractImage(description, config) {
     // Remove bare URL
     cleaned = cleaned.replace(img, '');
   }
-  // Clean up leftover whitespace and empty lines
-  cleaned = cleaned.replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '\n\n');
-  cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+  cleaned = cleanupHtml(cleaned);
   return { image: images[0] || null, images, description: cleaned };
 }

@@ -1,3 +1,5 @@
+import { cleanupHtml } from './sanitize.js';
+
 function handleAt(url) {
   try {
     const path = new URL(url).pathname.replace(/\/+$/, '');
@@ -53,9 +55,7 @@ export function extractLinks(description, config) {
     }
   }
 
-  // Clean up leftover empty <br> pairs
-  cleaned = cleaned.replace(/(<br\s*\/?>[\s]*){2,}/gi, '\n\n');
-  cleaned = cleaned.trim();
+  cleaned = cleanupHtml(cleaned);
 
   return { links, description: cleaned };
 }

@@ -37,6 +37,13 @@ var OgCal = (() => {
 
   // src/util/images.js
   var DEFAULT_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
+  var DRIVE_PATTERN = /https?:\/\/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=view&)?id=)([a-zA-Z0-9_-]+)[^\s<>"]*/gi;
+  function normalizeImageUrl(url) {
+    if (!url) return null;
+    const driveMatch = url.match(/drive\.google\.com\/(?:open\?id=|file\/d\/|uc\?(?:export=view&)?id=)([a-zA-Z0-9_-]+)/);
+    if (driveMatch) return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
+    return url;
+  }
   function buildImagePattern(extensions) {
     const ext = extensions.join("|");
     return new RegExp(`(https?://[^\\s<>"]+\\.(?:${ext})(?:\\?[^\\s<>"]*)?)`, "gi");
@@ -47,16 +54,28 @@ var OgCal = (() => {
     const pattern = buildImagePattern(extensions);
     const seen = /* @__PURE__ */ new Set();
     const images = [];
+    const originalUrls = [];
     let match;
     while ((match = pattern.exec(description)) !== null) {
       const url = match[1];
       if (!seen.has(url)) {
         seen.add(url);
         images.push(url);
+        originalUrls.push(url);
+      }
+    }
+    DRIVE_PATTERN.lastIndex = 0;
+    while ((match = DRIVE_PATTERN.exec(description)) !== null) {
+      const originalUrl = match[0];
+      const normalized = normalizeImageUrl(originalUrl);
+      if (normalized && !seen.has(normalized)) {
+        seen.add(normalized);
+        images.push(normalized);
+        originalUrls.push(originalUrl);
       }
     }
     let cleaned = description;
-    for (const img of images) {
+    for (const img of originalUrls) {
       const escapedImg = img.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escapedImg}</a>`, "gi"), "");
       cleaned = cleaned.replace(img, "");
@@ -2418,12 +2437,6 @@ ${text}</tr>
     if (!res.ok) throw new Error(`Google Calendar API error: ${res.status}`);
     const data = await res.json();
     return transformGoogleEvents(data, config);
-  }
-  function normalizeImageUrl(url) {
-    if (!url) return null;
-    const driveMatch = url.match(/drive\.google\.com\/(?:open\?id=|file\/d\/)([a-zA-Z0-9_-]+)/);
-    if (driveMatch) return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
-    return url;
   }
   function getImagesFromAttachments(attachments) {
     if (!attachments) return [];

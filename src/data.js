@@ -1,4 +1,4 @@
-import { extractImage } from './util/images.js';
+import { extractImage, normalizeImageUrl } from './util/images.js';
 import { extractLinks } from './util/links.js';
 import { detectFormat } from './util/description.js';
 
@@ -97,15 +97,6 @@ async function fetchGoogleCalendar({ apiKey, calendarId, maxResults = 50 }, conf
   if (!res.ok) throw new Error(`Google Calendar API error: ${res.status}`);
   const data = await res.json();
   return transformGoogleEvents(data, config);
-}
-
-// Convert Google Drive URLs to direct-servable image URLs.
-// drive.google.com/open?id=XYZ → lh3.googleusercontent.com/d/XYZ (works if file is public)
-function normalizeImageUrl(url) {
-  if (!url) return null;
-  const driveMatch = url.match(/drive\.google\.com\/(?:open\?id=|file\/d\/)([a-zA-Z0-9_-]+)/);
-  if (driveMatch) return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
-  return url;
 }
 
 function getImagesFromAttachments(attachments) {

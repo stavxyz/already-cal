@@ -1,12 +1,53 @@
 const { describe, it, before } = require('node:test');
 const assert = require('node:assert');
 
-let extractLinks, DEFAULT_PLATFORMS;
+let extractLinks, DEFAULT_PLATFORMS, handleAt;
 
 before(async () => {
   const mod = await import('../src/util/links.js');
   extractLinks = mod.extractLinks;
   DEFAULT_PLATFORMS = mod.DEFAULT_PLATFORMS;
+  handleAt = mod.handleAt;
+});
+
+describe('handleAt — direct unit tests', () => {
+  it('returns handle for single-segment profile path', () => {
+    assert.strictEqual(handleAt('https://instagram.com/savebigbend'), 'savebigbend');
+  });
+
+  it('returns null for multi-segment content path', () => {
+    assert.strictEqual(handleAt('https://instagram.com/p/ABC123/'), null);
+  });
+
+  it('returns null for bare domain (no path)', () => {
+    assert.strictEqual(handleAt('https://www.instagram.com/'), null);
+    assert.strictEqual(handleAt('https://www.instagram.com'), null);
+  });
+
+  it('strips leading @ from TikTok-style paths', () => {
+    assert.strictEqual(handleAt('https://tiktok.com/@myhandle'), 'myhandle');
+  });
+
+  it('returns prefixed path for Reddit /r/ and /u/', () => {
+    assert.strictEqual(handleAt('https://reddit.com/r/BigBend'), 'r/BigBend');
+    assert.strictEqual(handleAt('https://reddit.com/u/someone'), 'u/someone');
+  });
+
+  it('returns prefixed path for Facebook /groups/', () => {
+    assert.strictEqual(handleAt('https://facebook.com/groups/mygroup'), 'groups/mygroup');
+  });
+
+  it('returns null for Reddit post with >2 segments', () => {
+    assert.strictEqual(handleAt('https://reddit.com/r/BigBend/comments/abc/post'), null);
+  });
+
+  it('returns null for path segments containing dots', () => {
+    assert.strictEqual(handleAt('https://example.com/file.html'), null);
+  });
+
+  it('returns null for invalid URL', () => {
+    assert.strictEqual(handleAt('not-a-url'), null);
+  });
 });
 
 describe('Instagram link labels', () => {
@@ -27,6 +68,11 @@ describe('Instagram link labels', () => {
 
   it('labels a stories URL generically', () => {
     const { links } = extractLinks('https://www.instagram.com/stories/someone/123/');
+    assert.strictEqual(links[0].label, 'View on Instagram');
+  });
+
+  it('labels a bare domain URL generically', () => {
+    const { links } = extractLinks('https://www.instagram.com/');
     assert.strictEqual(links[0].label, 'View on Instagram');
   });
 });
@@ -51,6 +97,16 @@ describe('Facebook link labels', () => {
 
   it('labels a post URL generically', () => {
     const { links } = extractLinks('https://www.facebook.com/savebigbend/posts/123');
+    assert.strictEqual(links[0].label, 'View on Facebook');
+  });
+
+  it('labels a group URL with group name', () => {
+    const { links } = extractLinks('https://www.facebook.com/groups/savebigbend');
+    assert.strictEqual(links[0].label, 'groups/savebigbend on Facebook');
+  });
+
+  it('labels an event URL generically', () => {
+    const { links } = extractLinks('https://www.facebook.com/events/123456');
     assert.strictEqual(links[0].label, 'View on Facebook');
   });
 });

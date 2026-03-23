@@ -37,16 +37,26 @@ var OgCal = (() => {
 
   // src/util/images.js
   var DEFAULT_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
-  var DRIVE_PATTERN = /https?:\/\/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=view&)?id=)([a-zA-Z0-9_-]+)[^\s<>"]*/gi;
+  var DRIVE_ID_PATTERN = /drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=view&)?id=)([a-zA-Z0-9_-]+)/;
+  var DRIVE_URL_PATTERN = new RegExp(
+    `https?:\\/\\/${DRIVE_ID_PATTERN.source}[^\\s<>"]*`,
+    "gi"
+  );
   function normalizeImageUrl(url) {
     if (!url) return null;
-    const driveMatch = url.match(/drive\.google\.com\/(?:open\?id=|file\/d\/|uc\?(?:export=view&)?id=)([a-zA-Z0-9_-]+)/);
-    if (driveMatch) return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
+    const m = url.match(DRIVE_ID_PATTERN);
+    if (m) return `https://lh3.googleusercontent.com/d/${m[1]}`;
     return url;
   }
   function buildImagePattern(extensions) {
     const ext = extensions.join("|");
     return new RegExp(`(https?://[^\\s<>"]+\\.(?:${ext})(?:\\?[^\\s<>"]*)?)`, "gi");
+  }
+  function stripUrl(html2, url) {
+    const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    html2 = html2.replace(new RegExp(`<a[^>]*>${escaped}</a>`, "gi"), "");
+    html2 = html2.replace(new RegExp(escaped, "g"), "");
+    return html2;
   }
   function extractImage(description, config) {
     if (!description) return { image: null, images: [], description };
@@ -64,8 +74,8 @@ var OgCal = (() => {
         originalUrls.push(url);
       }
     }
-    DRIVE_PATTERN.lastIndex = 0;
-    while ((match = DRIVE_PATTERN.exec(description)) !== null) {
+    DRIVE_URL_PATTERN.lastIndex = 0;
+    while ((match = DRIVE_URL_PATTERN.exec(description)) !== null) {
       const originalUrl = match[0];
       const normalized = normalizeImageUrl(originalUrl);
       if (normalized && !seen.has(normalized)) {
@@ -75,10 +85,8 @@ var OgCal = (() => {
       }
     }
     let cleaned = description;
-    for (const img of originalUrls) {
-      const escapedImg = img.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escapedImg}</a>`, "gi"), "");
-      cleaned = cleaned.replace(img, "");
+    for (const url of originalUrls) {
+      cleaned = stripUrl(cleaned, url);
     }
     cleaned = cleanupHtml(cleaned);
     return { image: images[0] || null, images, description: cleaned };

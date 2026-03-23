@@ -1,19 +1,29 @@
 import { cleanupHtml } from './sanitize.js';
 
-// Extract a social-media handle/name from a URL.
-// Returns null for non-profile URLs (posts, reels, status pages, etc.)
-// so the caller falls back to a generic "View on …" label.
-function handleAt(url) {
+// Two-segment path prefixes that represent profile-like destinations,
+// not individual content.  Keyed by the first segment.
+const PROFILE_PREFIXES = new Set(['r', 'u', 'groups']);
+
+/**
+ * Extract a social-media handle or community name from a URL.
+ * Returns null for non-profile URLs (posts, reels, status pages, etc.)
+ * so the caller falls back to a generic "View on …" label.
+ *
+ * Single-segment paths (/<handle>) are treated as profiles.
+ * Two-segment paths are only treated as profiles when the first segment
+ * is a known prefix (e.g. /r/subreddit, /u/username, /groups/name).
+ */
+export function handleAt(url) {
   try {
     const segments = new URL(url).pathname.replace(/\/+$/, '').split('/').filter(Boolean);
     if (segments.length === 0) return null;
 
-    // Reddit: /r/subreddit or /u/username (exactly 2 segments starting with r or u)
-    if (segments.length === 2 && (segments[0] === 'r' || segments[0] === 'u')) {
+    // Two-segment profile-like paths: /r/subreddit, /u/username, /groups/name
+    if (segments.length === 2 && PROFILE_PREFIXES.has(segments[0])) {
       return `${segments[0]}/${segments[1]}`;
     }
 
-    // Other platforms: single-segment path = profile handle (no dots — not a file)
+    // Single-segment path = profile handle (no dots — not a file)
     // Strip leading @ (TikTok uses /@handle in the path)
     if (segments.length === 1 && !segments[0].includes('.')) return segments[0].replace(/^@/, '');
 

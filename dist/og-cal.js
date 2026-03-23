@@ -93,11 +93,12 @@ var OgCal = (() => {
   }
 
   // src/util/links.js
+  var PROFILE_PREFIXES = /* @__PURE__ */ new Set(["r", "u", "groups"]);
   function handleAt(url) {
     try {
       const segments = new URL(url).pathname.replace(/\/+$/, "").split("/").filter(Boolean);
       if (segments.length === 0) return null;
-      if (segments.length === 2 && (segments[0] === "r" || segments[0] === "u")) {
+      if (segments.length === 2 && PROFILE_PREFIXES.has(segments[0])) {
         return `${segments[0]}/${segments[1]}`;
       }
       if (segments.length === 1 && !segments[0].includes(".")) return segments[0].replace(/^@/, "");

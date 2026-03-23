@@ -35,6 +35,7 @@ OgCal.init({
 Put URLs in your Google Calendar event descriptions — og-cal does the rest:
 
 - **Image URLs** (`.png`, `.jpg`, etc.) become the event thumbnail and detail gallery
+- **Google Drive links** (`drive.google.com/file/d/.../view`) are converted to servable image URLs
 - **Platform URLs** (Eventbrite, Instagram, Zoom, etc.) become action buttons
 - **Google Calendar attachments** with `image/*` MIME types are added to the gallery
 - **Descriptions** are auto-detected as HTML, markdown, or plain text and rendered accordingly
@@ -236,10 +237,11 @@ Social platforms auto-detect handles from the URL path. Add your own via `knownP
 
 ## Event Images
 
-og-cal collects images from two sources:
+og-cal collects images from three sources:
 
-1. **Image URLs in the description** — extracted and removed from rendered text
-2. **Attachments** with `image/*` MIME type — from Google Calendar or your own data
+1. **Image URLs in the description** (`.png`, `.jpg`, `.gif`, `.webp`) — extracted and removed from rendered text
+2. **Google Drive links in the description** (`drive.google.com/file/d/.../view`, `/open?id=...`, `/uc?id=...`) — converted to direct-servable URLs via `lh3.googleusercontent.com` and removed from rendered text. The file must be publicly shared.
+3. **Attachments** with `image/*` MIME type — from Google Calendar or your own data (Drive attachment URLs are also normalized)
 
 The first image is the thumbnail (grid/list views). Multiple images show as a gallery in detail view with ← → navigation and keyboard support.
 

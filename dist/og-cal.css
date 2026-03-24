@@ -717,6 +717,30 @@
   outline: 2px solid var(--ogcal-text);
   outline-offset: 2px;
 }
+.ogcal-detail-attachments {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.ogcal-detail-attachment {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: var(--ogcal-surface);
+  color: var(--ogcal-text);
+  border: 1px solid var(--ogcal-text-secondary);
+  border-radius: var(--ogcal-radius);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: opacity 0.15s;
+}
+.ogcal-detail-attachment:hover {
+  opacity: 0.85;
+}
+.ogcal-detail-attachment:focus-visible {
+  outline: 2px solid var(--ogcal-text);
+  outline-offset: 2px;
+}
 .ogcal-loading {
   display: flex;
   flex-direction: column;
@@ -908,6 +932,12 @@
     flex-direction: column;
   }
   .ogcal-detail-link {
+    text-align: center;
+  }
+  .ogcal-detail-attachments {
+    flex-direction: column;
+  }
+  .ogcal-detail-attachment {
     text-align: center;
   }
 }

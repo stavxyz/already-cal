@@ -30,6 +30,12 @@ var OgCal = (() => {
     if (!str) return "";
     return String(str).replace(/[&<>"']/g, (c) => ESC_MAP[c]);
   }
+  function stripUrl(html2, url) {
+    const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    html2 = html2.replace(new RegExp(`<a[^>]*>${escaped}</a>`, "gi"), "");
+    html2 = html2.replace(new RegExp(escaped, "g"), "");
+    return html2;
+  }
   function cleanupHtml(str) {
     if (!str) return "";
     return str.replace(/(<br\s*\/?>[\s]*){2,}/gi, "<br><br>").replace(/^(\s*<br\s*\/?>[\s]*)+/gi, "").replace(/(\s*<br\s*\/?>[\s]*)+$/gi, "").replace(/\n{3,}/g, "\n\n").trim();
@@ -42,21 +48,47 @@ var OgCal = (() => {
     `https?:\\/\\/${DRIVE_ID_PATTERN.source}[^\\s<>"]*`,
     "gi"
   );
+  var DROPBOX_PATTERN = /(?:www\.)?dropbox\.com\/(?:scl\/fi|s)\//;
+  var DROPBOX_DIRECT_PATTERN = /dl\.dropboxusercontent\.com/;
+  var NON_IMAGE_EXTENSIONS = /* @__PURE__ */ new Set([
+    "pdf",
+    "doc",
+    "docx",
+    "xls",
+    "xlsx",
+    "csv",
+    "ppt",
+    "pptx",
+    "zip",
+    "txt"
+  ]);
+  var DROPBOX_URL_PATTERN = /https?:\/\/(?:(?:www\.)?dropbox\.com\/(?:scl\/fi|s)\/|dl\.dropboxusercontent\.com\/)[^\s<>"]+/gi;
+  function getPathExtension(url) {
+    try {
+      const pathname = new URL(url).pathname;
+      const lastSegment = pathname.split("/").pop();
+      const dotIdx = lastSegment.lastIndexOf(".");
+      if (dotIdx === -1) return null;
+      return lastSegment.slice(dotIdx + 1).toLowerCase();
+    } catch {
+      return null;
+    }
+  }
   function normalizeImageUrl(url) {
     if (!url) return null;
     const m = url.match(DRIVE_ID_PATTERN);
     if (m) return `https://lh3.googleusercontent.com/d/${m[1]}`;
+    if (DROPBOX_DIRECT_PATTERN.test(url)) return url;
+    if (DROPBOX_PATTERN.test(url)) {
+      if (url.includes("dl=0")) return url.replace("dl=0", "raw=1");
+      if (url.includes("?")) return url + "&raw=1";
+      return url + "?raw=1";
+    }
     return url;
   }
   function buildImagePattern(extensions) {
     const ext = extensions.join("|");
     return new RegExp(`(https?://[^\\s<>"]+\\.(?:${ext})(?:\\?[^\\s<>"]*)?)`, "gi");
-  }
-  function stripUrl(html2, url) {
-    const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    html2 = html2.replace(new RegExp(`<a[^>]*>${escaped}</a>`, "gi"), "");
-    html2 = html2.replace(new RegExp(escaped, "g"), "");
-    return html2;
   }
   function extractImage(description, config) {
     if (!description) return { image: null, images: [], description };
@@ -67,16 +99,29 @@ var OgCal = (() => {
     const originalUrls = [];
     let match;
     while ((match = pattern.exec(description)) !== null) {
-      const url = match[1];
-      if (!seen.has(url)) {
-        seen.add(url);
-        images.push(url);
-        originalUrls.push(url);
+      const originalUrl = match[1];
+      const normalized = normalizeImageUrl(originalUrl);
+      if (normalized && !seen.has(normalized)) {
+        seen.add(normalized);
+        images.push(normalized);
+        originalUrls.push(originalUrl);
       }
     }
     DRIVE_URL_PATTERN.lastIndex = 0;
     while ((match = DRIVE_URL_PATTERN.exec(description)) !== null) {
       const originalUrl = match[0];
+      const normalized = normalizeImageUrl(originalUrl);
+      if (normalized && !seen.has(normalized)) {
+        seen.add(normalized);
+        images.push(normalized);
+        originalUrls.push(originalUrl);
+      }
+    }
+    DROPBOX_URL_PATTERN.lastIndex = 0;
+    while ((match = DROPBOX_URL_PATTERN.exec(description)) !== null) {
+      const originalUrl = match[0];
+      const ext = getPathExtension(originalUrl);
+      if (ext && NON_IMAGE_EXTENSIONS.has(ext)) continue;
       const normalized = normalizeImageUrl(originalUrl);
       if (normalized && !seen.has(normalized)) {
         seen.add(normalized);
@@ -2385,6 +2430,88 @@ ${text}</tr>
     }
   }
 
+  // src/util/attachments.js
+  var DROPBOX_PATTERN2 = /(?:www\.)?dropbox\.com\/(?:scl\/fi|s)\//;
+  var DROPBOX_DIRECT_PATTERN2 = /dl\.dropboxusercontent\.com/;
+  var IMAGE_EXTENSIONS = /* @__PURE__ */ new Set(["png", "jpg", "jpeg", "gif", "webp"]);
+  var URL_PATTERN2 = /https?:\/\/[^\s<>"]+/gi;
+  var EXTENSION_MAP = {
+    pdf: { label: "Download PDF", type: "pdf" },
+    doc: { label: "Download Document", type: "doc" },
+    docx: { label: "Download Document", type: "docx" },
+    xls: { label: "Download Spreadsheet", type: "xls" },
+    xlsx: { label: "Download Spreadsheet", type: "xlsx" },
+    csv: { label: "Download Spreadsheet", type: "csv" },
+    ppt: { label: "Download Presentation", type: "ppt" },
+    pptx: { label: "Download Presentation", type: "pptx" },
+    zip: { label: "Download Archive", type: "zip" },
+    txt: { label: "Download File", type: "txt" }
+  };
+  function normalizeAttachmentUrl(url) {
+    if (!url) return url;
+    const driveMatch = url.match(DRIVE_ID_PATTERN);
+    if (driveMatch) return `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`;
+    if (DROPBOX_DIRECT_PATTERN2.test(url)) return url;
+    if (DROPBOX_PATTERN2.test(url)) {
+      if (url.includes("dl=0")) return url.replace("dl=0", "raw=1");
+      if (url.includes("?")) return url + "&raw=1";
+      return url + "?raw=1";
+    }
+    return url;
+  }
+  function classifyUrl(url) {
+    const ext = getPathExtension(url);
+    if (ext) {
+      if (IMAGE_EXTENSIONS.has(ext)) return null;
+      if (EXTENSION_MAP[ext]) return EXTENSION_MAP[ext];
+      return null;
+    }
+    const driveMatch = url.match(DRIVE_ID_PATTERN);
+    if (driveMatch) return { label: "Download File", type: "file" };
+    return null;
+  }
+  function extractAttachments(description, config) {
+    if (!description) return { attachments: [], description };
+    const attachments = [];
+    let cleaned = description;
+    const seen = /* @__PURE__ */ new Set();
+    const urls = description.match(URL_PATTERN2) || [];
+    for (const url of urls) {
+      if (seen.has(url)) continue;
+      const classification = classifyUrl(url);
+      if (!classification) continue;
+      seen.add(url);
+      const normalizedUrl = normalizeAttachmentUrl(url);
+      attachments.push({
+        label: classification.label,
+        url: normalizedUrl,
+        type: classification.type
+      });
+      cleaned = stripUrl(cleaned, url);
+    }
+    cleaned = cleanupHtml(cleaned);
+    return { attachments, description: cleaned };
+  }
+  function deriveTypeFromMimeType(mimeType) {
+    if (!mimeType) return "file";
+    if (mimeType.includes("pdf")) return "pdf";
+    if (mimeType.includes("presentation") || mimeType.includes("powerpoint")) return "presentation";
+    if (mimeType.includes("sheet") || mimeType.includes("excel") || mimeType.includes("csv")) return "spreadsheet";
+    if (mimeType.includes("word") || mimeType.includes("document")) return "doc";
+    if (mimeType.includes("zip") || mimeType.includes("archive") || mimeType.includes("compressed")) return "archive";
+    return "file";
+  }
+  function labelForType(type) {
+    const map = {
+      pdf: "Download PDF",
+      doc: "Download Document",
+      spreadsheet: "Download Spreadsheet",
+      presentation: "Download Presentation",
+      archive: "Download Archive"
+    };
+    return map[type] || "Download File";
+  }
+
   // src/data.js
   async function loadData(config) {
     let data;
@@ -2425,7 +2552,7 @@ ${text}</tr>
       images = result.images;
       description = result.description;
     }
-    const attachmentImages = getImagesFromAttachments(event.attachments);
+    const attachmentImages = getImagesFromAttachments(event._imageAttachments || event.attachments);
     if (attachmentImages.length > 0) {
       const existing = new Set(images);
       for (const ai of attachmentImages) {
@@ -2440,8 +2567,17 @@ ${text}</tr>
       links = result.links;
       description = result.description;
     }
+    let attachments = event.attachments && event.attachments.length > 0 ? event.attachments : [];
+    if (description) {
+      const result = extractAttachments(description, config);
+      if (result.attachments.length > 0) {
+        attachments = [...attachments, ...result.attachments];
+        description = result.description;
+      }
+    }
     const descriptionFormat = event.descriptionFormat || detectFormat(description);
-    return { ...event, description, descriptionFormat, image, images, links };
+    const { _imageAttachments, ...rest } = event;
+    return { ...rest, description, descriptionFormat, image, images, links, attachments };
   }
   async function fetchGoogleCalendar({ apiKey, calendarId, maxResults = 50 }, config) {
     const now = (/* @__PURE__ */ new Date()).toISOString();
@@ -2457,34 +2593,33 @@ ${text}</tr>
   }
   function transformGoogleEvents(googleData, config) {
     const events = (googleData.items || []).map((item) => {
-      let description = item.description || "";
-      const { image, images, description: descAfterImage } = extractImage(description, config);
-      const { links, description: descAfterLinks } = extractLinks(descAfterImage, config);
-      const attachmentImages = getImagesFromAttachments(
-        (item.attachments || []).map((a) => ({ ...a, url: a.fileUrl }))
-      );
-      const allImages = [...images];
-      const existing = new Set(allImages);
-      for (const ai of attachmentImages) {
-        if (!existing.has(ai)) allImages.push(ai);
+      const apiAttachments = [];
+      const imageAttachments = [];
+      for (const a of item.attachments || []) {
+        if (a.mimeType && a.mimeType.startsWith("image/")) {
+          imageAttachments.push({ mimeType: a.mimeType, url: a.fileUrl });
+        } else {
+          const type = deriveTypeFromMimeType(a.mimeType);
+          apiAttachments.push({
+            label: a.title || labelForType(type),
+            url: a.fileUrl,
+            type
+          });
+        }
       }
       return {
         id: item.id,
         title: item.summary || "Untitled Event",
-        description: descAfterLinks,
-        descriptionFormat: detectFormat(descAfterLinks),
+        description: item.description || "",
         location: item.location || "",
         start: item.start?.dateTime || item.start?.date || "",
         end: item.end?.dateTime || item.end?.date || "",
         allDay: !item.start?.dateTime,
-        image: image || allImages[0] || null,
-        images: allImages,
-        links,
-        attachments: (item.attachments || []).map((a) => ({
-          title: a.title,
-          url: a.fileUrl,
-          mimeType: a.mimeType
-        }))
+        image: null,
+        images: [],
+        links: [],
+        attachments: apiAttachments,
+        _imageAttachments: imageAttachments
       };
     });
     return {
@@ -3085,18 +3220,27 @@ ${text}</tr>
   function renderGallery(images, altText) {
     const gallery = document.createElement("div");
     gallery.className = "ogcal-detail-gallery";
+    let loadedImages = [...images];
+    let current = 0;
+    let counter = null;
     const imgEl = document.createElement("img");
     imgEl.className = "ogcal-detail-gallery-img";
     imgEl.src = images[0];
     imgEl.alt = altText;
     imgEl.loading = "lazy";
     imgEl.onerror = () => {
-      gallery.closest(".ogcal-detail-image")?.remove();
+      loadedImages = loadedImages.filter((u) => u !== imgEl.src);
+      if (loadedImages.length === 0) {
+        gallery.closest(".ogcal-detail-image")?.remove();
+        return;
+      }
+      current = 0;
+      imgEl.src = loadedImages[0];
+      if (counter) counter.textContent = `1 / ${loadedImages.length}`;
     };
     gallery.appendChild(imgEl);
     if (images.length <= 1) return gallery;
-    let current = 0;
-    const counter = document.createElement("div");
+    counter = document.createElement("div");
     counter.className = "ogcal-detail-gallery-counter";
     counter.textContent = `1 / ${images.length}`;
     gallery.appendChild(counter);
@@ -3111,9 +3255,9 @@ ${text}</tr>
     nextBtn.setAttribute("aria-label", "Next image");
     gallery.appendChild(nextBtn);
     function goTo(idx) {
-      current = (idx + images.length) % images.length;
-      imgEl.src = images[current];
-      counter.textContent = `${current + 1} / ${images.length}`;
+      current = (idx + loadedImages.length) % loadedImages.length;
+      imgEl.src = loadedImages[current];
+      counter.textContent = `${current + 1} / ${loadedImages.length}`;
     }
     prevBtn.addEventListener("click", () => goTo(current - 1));
     nextBtn.addEventListener("click", () => goTo(current + 1));
@@ -3173,6 +3317,20 @@ ${text}</tr>
       desc.className = "ogcal-detail-description";
       desc.innerHTML = renderDescription(event.description, config);
       content.appendChild(desc);
+    }
+    if (event.attachments && event.attachments.length > 0) {
+      const attachDiv = document.createElement("div");
+      attachDiv.className = "ogcal-detail-attachments";
+      for (const att of event.attachments) {
+        const a = document.createElement("a");
+        a.className = "ogcal-detail-attachment";
+        a.href = att.url;
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.textContent = att.label;
+        attachDiv.appendChild(a);
+      }
+      content.appendChild(attachDiv);
     }
     if (event.links && event.links.length > 0) {
       const linksDiv = document.createElement("div");

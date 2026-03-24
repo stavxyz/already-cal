@@ -1,6 +1,7 @@
 import { extractImage, normalizeImageUrl } from './util/images.js';
 import { extractLinks } from './util/links.js';
 import { detectFormat } from './util/description.js';
+import { extractAttachments, deriveTypeFromMimeType, labelForType } from './util/attachments.js';
 
 export async function loadData(config) {
   let data;
@@ -61,7 +62,7 @@ function enrichEvent(event, config) {
   }
 
   // Fallback: check attachments for images
-  const attachmentImages = getImagesFromAttachments(event.attachments);
+  const attachmentImages = getImagesFromAttachments(event._imageAttachments || event.attachments);
   if (attachmentImages.length > 0) {
     // Append attachment images that aren't already in the list
     const existing = new Set(images);
@@ -82,10 +83,21 @@ function enrichEvent(event, config) {
     description = result.description;
   }
 
+  // Extract file attachments from description
+  let attachments = (event.attachments && event.attachments.length > 0) ? event.attachments : [];
+  if (description) {
+    const result = extractAttachments(description, config);
+    if (result.attachments.length > 0) {
+      attachments = [...attachments, ...result.attachments];
+      description = result.description;
+    }
+  }
+
   // Detect format if not set
   const descriptionFormat = event.descriptionFormat || detectFormat(description);
 
-  return { ...event, description, descriptionFormat, image, images, links };
+  const { _imageAttachments, ...rest } = event;
+  return { ...rest, description, descriptionFormat, image, images, links, attachments };
 }
 
 async function fetchGoogleCalendar({ apiKey, calendarId, maxResults = 50 }, config) {
@@ -109,36 +121,39 @@ function getImagesFromAttachments(attachments) {
 
 export function transformGoogleEvents(googleData, config) {
   const events = (googleData.items || []).map(item => {
-    let description = item.description || '';
-    const { image, images, description: descAfterImage } = extractImage(description, config);
-    const { links, description: descAfterLinks } = extractLinks(descAfterImage, config);
-
-    const attachmentImages = getImagesFromAttachments(
-      (item.attachments || []).map(a => ({ ...a, url: a.fileUrl }))
-    );
-    const allImages = [...images];
-    const existing = new Set(allImages);
-    for (const ai of attachmentImages) {
-      if (!existing.has(ai)) allImages.push(ai);
+    // Separate image attachments from file attachments.
+    // Image attachments keep mimeType so getImagesFromAttachments can process them.
+    // File attachments get normalized to {label, url, type} schema.
+    const apiAttachments = [];
+    const imageAttachments = [];
+    for (const a of (item.attachments || [])) {
+      if (a.mimeType && a.mimeType.startsWith('image/')) {
+        imageAttachments.push({ mimeType: a.mimeType, url: a.fileUrl });
+      } else {
+        const type = deriveTypeFromMimeType(a.mimeType);
+        apiAttachments.push({
+          label: a.title || labelForType(type),
+          url: a.fileUrl,
+          type,
+        });
+      }
     }
 
+    // Build base event shape — enrichEvent handles description extraction.
+    // _imageAttachments is internal, stripped by enrichEvent before returning.
     return {
       id: item.id,
       title: item.summary || 'Untitled Event',
-      description: descAfterLinks,
-      descriptionFormat: detectFormat(descAfterLinks),
+      description: item.description || '',
       location: item.location || '',
       start: item.start?.dateTime || item.start?.date || '',
       end: item.end?.dateTime || item.end?.date || '',
       allDay: !item.start?.dateTime,
-      image: image || allImages[0] || null,
-      images: allImages,
-      links,
-      attachments: (item.attachments || []).map(a => ({
-        title: a.title,
-        url: a.fileUrl,
-        mimeType: a.mimeType,
-      })),
+      image: null,
+      images: [],
+      links: [],
+      attachments: apiAttachments,
+      _imageAttachments: imageAttachments,
     };
   });
 

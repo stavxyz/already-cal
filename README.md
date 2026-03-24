@@ -241,11 +241,24 @@ og-cal collects images from three sources:
 
 1. **Image URLs in the description** (`.png`, `.jpg`, `.gif`, `.webp`) — extracted and removed from rendered text
 2. **Google Drive links in the description** (`drive.google.com/file/d/.../view`, `/open?id=...`, `/uc?id=...`) — converted to direct-servable URLs via `lh3.googleusercontent.com` and removed from rendered text. The file must be publicly shared.
-3. **Attachments** with `image/*` MIME type — from Google Calendar or your own data (Drive attachment URLs are also normalized)
+3. **Dropbox links in the description** — URLs containing `/scl/fi/`, `/s/`, or on `dl.dropboxusercontent.com` are recognized and normalized to `?raw=1` for direct serving. The file must be publicly shared.
+4. **Attachments** with `image/*` MIME type — from Google Calendar or your own data (Drive and Dropbox attachment URLs are also normalized)
 
 The first image is the thumbnail (grid/list views). Multiple images show as a gallery in detail view with ← → navigation and keyboard support.
 
 To add image attachments via the Google Calendar API, use `supportsAttachments: true` in your update call. Attachments can point to any public URL.
+
+## Attachments
+
+og-cal detects file URLs in event descriptions and surfaces them as downloadable attachments. Any URL ending in a recognized file extension — `.pdf`, `.doc`, `.docx`, `.xls`, `.xlsx`, `.csv`, `.ppt`, `.pptx`, `.zip`, `.txt` — is extracted from the description text and added to the event's `attachments` array.
+
+Dropbox and Google Drive URLs are normalized to direct-download links before being stored. Each attachment follows this schema:
+
+```js
+{ label: 'Download PDF', url: 'https://...', type: 'pdf' }
+```
+
+Attachments are rendered as a list of download links in the detail view, below the event description.
 
 ## Responsive
 

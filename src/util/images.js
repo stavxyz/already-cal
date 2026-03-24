@@ -17,6 +17,28 @@ const DROPBOX_PATTERN = /(?:www\.)?dropbox\.com\/(?:scl\/fi|s)\//;
 // dl.dropboxusercontent.com is already direct-serve
 const DROPBOX_DIRECT_PATTERN = /dl\.dropboxusercontent\.com/;
 
+// Known non-image extensions — these are left for attachment extraction
+const NON_IMAGE_EXTENSIONS = new Set([
+  'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'ppt', 'pptx', 'zip', 'txt'
+]);
+
+// Full-URL Dropbox pattern for scanning descriptions
+const DROPBOX_URL_PATTERN = /https?:\/\/(?:(?:www\.)?dropbox\.com\/(?:scl\/fi|s)\/|dl\.dropboxusercontent\.com\/)[^\s<>"]+/gi;
+
+/**
+ * Extract the file extension from a URL's path (last segment before query string).
+ * Returns lowercase extension without dot, or null if none found.
+ */
+function getPathExtension(url) {
+  try {
+    const pathname = new URL(url).pathname;
+    const lastSegment = pathname.split('/').pop();
+    const dotIdx = lastSegment.lastIndexOf('.');
+    if (dotIdx === -1) return null;
+    return lastSegment.slice(dotIdx + 1).toLowerCase();
+  } catch { return null; }
+}
+
 /**
  * Convert a Google Drive URL to a direct-servable image URL via
  * lh3.googleusercontent.com.  Dropbox share URLs are normalized to raw=1.
@@ -56,6 +78,8 @@ function stripUrl(html, url) {
   return html;
 }
 
+export { getPathExtension, NON_IMAGE_EXTENSIONS };
+
 export function extractImage(description, config) {
   if (!description) return { image: null, images: [], description };
   const extensions = (config && config.imageExtensions) || DEFAULT_IMAGE_EXTENSIONS;
@@ -68,11 +92,12 @@ export function extractImage(description, config) {
 
   // Extract standard image URLs (by extension)
   while ((match = pattern.exec(description)) !== null) {
-    const url = match[1];
-    if (!seen.has(url)) {
-      seen.add(url);
-      images.push(url);
-      originalUrls.push(url);
+    const originalUrl = match[1];
+    const normalized = normalizeImageUrl(originalUrl);
+    if (normalized && !seen.has(normalized)) {
+      seen.add(normalized);
+      images.push(normalized);
+      originalUrls.push(originalUrl);
     }
   }
 
@@ -80,6 +105,21 @@ export function extractImage(description, config) {
   DRIVE_URL_PATTERN.lastIndex = 0;
   while ((match = DRIVE_URL_PATTERN.exec(description)) !== null) {
     const originalUrl = match[0];
+    const normalized = normalizeImageUrl(originalUrl);
+    if (normalized && !seen.has(normalized)) {
+      seen.add(normalized);
+      images.push(normalized);
+      originalUrls.push(originalUrl);
+    }
+  }
+
+  // Extract Dropbox image URLs
+  DROPBOX_URL_PATTERN.lastIndex = 0;
+  while ((match = DROPBOX_URL_PATTERN.exec(description)) !== null) {
+    const originalUrl = match[0];
+    const ext = getPathExtension(originalUrl);
+    // Skip known non-image extensions (they'll be picked up by attachment extraction)
+    if (ext && NON_IMAGE_EXTENSIONS.has(ext)) continue;
     const normalized = normalizeImageUrl(originalUrl);
     if (normalized && !seen.has(normalized)) {
       seen.add(normalized);

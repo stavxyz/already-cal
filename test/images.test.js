@@ -188,6 +188,76 @@ describe('extractImage — standard image URLs', () => {
   });
 });
 
+describe('extractImage — Dropbox URLs', () => {
+  it('extracts a Dropbox scl/fi image URL with rlkey', () => {
+    const url = 'https://www.dropbox.com/scl/fi/abc123/poster.jpg?rlkey=xyz&dl=0';
+    const desc = `Check out the flyer: ${url}`;
+    const result = extractImage(desc);
+    assert.strictEqual(result.image, 'https://www.dropbox.com/scl/fi/abc123/poster.jpg?rlkey=xyz&raw=1');
+    assert.strictEqual(result.images.length, 1);
+    assert.ok(!result.description.includes('dropbox.com'));
+  });
+
+  it('extracts a legacy Dropbox /s/ image URL', () => {
+    const desc = 'Poster: https://www.dropbox.com/s/abc123/flyer.png?dl=0';
+    const result = extractImage(desc);
+    assert.strictEqual(result.image, 'https://www.dropbox.com/s/abc123/flyer.png?raw=1');
+    assert.ok(!result.description.includes('dropbox.com'));
+  });
+
+  it('extracts dl.dropboxusercontent.com URL unchanged', () => {
+    const url = 'https://dl.dropboxusercontent.com/s/abc123/photo.jpg';
+    const desc = `Image: ${url}`;
+    const result = extractImage(desc);
+    assert.strictEqual(result.image, url);
+    assert.ok(!result.description.includes('dropboxusercontent.com'));
+  });
+
+  it('skips Dropbox URL with non-image extension (.pdf)', () => {
+    const desc = 'Download: https://www.dropbox.com/scl/fi/abc123/report.pdf?rlkey=xyz&dl=0';
+    const result = extractImage(desc);
+    assert.strictEqual(result.image, null);
+    assert.deepStrictEqual(result.images, []);
+    assert.ok(result.description.includes('dropbox.com'));
+  });
+
+  it('skips Dropbox URL with .docx extension', () => {
+    const desc = 'Doc: https://www.dropbox.com/scl/fi/abc123/notes.docx?rlkey=xyz&dl=0';
+    const result = extractImage(desc);
+    assert.strictEqual(result.image, null);
+    assert.deepStrictEqual(result.images, []);
+  });
+
+  it('extracts extensionless Dropbox URL optimistically', () => {
+    const desc = 'Photo: https://www.dropbox.com/scl/fi/abc123hash/somefile?rlkey=xyz&dl=0';
+    const result = extractImage(desc);
+    assert.strictEqual(result.images.length, 1);
+    assert.ok(!result.description.includes('dropbox.com'));
+  });
+
+  it('extracts multiple Dropbox image URLs', () => {
+    const desc = 'https://www.dropbox.com/scl/fi/a/one.jpg?rlkey=r1&dl=0 and https://www.dropbox.com/scl/fi/b/two.png?rlkey=r2&dl=0';
+    const result = extractImage(desc);
+    assert.strictEqual(result.images.length, 2);
+  });
+
+  it('strips Dropbox URL wrapped in <a> tag', () => {
+    const url = 'https://www.dropbox.com/scl/fi/abc/pic.jpg?rlkey=xyz&dl=0';
+    const desc = `See <a href="${url}">${url}</a> here`;
+    const result = extractImage(desc);
+    assert.strictEqual(result.images.length, 1);
+    assert.ok(!result.description.includes('dropbox.com'));
+  });
+
+  it('deduplicates same Dropbox URL appearing twice', () => {
+    const url = 'https://www.dropbox.com/scl/fi/abc/pic.jpg?rlkey=xyz&dl=0';
+    const desc = `First: ${url} Second: ${url}`;
+    const result = extractImage(desc);
+    assert.strictEqual(result.images.length, 1);
+    assert.ok(!result.description.includes('dropbox.com'));
+  });
+});
+
 describe('extractImage — edge cases', () => {
   it('returns empty result for null description', () => {
     const result = extractImage(null);

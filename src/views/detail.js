@@ -6,20 +6,30 @@ function renderGallery(images, altText) {
   const gallery = document.createElement('div');
   gallery.className = 'ogcal-detail-gallery';
 
+  let loadedImages = [...images];
+  let current = 0;
+  let counter = null;
+
   const imgEl = document.createElement('img');
   imgEl.className = 'ogcal-detail-gallery-img';
   imgEl.src = images[0];
   imgEl.alt = altText;
   imgEl.loading = 'lazy';
-  // Hide the entire gallery column if the image fails to load
-  imgEl.onerror = () => { gallery.closest('.ogcal-detail-image')?.remove(); };
+  imgEl.onerror = () => {
+    loadedImages = loadedImages.filter(u => u !== imgEl.src);
+    if (loadedImages.length === 0) {
+      gallery.closest('.ogcal-detail-image')?.remove();
+      return;
+    }
+    current = 0;
+    imgEl.src = loadedImages[0];
+    if (counter) counter.textContent = `1 / ${loadedImages.length}`;
+  };
   gallery.appendChild(imgEl);
 
   if (images.length <= 1) return gallery;
 
-  let current = 0;
-
-  const counter = document.createElement('div');
+  counter = document.createElement('div');
   counter.className = 'ogcal-detail-gallery-counter';
   counter.textContent = `1 / ${images.length}`;
   gallery.appendChild(counter);
@@ -37,15 +47,14 @@ function renderGallery(images, altText) {
   gallery.appendChild(nextBtn);
 
   function goTo(idx) {
-    current = (idx + images.length) % images.length;
-    imgEl.src = images[current];
-    counter.textContent = `${current + 1} / ${images.length}`;
+    current = (idx + loadedImages.length) % loadedImages.length;
+    imgEl.src = loadedImages[current];
+    counter.textContent = `${current + 1} / ${loadedImages.length}`;
   }
 
   prevBtn.addEventListener('click', () => goTo(current - 1));
   nextBtn.addEventListener('click', () => goTo(current + 1));
 
-  // Keyboard navigation when gallery is focused
   gallery.setAttribute('tabindex', '0');
   gallery.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowLeft') { goTo(current - 1); e.preventDefault(); }

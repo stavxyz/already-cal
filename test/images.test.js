@@ -258,6 +258,21 @@ describe('extractImage — Dropbox URLs', () => {
   });
 });
 
+describe('extractImage — HTML entity decoding', () => {
+  it('decodes &amp; in Dropbox URLs from HTML descriptions', () => {
+    const desc = '<a href="https://www.dropbox.com/scl/fi/abc/photo.jpg?rlkey=xyz&amp;dl=0">https://www.dropbox.com/scl/fi/abc/photo.jpg?rlkey=xyz&amp;dl=0</a>';
+    const result = extractImage(desc);
+    assert.strictEqual(result.image, 'https://www.dropbox.com/scl/fi/abc/photo.jpg?rlkey=xyz&raw=1');
+    assert.ok(!result.image.includes('&amp;'));
+  });
+
+  it('decodes &amp; in standard image URLs', () => {
+    const desc = 'https://example.com/photo.jpg?w=800&amp;h=600';
+    const result = extractImage(desc);
+    assert.strictEqual(result.image, 'https://example.com/photo.jpg?w=800&h=600');
+  });
+});
+
 describe('extractImage — edge cases', () => {
   it('returns empty result for null description', () => {
     const result = extractImage(null);

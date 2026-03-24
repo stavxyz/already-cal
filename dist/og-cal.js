@@ -43,6 +43,9 @@ var OgCal = (() => {
 
   // src/util/images.js
   var DEFAULT_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
+  function decodeUrlEntities(url) {
+    return url.replace(/&amp;/g, "&");
+  }
   var DRIVE_ID_PATTERN = /drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=view&)?id=)([a-zA-Z0-9_-]+)/;
   var DRIVE_URL_PATTERN = new RegExp(
     `https?:\\/\\/${DRIVE_ID_PATTERN.source}[^\\s<>"]*`,
@@ -100,7 +103,7 @@ var OgCal = (() => {
     let match;
     while ((match = pattern.exec(description)) !== null) {
       const originalUrl = match[1];
-      const normalized = normalizeImageUrl(originalUrl);
+      const normalized = normalizeImageUrl(decodeUrlEntities(originalUrl));
       if (normalized && !seen.has(normalized)) {
         seen.add(normalized);
         images.push(normalized);
@@ -110,7 +113,7 @@ var OgCal = (() => {
     DRIVE_URL_PATTERN.lastIndex = 0;
     while ((match = DRIVE_URL_PATTERN.exec(description)) !== null) {
       const originalUrl = match[0];
-      const normalized = normalizeImageUrl(originalUrl);
+      const normalized = normalizeImageUrl(decodeUrlEntities(originalUrl));
       if (normalized && !seen.has(normalized)) {
         seen.add(normalized);
         images.push(normalized);
@@ -120,9 +123,9 @@ var OgCal = (() => {
     DROPBOX_URL_PATTERN.lastIndex = 0;
     while ((match = DROPBOX_URL_PATTERN.exec(description)) !== null) {
       const originalUrl = match[0];
-      const ext = getPathExtension(originalUrl);
+      const ext = getPathExtension(decodeUrlEntities(originalUrl));
       if (ext && NON_IMAGE_EXTENSIONS.has(ext)) continue;
-      const normalized = normalizeImageUrl(originalUrl);
+      const normalized = normalizeImageUrl(decodeUrlEntities(originalUrl));
       if (normalized && !seen.has(normalized)) {
         seen.add(normalized);
         images.push(normalized);
@@ -195,16 +198,17 @@ var OgCal = (() => {
     let cleaned = description;
     const seen = /* @__PURE__ */ new Set();
     const urls = description.match(URL_PATTERN) || [];
-    for (const url of urls) {
-      if (seen.has(url)) continue;
+    for (const rawUrl of urls) {
+      if (seen.has(rawUrl)) continue;
+      const url = rawUrl.replace(/&amp;/g, "&");
       for (const platform of platforms) {
         if (platform.pattern.test(url)) {
-          seen.add(url);
+          seen.add(rawUrl);
           const label = platform.labelFn ? platform.labelFn(url) : platform.label;
           links.push({ label, url });
-          const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const escapedUrl = rawUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
           cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escapedUrl}</a>`, "gi"), "");
-          cleaned = cleaned.replace(url, "");
+          cleaned = cleaned.replace(rawUrl, "");
           break;
         }
       }
@@ -2435,6 +2439,9 @@ ${text}</tr>
   var DROPBOX_DIRECT_PATTERN2 = /dl\.dropboxusercontent\.com/;
   var IMAGE_EXTENSIONS = /* @__PURE__ */ new Set(["png", "jpg", "jpeg", "gif", "webp"]);
   var URL_PATTERN2 = /https?:\/\/[^\s<>"]+/gi;
+  function decodeUrlEntities2(url) {
+    return url.replace(/&amp;/g, "&");
+  }
   var EXTENSION_MAP = {
     pdf: { label: "Download PDF", type: "pdf" },
     doc: { label: "Download Document", type: "doc" },
@@ -2478,10 +2485,11 @@ ${text}</tr>
     const urls = description.match(URL_PATTERN2) || [];
     for (const url of urls) {
       if (seen.has(url)) continue;
-      const classification = classifyUrl(url);
+      const decodedUrl = decodeUrlEntities2(url);
+      const classification = classifyUrl(decodedUrl);
       if (!classification) continue;
       seen.add(url);
-      const normalizedUrl = normalizeAttachmentUrl(url);
+      const normalizedUrl = normalizeAttachmentUrl(decodedUrl);
       attachments.push({
         label: classification.label,
         url: normalizedUrl,

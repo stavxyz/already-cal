@@ -8,6 +8,10 @@ const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp']);
 
 const URL_PATTERN = /https?:\/\/[^\s<>"]+/gi;
 
+function decodeUrlEntities(url) {
+  return url.replace(/&amp;/g, '&');
+}
+
 // Map extensions to {label, type} — grouped by category
 const EXTENSION_MAP = {
   pdf:  { label: 'Download PDF', type: 'pdf' },
@@ -65,11 +69,12 @@ export function extractAttachments(description, config) {
   const urls = description.match(URL_PATTERN) || [];
   for (const url of urls) {
     if (seen.has(url)) continue;
-    const classification = classifyUrl(url);
+    const decodedUrl = decodeUrlEntities(url);
+    const classification = classifyUrl(decodedUrl);
     if (!classification) continue;
 
     seen.add(url);
-    const normalizedUrl = normalizeAttachmentUrl(url);
+    const normalizedUrl = normalizeAttachmentUrl(decodedUrl);
     attachments.push({
       label: classification.label,
       url: normalizedUrl,

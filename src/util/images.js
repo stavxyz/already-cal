@@ -2,6 +2,12 @@ import { cleanupHtml, stripUrl } from './sanitize.js';
 
 const DEFAULT_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
 
+// Decode common HTML entities in URLs extracted from HTML descriptions.
+// Google Calendar API descriptions use &amp; instead of & in query strings.
+function decodeUrlEntities(url) {
+  return url.replace(/&amp;/g, '&');
+}
+
 // Core pattern for extracting a Google Drive file ID from various URL formats:
 //   /file/d/ID/..., /open?id=ID, /uc?id=ID, /uc?export=view&id=ID
 export const DRIVE_ID_PATTERN = /drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=view&)?id=)([a-zA-Z0-9_-]+)/;
@@ -85,7 +91,7 @@ export function extractImage(description, config) {
   // Extract standard image URLs (by extension)
   while ((match = pattern.exec(description)) !== null) {
     const originalUrl = match[1];
-    const normalized = normalizeImageUrl(originalUrl);
+    const normalized = normalizeImageUrl(decodeUrlEntities(originalUrl));
     if (normalized && !seen.has(normalized)) {
       seen.add(normalized);
       images.push(normalized);
@@ -97,7 +103,7 @@ export function extractImage(description, config) {
   DRIVE_URL_PATTERN.lastIndex = 0;
   while ((match = DRIVE_URL_PATTERN.exec(description)) !== null) {
     const originalUrl = match[0];
-    const normalized = normalizeImageUrl(originalUrl);
+    const normalized = normalizeImageUrl(decodeUrlEntities(originalUrl));
     if (normalized && !seen.has(normalized)) {
       seen.add(normalized);
       images.push(normalized);
@@ -109,10 +115,10 @@ export function extractImage(description, config) {
   DROPBOX_URL_PATTERN.lastIndex = 0;
   while ((match = DROPBOX_URL_PATTERN.exec(description)) !== null) {
     const originalUrl = match[0];
-    const ext = getPathExtension(originalUrl);
+    const ext = getPathExtension(decodeUrlEntities(originalUrl));
     // Skip known non-image extensions (they'll be picked up by attachment extraction)
     if (ext && NON_IMAGE_EXTENSIONS.has(ext)) continue;
-    const normalized = normalizeImageUrl(originalUrl);
+    const normalized = normalizeImageUrl(decodeUrlEntities(originalUrl));
     if (normalized && !seen.has(normalized)) {
       seen.add(normalized);
       images.push(normalized);

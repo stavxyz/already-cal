@@ -62,17 +62,19 @@ export function extractLinks(description, config) {
   const seen = new Set();
 
   const urls = description.match(URL_PATTERN) || [];
-  for (const url of urls) {
-    if (seen.has(url)) continue;
+  for (const rawUrl of urls) {
+    if (seen.has(rawUrl)) continue;
+    const url = rawUrl.replace(/&amp;/g, '&');
     for (const platform of platforms) {
       if (platform.pattern.test(url)) {
-        seen.add(url);
+        seen.add(rawUrl);
         const label = platform.labelFn ? platform.labelFn(url) : platform.label;
         links.push({ label, url });
         // Remove <a> tag wrapping the URL if present, then the bare URL
-        const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Use rawUrl (with &amp;) for stripping since that's what's in the HTML
+        const escapedUrl = rawUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escapedUrl}</a>`, 'gi'), '');
-        cleaned = cleaned.replace(url, '');
+        cleaned = cleaned.replace(rawUrl, '');
         break;
       }
     }

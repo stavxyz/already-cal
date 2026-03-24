@@ -23,9 +23,14 @@ export function handleAt(url) {
       return `${segments[0]}/${segments[1]}`;
     }
 
-    // Single-segment path = profile handle (no dots — not a file)
+    // Single-segment path = profile handle
     // Strip leading @ (TikTok uses /@handle in the path)
-    if (segments.length === 1 && !segments[0].includes('.')) return segments[0].replace(/^@/, '');
+    // Allow dots (e.g. mill.scale) but reject file extensions (e.g. photo.jpg)
+    if (segments.length === 1) {
+      const seg = segments[0].replace(/^@/, '');
+      if (/\.(jpg|jpeg|png|gif|webp|pdf|html|js|css|php)$/i.test(seg)) return null;
+      return seg;
+    }
 
     return null;
   } catch { return null; }
@@ -39,7 +44,7 @@ export const DEFAULT_PLATFORMS = [
   { pattern: /meet\.google\.com/i, label: 'Join Google Meet' },
   { pattern: /instagram\.com/i, labelFn: (url) => { const h = handleAt(url); return h ? `Follow @${h} on Instagram` : 'View on Instagram'; } },
   { pattern: /facebook\.com|fb\.com/i, labelFn: (url) => { const h = handleAt(url); return h ? `${h} on Facebook` : 'View on Facebook'; } },
-  { pattern: /(?:twitter\.com|x\.com)/i, labelFn: (url) => { const h = handleAt(url); return h ? `Follow @${h} on X` : 'View on X'; } },
+  { pattern: /(?:twitter\.com|(?:^|\/\/)(?:www\.)?x\.com)/i, labelFn: (url) => { const h = handleAt(url); return h ? `Follow @${h} on X` : 'View on X'; } },
   { pattern: /reddit\.com/i, labelFn: (url) => { const h = handleAt(url); return h ? `${h} on Reddit` : 'View on Reddit'; } },
   { pattern: /youtube\.com|youtu\.be/i, label: 'Watch on YouTube' },
   { pattern: /tiktok\.com/i, labelFn: (url) => { const h = handleAt(url); return h ? `@${h} on TikTok` : 'View on TikTok'; } },
@@ -56,25 +61,24 @@ const URL_PATTERN = /https?:\/\/[^\s<>"]+/gi;
 
 export function extractLinks(description, config) {
   if (!description) return { links: [], description };
+  description = description.replace(/&amp;/g, '&');
   const platforms = (config && config.knownPlatforms) || DEFAULT_PLATFORMS;
   const links = [];
   let cleaned = description;
   const seen = new Set();
 
   const urls = description.match(URL_PATTERN) || [];
-  for (const rawUrl of urls) {
-    if (seen.has(rawUrl)) continue;
-    const url = rawUrl.replace(/&amp;/g, '&');
+  for (const url of urls) {
+    if (seen.has(url)) continue;
     for (const platform of platforms) {
       if (platform.pattern.test(url)) {
-        seen.add(rawUrl);
+        seen.add(url);
         const label = platform.labelFn ? platform.labelFn(url) : platform.label;
         links.push({ label, url });
         // Remove <a> tag wrapping the URL if present, then the bare URL
-        // Use rawUrl (with &amp;) for stripping since that's what's in the HTML
-        const escapedUrl = rawUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escapedUrl}</a>`, 'gi'), '');
-        cleaned = cleaned.replace(rawUrl, '');
+        cleaned = cleaned.replace(url, '');
         break;
       }
     }

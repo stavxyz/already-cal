@@ -2,11 +2,6 @@ import { cleanupHtml, stripUrl } from './sanitize.js';
 
 const DEFAULT_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
 
-// Decode common HTML entities in URLs extracted from HTML descriptions.
-// Google Calendar API descriptions use &amp; instead of & in query strings.
-function decodeUrlEntities(url) {
-  return url.replace(/&amp;/g, '&');
-}
 
 // Core pattern for extracting a Google Drive file ID from various URL formats:
 //   /file/d/ID/..., /open?id=ID, /uc?id=ID, /uc?export=view&id=ID
@@ -80,6 +75,9 @@ export { getPathExtension, NON_IMAGE_EXTENSIONS };
 
 export function extractImage(description, config) {
   if (!description) return { image: null, images: [], description };
+  // Decode HTML entities in URLs upfront so href and text content versions match.
+  // Google Calendar API descriptions use &amp; in text content but & in href attrs.
+  description = description.replace(/&amp;/g, '&');
   const extensions = (config && config.imageExtensions) || DEFAULT_IMAGE_EXTENSIONS;
   const pattern = buildImagePattern(extensions);
   const seen = new Set();
@@ -91,7 +89,7 @@ export function extractImage(description, config) {
   // Extract standard image URLs (by extension)
   while ((match = pattern.exec(description)) !== null) {
     const originalUrl = match[1];
-    const normalized = normalizeImageUrl(decodeUrlEntities(originalUrl));
+    const normalized = normalizeImageUrl(originalUrl);
     if (normalized && !seen.has(normalized)) {
       seen.add(normalized);
       images.push(normalized);
@@ -103,7 +101,7 @@ export function extractImage(description, config) {
   DRIVE_URL_PATTERN.lastIndex = 0;
   while ((match = DRIVE_URL_PATTERN.exec(description)) !== null) {
     const originalUrl = match[0];
-    const normalized = normalizeImageUrl(decodeUrlEntities(originalUrl));
+    const normalized = normalizeImageUrl(originalUrl);
     if (normalized && !seen.has(normalized)) {
       seen.add(normalized);
       images.push(normalized);
@@ -115,10 +113,10 @@ export function extractImage(description, config) {
   DROPBOX_URL_PATTERN.lastIndex = 0;
   while ((match = DROPBOX_URL_PATTERN.exec(description)) !== null) {
     const originalUrl = match[0];
-    const ext = getPathExtension(decodeUrlEntities(originalUrl));
+    const ext = getPathExtension(originalUrl);
     // Skip known non-image extensions (they'll be picked up by attachment extraction)
     if (ext && NON_IMAGE_EXTENSIONS.has(ext)) continue;
-    const normalized = normalizeImageUrl(decodeUrlEntities(originalUrl));
+    const normalized = normalizeImageUrl(originalUrl);
     if (normalized && !seen.has(normalized)) {
       seen.add(normalized);
       images.push(normalized);

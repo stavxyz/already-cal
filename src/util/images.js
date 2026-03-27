@@ -1,6 +1,16 @@
 import { cleanupHtml, stripUrl } from './sanitize.js';
 
-const DEFAULT_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+// Single source of truth for supported image formats.
+// Keys are canonical extensions; values are MIME types.
+const IMAGE_FORMATS = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+};
+
+const DEFAULT_IMAGE_EXTENSIONS = Object.keys(IMAGE_FORMATS);
 
 
 // Core pattern for extracting a Google Drive file ID from various URL formats:
@@ -75,28 +85,50 @@ export { getPathExtension, NON_IMAGE_EXTENSIONS };
 
 /**
  * Check if a URL points to Dropbox-hosted content.
+ * @param {string} url
+ * @returns {boolean}
  */
 export function isDropboxUrl(url) {
-  return url && (DROPBOX_PATTERN.test(url) || DROPBOX_DIRECT_PATTERN.test(url));
+  return !!url && (DROPBOX_PATTERN.test(url) || DROPBOX_DIRECT_PATTERN.test(url));
 }
 
-// MIME types by common image extension
-const MIME_BY_EXT = {
-  jpg: 'image/jpeg', jpeg: 'image/jpeg',
-  png: 'image/png', gif: 'image/gif', webp: 'image/webp'
-};
+/**
+ * Detect image MIME type from the first bytes of an ArrayBuffer using magic
+ * byte signatures.  Falls back to URL extension, then 'image/jpeg'.
+ * @param {ArrayBuffer} buf
+ * @param {string} url - original URL, used as extension-based fallback
+ * @returns {string} MIME type string
+ */
+export function detectMimeType(buf, url) {
+  const bytes = new Uint8Array(buf, 0, Math.min(12, buf.byteLength));
+  // JPEG: FF D8 FF
+  if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return 'image/jpeg';
+  // PNG: 89 50 4E 47
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) return 'image/png';
+  // GIF: 47 49 46 38
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) return 'image/gif';
+  // WebP: RIFF....WEBP (bytes 0-3 = RIFF, bytes 8-11 = WEBP)
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+      && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return 'image/webp';
+  // Fallback: infer from URL extension
+  const ext = getPathExtension(url);
+  return (ext && IMAGE_FORMATS[ext]) || 'image/jpeg';
+}
 
 /**
  * Fetch an image from a Dropbox URL and return a blob: URL with the correct
  * MIME type.  Dropbox currently serves images with content-type: application/json
- * and x-content-type-options: nosniff, causing browsers to reject them in <img> tags.
+ * and x-content-type-options: nosniff, causing browsers to reject them in <img>
+ * tags.  The returned blob URLs are intentionally never revoked — they are freed
+ * when the page unloads, and the calendar is not a long-lived SPA that re-fetches.
+ * @param {string} url
+ * @returns {Promise<string>} blob: URL
  */
 export function fetchImageAsBlob(url) {
   return fetch(url)
-    .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+    .then(r => { if (!r.ok) throw new Error(`Dropbox fetch failed: ${r.status}`); return r.arrayBuffer(); })
     .then(buf => {
-      const ext = (url.match(/\.(jpe?g|png|gif|webp)/i)?.[1] || 'jpeg').toLowerCase();
-      const mime = MIME_BY_EXT[ext] || 'image/jpeg';
+      const mime = detectMimeType(buf, url);
       return URL.createObjectURL(new Blob([buf], { type: mime }));
     });
 }

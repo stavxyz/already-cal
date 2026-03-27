@@ -110,12 +110,11 @@ async function resolveDropboxImages(events) {
   for (const event of events) {
     for (let i = 0; i < event.images.length; i++) {
       if (isDropboxUrl(event.images[i])) {
-        const ev = event;
-        const idx = i;
+        const idx = i; // capture loop variable for async closure
         tasks.push(
-          fetchImageAsBlob(ev.images[idx])
-            .then(blobUrl => { ev.images[idx] = blobUrl; })
-            .catch(() => { ev.images[idx] = null; })
+          fetchImageAsBlob(event.images[idx])
+            .then(blobUrl => { event.images[idx] = blobUrl; })
+            .catch(() => { event.images[idx] = null; })
         );
       }
     }

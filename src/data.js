@@ -1,4 +1,4 @@
-import { extractImage, normalizeImageUrl } from './util/images.js';
+import { extractImage, normalizeImageUrl, isDropboxUrl, fetchImageAsBlob } from './util/images.js';
 import { extractLinks } from './util/links.js';
 import { detectFormat } from './util/description.js';
 import { extractAttachments, deriveTypeFromMimeType, labelForType } from './util/attachments.js';
@@ -32,6 +32,11 @@ export async function loadData(config) {
   // Enrich events: extract images/links from descriptions for all data sources
   if (data.events) {
     data = { ...data, events: data.events.map(event => enrichEvent(event, config)) };
+    // Resolve Dropbox image URLs to blob URLs.  Dropbox serves images with
+    // content-type: application/json + nosniff, so browsers reject them in
+    // <img> tags.  Fetching via JS and creating blobs with the correct MIME
+    // type works around the issue.
+    await resolveDropboxImages(data.events);
   }
 
   // Apply eventTransform
@@ -98,6 +103,29 @@ function enrichEvent(event, config) {
 
   const { _imageAttachments, ...rest } = event;
   return { ...rest, description, descriptionFormat, image, images, links, attachments };
+}
+
+async function resolveDropboxImages(events) {
+  const tasks = [];
+  for (const event of events) {
+    for (let i = 0; i < event.images.length; i++) {
+      if (isDropboxUrl(event.images[i])) {
+        const ev = event;
+        const idx = i;
+        tasks.push(
+          fetchImageAsBlob(ev.images[idx])
+            .then(blobUrl => { ev.images[idx] = blobUrl; })
+            .catch(() => { ev.images[idx] = null; })
+        );
+      }
+    }
+  }
+  if (tasks.length === 0) return;
+  await Promise.all(tasks);
+  for (const event of events) {
+    event.images = event.images.filter(Boolean);
+    event.image = event.images[0] || null;
+  }
 }
 
 async function fetchGoogleCalendar({ apiKey, calendarId, maxResults = 50 }, config) {

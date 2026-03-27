@@ -90,6 +90,26 @@ var OgCal = (() => {
     const ext = extensions.join("|");
     return new RegExp(`(https?://[^\\s<>"]+\\.(?:${ext})(?:\\?[^\\s<>"]*)?)`, "gi");
   }
+  function isDropboxUrl(url) {
+    return url && (DROPBOX_PATTERN.test(url) || DROPBOX_DIRECT_PATTERN.test(url));
+  }
+  var MIME_BY_EXT = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    webp: "image/webp"
+  };
+  function fetchImageAsBlob(url) {
+    return fetch(url).then((r) => {
+      if (!r.ok) throw new Error(r.status);
+      return r.arrayBuffer();
+    }).then((buf) => {
+      const ext = (url.match(/\.(jpe?g|png|gif|webp)/i)?.[1] || "jpeg").toLowerCase();
+      const mime = MIME_BY_EXT[ext] || "image/jpeg";
+      return URL.createObjectURL(new Blob([buf], { type: mime }));
+    });
+  }
   function extractImage(description, config) {
     if (!description) return { image: null, images: [], description };
     description = description.replace(/&amp;/g, "&");
@@ -2539,6 +2559,7 @@ ${text}</tr>
     }
     if (data.events) {
       data = { ...data, events: data.events.map((event) => enrichEvent(event, config)) };
+      await resolveDropboxImages(data.events);
     }
     if (config.eventTransform && data.events) {
       data = { ...data, events: data.events.map(config.eventTransform) };
@@ -2585,6 +2606,30 @@ ${text}</tr>
     const descriptionFormat = event.descriptionFormat || detectFormat(description);
     const { _imageAttachments, ...rest } = event;
     return { ...rest, description, descriptionFormat, image, images, links, attachments };
+  }
+  async function resolveDropboxImages(events) {
+    const tasks = [];
+    for (const event of events) {
+      for (let i = 0; i < event.images.length; i++) {
+        if (isDropboxUrl(event.images[i])) {
+          const ev = event;
+          const idx = i;
+          tasks.push(
+            fetchImageAsBlob(ev.images[idx]).then((blobUrl) => {
+              ev.images[idx] = blobUrl;
+            }).catch(() => {
+              ev.images[idx] = null;
+            })
+          );
+        }
+      }
+    }
+    if (tasks.length === 0) return;
+    await Promise.all(tasks);
+    for (const event of events) {
+      event.images = event.images.filter(Boolean);
+      event.image = event.images[0] || null;
+    }
   }
   async function fetchGoogleCalendar({ apiKey, calendarId, maxResults = 50 }, config) {
     const now = (/* @__PURE__ */ new Date()).toISOString();

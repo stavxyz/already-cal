@@ -73,6 +73,34 @@ function buildImagePattern(extensions) {
 
 export { getPathExtension, NON_IMAGE_EXTENSIONS };
 
+/**
+ * Check if a URL points to Dropbox-hosted content.
+ */
+export function isDropboxUrl(url) {
+  return url && (DROPBOX_PATTERN.test(url) || DROPBOX_DIRECT_PATTERN.test(url));
+}
+
+// MIME types by common image extension
+const MIME_BY_EXT = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg',
+  png: 'image/png', gif: 'image/gif', webp: 'image/webp'
+};
+
+/**
+ * Fetch an image from a Dropbox URL and return a blob: URL with the correct
+ * MIME type.  Dropbox currently serves images with content-type: application/json
+ * and x-content-type-options: nosniff, causing browsers to reject them in <img> tags.
+ */
+export function fetchImageAsBlob(url) {
+  return fetch(url)
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+    .then(buf => {
+      const ext = (url.match(/\.(jpe?g|png|gif|webp)/i)?.[1] || 'jpeg').toLowerCase();
+      const mime = MIME_BY_EXT[ext] || 'image/jpeg';
+      return URL.createObjectURL(new Blob([buf], { type: mime }));
+    });
+}
+
 export function extractImage(description, config) {
   if (!description) return { image: null, images: [], description };
   // Decode HTML entities in URLs upfront so href and text content versions match.

@@ -3,11 +3,13 @@ const assert = require('node:assert');
 
 let normalizeImageUrl;
 let extractImage;
+let isDropboxUrl;
 
 before(async () => {
   const mod = await import('../src/util/images.js');
   normalizeImageUrl = mod.normalizeImageUrl;
   extractImage = mod.extractImage;
+  isDropboxUrl = mod.isDropboxUrl;
 });
 
 describe('normalizeImageUrl', () => {
@@ -301,5 +303,32 @@ describe('extractImage — edge cases', () => {
     const r2 = extractImage(desc2);
     assert.strictEqual(r1.image, 'https://lh3.googleusercontent.com/d/FIRST');
     assert.strictEqual(r2.image, 'https://lh3.googleusercontent.com/d/SECOND');
+  });
+});
+
+describe('isDropboxUrl', () => {
+  it('matches Dropbox share URL (scl/fi)', () => {
+    assert.strictEqual(isDropboxUrl('https://www.dropbox.com/scl/fi/abc/photo.jpg?rlkey=xyz&raw=1'), true);
+  });
+
+  it('matches legacy Dropbox share URL (/s/)', () => {
+    assert.strictEqual(isDropboxUrl('https://www.dropbox.com/s/abc/photo.jpg?raw=1'), true);
+  });
+
+  it('matches dl.dropboxusercontent.com URL', () => {
+    assert.strictEqual(isDropboxUrl('https://dl.dropboxusercontent.com/scl/fi/abc/photo.jpg'), true);
+  });
+
+  it('returns false for Google Drive URL', () => {
+    assert.strictEqual(isDropboxUrl('https://lh3.googleusercontent.com/d/ABC123'), false);
+  });
+
+  it('returns false for regular URL', () => {
+    assert.strictEqual(isDropboxUrl('https://example.com/photo.jpg'), false);
+  });
+
+  it('returns falsy for null/undefined', () => {
+    assert.ok(!isDropboxUrl(null));
+    assert.ok(!isDropboxUrl(undefined));
   });
 });

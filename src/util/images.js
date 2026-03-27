@@ -55,8 +55,14 @@ export function normalizeImageUrl(url) {
   // Dropbox direct URLs — already servable
   if (DROPBOX_DIRECT_PATTERN.test(url)) return url;
 
-  // Dropbox share URLs — normalize to raw=1
+  // Dropbox share URLs — normalize to raw=1.
+  // Dropbox may serve these with incorrect content-type headers; if images
+  // fail to render, consider re-hosting on a service with reliable MIME types.
   if (DROPBOX_PATTERN.test(url)) {
+    if (typeof console !== 'undefined' && console.warn && !normalizeImageUrl._dropboxWarned) {
+      console.warn('og-cal: Dropbox image URL detected. If images fail to render, Dropbox may be serving incorrect content-type headers. Consider re-hosting images on a more reliable service.');
+      normalizeImageUrl._dropboxWarned = true;
+    }
     if (url.includes('dl=0')) return url.replace('dl=0', 'raw=1');
     if (url.includes('?')) return url + '&raw=1';
     return url + '?raw=1';

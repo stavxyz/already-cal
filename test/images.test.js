@@ -1,15 +1,19 @@
-const { describe, it, before } = require('node:test');
+const { describe, it, before, afterEach } = require('node:test');
 const assert = require('node:assert');
 
 let normalizeImageUrl;
 let extractImage;
 let isDropboxUrl;
+let detectMimeType;
+let fetchImageAsBlob;
 
 before(async () => {
   const mod = await import('../src/util/images.js');
   normalizeImageUrl = mod.normalizeImageUrl;
   extractImage = mod.extractImage;
   isDropboxUrl = mod.isDropboxUrl;
+  detectMimeType = mod.detectMimeType;
+  fetchImageAsBlob = mod.fetchImageAsBlob;
 });
 
 describe('normalizeImageUrl', () => {
@@ -327,8 +331,258 @@ describe('isDropboxUrl', () => {
     assert.strictEqual(isDropboxUrl('https://example.com/photo.jpg'), false);
   });
 
-  it('returns falsy for null/undefined', () => {
-    assert.ok(!isDropboxUrl(null));
-    assert.ok(!isDropboxUrl(undefined));
+  it('returns false for null/undefined', () => {
+    assert.strictEqual(isDropboxUrl(null), false);
+    assert.strictEqual(isDropboxUrl(undefined), false);
+  });
+
+  it('returns false for empty string', () => {
+    assert.strictEqual(isDropboxUrl(''), false);
+  });
+});
+
+// --- Magic-byte MIME detection ---
+
+describe('detectMimeType', () => {
+  function bufferFrom(bytes) {
+    return new Uint8Array(bytes).buffer;
+  }
+
+  it('detects JPEG from magic bytes (FF D8 FF)', () => {
+    const buf = bufferFrom([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10]);
+    assert.strictEqual(detectMimeType(buf, 'https://example.com/unknown'), 'image/jpeg');
+  });
+
+  it('detects PNG from magic bytes (89 50 4E 47)', () => {
+    const buf = bufferFrom([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+    assert.strictEqual(detectMimeType(buf, 'https://example.com/unknown'), 'image/png');
+  });
+
+  it('detects GIF from magic bytes (47 49 46 38)', () => {
+    const buf = bufferFrom([0x47, 0x49, 0x46, 0x38, 0x39, 0x61]);
+    assert.strictEqual(detectMimeType(buf, 'https://example.com/unknown'), 'image/gif');
+  });
+
+  it('detects WebP from magic bytes (RIFF....WEBP)', () => {
+    // RIFF at 0-3, file size at 4-7, WEBP at 8-11
+    const buf = bufferFrom([0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50]);
+    assert.strictEqual(detectMimeType(buf, 'https://example.com/unknown'), 'image/webp');
+  });
+
+  it('falls back to URL extension when magic bytes are unrecognized', () => {
+    const buf = bufferFrom([0x00, 0x00, 0x00, 0x00]);
+    assert.strictEqual(detectMimeType(buf, 'https://example.com/photo.png'), 'image/png');
+    assert.strictEqual(detectMimeType(buf, 'https://example.com/photo.gif'), 'image/gif');
+  });
+
+  it('falls back to image/jpeg when both magic bytes and extension are unknown', () => {
+    const buf = bufferFrom([0x00, 0x00, 0x00, 0x00]);
+    assert.strictEqual(detectMimeType(buf, 'https://www.dropbox.com/scl/fi/abc/somefile?rlkey=xyz'), 'image/jpeg');
+  });
+
+  it('handles empty buffer gracefully', () => {
+    const buf = bufferFrom([]);
+    assert.strictEqual(detectMimeType(buf, 'https://example.com/photo.jpg'), 'image/jpeg');
+  });
+});
+
+// --- fetchImageAsBlob (with mocked browser globals) ---
+
+describe('fetchImageAsBlob', () => {
+  let origFetch, origBlob, origCreateObjectURL;
+
+  before(() => {
+    origFetch = globalThis.fetch;
+    origBlob = globalThis.Blob;
+    origCreateObjectURL = globalThis.URL.createObjectURL;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = origFetch;
+    globalThis.Blob = origBlob;
+    globalThis.URL.createObjectURL = origCreateObjectURL;
+  });
+
+  function mockFetchAndBlob(bytes) {
+    const arrayBuffer = new Uint8Array(bytes).buffer;
+    globalThis.fetch = async (url) => ({
+      ok: true,
+      arrayBuffer: async () => arrayBuffer,
+    });
+    let capturedBlobType;
+    globalThis.Blob = class MockBlob {
+      constructor(parts, opts) { capturedBlobType = opts?.type; }
+    };
+    globalThis.URL.createObjectURL = (blob) => 'blob:mock-url';
+    return { getCapturedType: () => capturedBlobType };
+  }
+
+  it('returns a blob URL on success', async () => {
+    mockFetchAndBlob([0xFF, 0xD8, 0xFF, 0xE0]);
+    const result = await fetchImageAsBlob('https://www.dropbox.com/scl/fi/abc/photo.jpg?rlkey=xyz&raw=1');
+    assert.strictEqual(result, 'blob:mock-url');
+  });
+
+  it('detects JPEG MIME from magic bytes', async () => {
+    const mock = mockFetchAndBlob([0xFF, 0xD8, 0xFF, 0xE0]);
+    await fetchImageAsBlob('https://www.dropbox.com/scl/fi/abc/photo.jpg?raw=1');
+    assert.strictEqual(mock.getCapturedType(), 'image/jpeg');
+  });
+
+  it('detects PNG MIME from magic bytes', async () => {
+    const mock = mockFetchAndBlob([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+    await fetchImageAsBlob('https://www.dropbox.com/scl/fi/abc/photo.png?raw=1');
+    assert.strictEqual(mock.getCapturedType(), 'image/png');
+  });
+
+  it('rejects on HTTP error', async () => {
+    globalThis.fetch = async () => ({ ok: false, status: 404 });
+    await assert.rejects(
+      () => fetchImageAsBlob('https://www.dropbox.com/scl/fi/abc/photo.jpg?raw=1'),
+      /Dropbox fetch failed: 404/
+    );
+  });
+});
+
+// --- resolveDropboxImages (with mocked browser globals) ---
+
+describe('resolveDropboxImages', () => {
+  let resolveDropboxImages;
+  let origFetch, origBlob, origCreateObjectURL;
+
+  before(async () => {
+    const dataMod = await import('../src/data.js');
+    // resolveDropboxImages is not exported, so we test it indirectly
+    // via loadData with pre-loaded data that has Dropbox image URLs.
+    // We need access to loadData and transformGoogleEvents.
+    resolveDropboxImages = null; // tested indirectly below
+    origFetch = globalThis.fetch;
+    origBlob = globalThis.Blob;
+    origCreateObjectURL = globalThis.URL.createObjectURL;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = origFetch;
+    globalThis.Blob = origBlob;
+    globalThis.URL.createObjectURL = origCreateObjectURL;
+  });
+
+  function setupMocks() {
+    let blobCounter = 0;
+    globalThis.fetch = async (url) => {
+      if (url.includes('fail-this')) {
+        return { ok: false, status: 500 };
+      }
+      return {
+        ok: true,
+        arrayBuffer: async () => new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0]).buffer,
+      };
+    };
+    globalThis.Blob = class MockBlob {
+      constructor(parts, opts) { this.type = opts?.type; }
+    };
+    globalThis.URL.createObjectURL = () => `blob:mock-${++blobCounter}`;
+  }
+
+  it('replaces Dropbox image URLs with blob URLs in pre-loaded data', async () => {
+    setupMocks();
+    const { loadData } = await import('../src/data.js');
+    const data = await loadData({
+      data: {
+        events: [{
+          title: 'Test Event',
+          description: '',
+          image: 'https://www.dropbox.com/scl/fi/abc/photo.jpg?rlkey=xyz&raw=1',
+          images: ['https://www.dropbox.com/scl/fi/abc/photo.jpg?rlkey=xyz&raw=1'],
+          links: [],
+          attachments: [],
+        }],
+      },
+    });
+    assert.ok(data.events[0].image.startsWith('blob:'));
+    assert.ok(data.events[0].images[0].startsWith('blob:'));
+  });
+
+  it('removes failed Dropbox images from the array', async () => {
+    setupMocks();
+    const { loadData } = await import('../src/data.js');
+    const data = await loadData({
+      data: {
+        events: [{
+          title: 'Test Event',
+          description: '',
+          image: 'https://www.dropbox.com/scl/fi/fail-this/photo.jpg?raw=1',
+          images: ['https://www.dropbox.com/scl/fi/fail-this/photo.jpg?raw=1'],
+          links: [],
+          attachments: [],
+        }],
+      },
+    });
+    assert.strictEqual(data.events[0].image, null);
+    assert.deepStrictEqual(data.events[0].images, []);
+  });
+
+  it('leaves non-Dropbox images untouched', async () => {
+    setupMocks();
+    const { loadData } = await import('../src/data.js');
+    const driveUrl = 'https://lh3.googleusercontent.com/d/ABC123';
+    const data = await loadData({
+      data: {
+        events: [{
+          title: 'Test Event',
+          description: '',
+          image: driveUrl,
+          images: [driveUrl],
+          links: [],
+          attachments: [],
+        }],
+      },
+    });
+    assert.strictEqual(data.events[0].image, driveUrl);
+    assert.strictEqual(data.events[0].images[0], driveUrl);
+  });
+
+  it('handles mixed Dropbox and non-Dropbox images', async () => {
+    setupMocks();
+    const { loadData } = await import('../src/data.js');
+    const driveUrl = 'https://lh3.googleusercontent.com/d/ABC123';
+    const dropboxUrl = 'https://www.dropbox.com/scl/fi/abc/photo.jpg?rlkey=xyz&raw=1';
+    const data = await loadData({
+      data: {
+        events: [{
+          title: 'Test Event',
+          description: '',
+          image: driveUrl,
+          images: [driveUrl, dropboxUrl],
+          links: [],
+          attachments: [],
+        }],
+      },
+    });
+    assert.strictEqual(data.events[0].images.length, 2);
+    assert.strictEqual(data.events[0].images[0], driveUrl);
+    assert.ok(data.events[0].images[1].startsWith('blob:'));
+    assert.strictEqual(data.events[0].image, driveUrl);
+  });
+
+  it('updates event.image when first image was Dropbox', async () => {
+    setupMocks();
+    const { loadData } = await import('../src/data.js');
+    const dropboxUrl = 'https://www.dropbox.com/scl/fi/abc/photo.jpg?rlkey=xyz&raw=1';
+    const driveUrl = 'https://lh3.googleusercontent.com/d/ABC123';
+    const data = await loadData({
+      data: {
+        events: [{
+          title: 'Test Event',
+          description: '',
+          image: dropboxUrl,
+          images: [dropboxUrl, driveUrl],
+          links: [],
+          attachments: [],
+        }],
+      },
+    });
+    assert.ok(data.events[0].image.startsWith('blob:'));
+    assert.strictEqual(data.events[0].images[1], driveUrl);
   });
 });

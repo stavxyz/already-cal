@@ -80,6 +80,10 @@ var OgCal = (() => {
     if (m) return `https://lh3.googleusercontent.com/d/${m[1]}`;
     if (DROPBOX_DIRECT_PATTERN.test(url)) return url;
     if (DROPBOX_PATTERN.test(url)) {
+      if (typeof console !== "undefined" && console.warn && !normalizeImageUrl._dropboxWarned) {
+        console.warn("og-cal: Dropbox image URL detected. If images fail to render, Dropbox may be serving incorrect content-type headers. Consider re-hosting images on a more reliable service.");
+        normalizeImageUrl._dropboxWarned = true;
+      }
       if (url.includes("dl=0")) return url.replace("dl=0", "raw=1");
       if (url.includes("?")) return url + "&raw=1";
       return url + "?raw=1";

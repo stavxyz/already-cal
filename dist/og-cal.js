@@ -42,14 +42,7 @@ var OgCal = (() => {
   }
 
   // src/util/images.js
-  var IMAGE_FORMATS = {
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    gif: "image/gif",
-    webp: "image/webp"
-  };
-  var DEFAULT_IMAGE_EXTENSIONS = Object.keys(IMAGE_FORMATS);
+  var DEFAULT_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
   var DRIVE_ID_PATTERN = /drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=view&)?id=)([a-zA-Z0-9_-]+)/;
   var DRIVE_URL_PATTERN = new RegExp(
     `https?:\\/\\/${DRIVE_ID_PATTERN.source}[^\\s<>"]*`,
@@ -96,27 +89,6 @@ var OgCal = (() => {
   function buildImagePattern(extensions) {
     const ext = extensions.join("|");
     return new RegExp(`(https?://[^\\s<>"]+\\.(?:${ext})(?:\\?[^\\s<>"]*)?)`, "gi");
-  }
-  function isDropboxUrl(url) {
-    return !!url && (DROPBOX_PATTERN.test(url) || DROPBOX_DIRECT_PATTERN.test(url));
-  }
-  function detectMimeType(buf, url) {
-    const bytes = new Uint8Array(buf, 0, Math.min(12, buf.byteLength));
-    if (bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) return "image/jpeg";
-    if (bytes[0] === 137 && bytes[1] === 80 && bytes[2] === 78 && bytes[3] === 71) return "image/png";
-    if (bytes[0] === 71 && bytes[1] === 73 && bytes[2] === 70 && bytes[3] === 56) return "image/gif";
-    if (bytes[0] === 82 && bytes[1] === 73 && bytes[2] === 70 && bytes[3] === 70 && bytes[8] === 87 && bytes[9] === 69 && bytes[10] === 66 && bytes[11] === 80) return "image/webp";
-    const ext = getPathExtension(url);
-    return ext && IMAGE_FORMATS[ext] || "image/jpeg";
-  }
-  function fetchImageAsBlob(url) {
-    return fetch(url).then((r) => {
-      if (!r.ok) throw new Error(`Dropbox fetch failed: ${r.status}`);
-      return r.arrayBuffer();
-    }).then((buf) => {
-      const mime = detectMimeType(buf, url);
-      return URL.createObjectURL(new Blob([buf], { type: mime }));
-    });
   }
   function extractImage(description, config) {
     if (!description) return { image: null, images: [], description };
@@ -2567,7 +2539,6 @@ ${text}</tr>
     }
     if (data.events) {
       data = { ...data, events: data.events.map((event) => enrichEvent(event, config)) };
-      await resolveDropboxImages(data.events);
     }
     if (config.eventTransform && data.events) {
       data = { ...data, events: data.events.map(config.eventTransform) };
@@ -2614,29 +2585,6 @@ ${text}</tr>
     const descriptionFormat = event.descriptionFormat || detectFormat(description);
     const { _imageAttachments, ...rest } = event;
     return { ...rest, description, descriptionFormat, image, images, links, attachments };
-  }
-  async function resolveDropboxImages(events) {
-    const tasks = [];
-    for (const event of events) {
-      for (let i = 0; i < event.images.length; i++) {
-        if (isDropboxUrl(event.images[i])) {
-          const idx = i;
-          tasks.push(
-            fetchImageAsBlob(event.images[idx]).then((blobUrl) => {
-              event.images[idx] = blobUrl;
-            }).catch(() => {
-              event.images[idx] = null;
-            })
-          );
-        }
-      }
-    }
-    if (tasks.length === 0) return;
-    await Promise.all(tasks);
-    for (const event of events) {
-      event.images = event.images.filter(Boolean);
-      event.image = event.images[0] || null;
-    }
   }
   async function fetchGoogleCalendar({ apiKey, calendarId, maxResults = 50 }, config) {
     const now = (/* @__PURE__ */ new Date()).toISOString();

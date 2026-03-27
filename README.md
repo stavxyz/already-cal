@@ -241,7 +241,7 @@ og-cal collects images from three sources:
 
 1. **Image URLs in the description** (`.png`, `.jpg`, `.gif`, `.webp`) — extracted and removed from rendered text
 2. **Google Drive links in the description** (`drive.google.com/file/d/.../view`, `/open?id=...`, `/uc?id=...`) — converted to direct-servable URLs via `lh3.googleusercontent.com` and removed from rendered text. The file must be publicly shared.
-3. **Dropbox links in the description** — URLs containing `/scl/fi/`, `/s/`, or on `dl.dropboxusercontent.com` are recognized and normalized to `?raw=1` for direct serving. The file must be publicly shared. Dropbox currently serves images with an incorrect `content-type` header; og-cal works around this by fetching the image data via JavaScript and re-serving it as a blob URL with the correct MIME type (detected from magic bytes).
+3. **Dropbox links in the description** — URLs containing `/scl/fi/`, `/s/`, or on `dl.dropboxusercontent.com` are recognized and normalized to `?raw=1` for direct serving. The file must be publicly shared.
 4. **Attachments** with `image/*` MIME type — from Google Calendar or your own data (Drive and Dropbox attachment URLs are also normalized)
 
 The first image is the thumbnail (grid/list views). Multiple images show as a gallery in detail view with ← → navigation and keyboard support.

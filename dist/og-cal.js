@@ -42,7 +42,14 @@ var OgCal = (() => {
   }
 
   // src/util/images.js
-  var DEFAULT_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
+  var IMAGE_FORMATS = {
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    gif: "image/gif",
+    webp: "image/webp"
+  };
+  var DEFAULT_IMAGE_EXTENSIONS = Object.keys(IMAGE_FORMATS);
   var DRIVE_ID_PATTERN = /drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=view&)?id=)([a-zA-Z0-9_-]+)/;
   var DRIVE_URL_PATTERN = new RegExp(
     `https?:\\/\\/${DRIVE_ID_PATTERN.source}[^\\s<>"]*`,
@@ -91,22 +98,23 @@ var OgCal = (() => {
     return new RegExp(`(https?://[^\\s<>"]+\\.(?:${ext})(?:\\?[^\\s<>"]*)?)`, "gi");
   }
   function isDropboxUrl(url) {
-    return url && (DROPBOX_PATTERN.test(url) || DROPBOX_DIRECT_PATTERN.test(url));
+    return !!url && (DROPBOX_PATTERN.test(url) || DROPBOX_DIRECT_PATTERN.test(url));
   }
-  var MIME_BY_EXT = {
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    png: "image/png",
-    gif: "image/gif",
-    webp: "image/webp"
-  };
+  function detectMimeType(buf, url) {
+    const bytes = new Uint8Array(buf, 0, Math.min(12, buf.byteLength));
+    if (bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) return "image/jpeg";
+    if (bytes[0] === 137 && bytes[1] === 80 && bytes[2] === 78 && bytes[3] === 71) return "image/png";
+    if (bytes[0] === 71 && bytes[1] === 73 && bytes[2] === 70 && bytes[3] === 56) return "image/gif";
+    if (bytes[0] === 82 && bytes[1] === 73 && bytes[2] === 70 && bytes[3] === 70 && bytes[8] === 87 && bytes[9] === 69 && bytes[10] === 66 && bytes[11] === 80) return "image/webp";
+    const ext = getPathExtension(url);
+    return ext && IMAGE_FORMATS[ext] || "image/jpeg";
+  }
   function fetchImageAsBlob(url) {
     return fetch(url).then((r) => {
-      if (!r.ok) throw new Error(r.status);
+      if (!r.ok) throw new Error(`Dropbox fetch failed: ${r.status}`);
       return r.arrayBuffer();
     }).then((buf) => {
-      const ext = (url.match(/\.(jpe?g|png|gif|webp)/i)?.[1] || "jpeg").toLowerCase();
-      const mime = MIME_BY_EXT[ext] || "image/jpeg";
+      const mime = detectMimeType(buf, url);
       return URL.createObjectURL(new Blob([buf], { type: mime }));
     });
   }
@@ -2612,13 +2620,12 @@ ${text}</tr>
     for (const event of events) {
       for (let i = 0; i < event.images.length; i++) {
         if (isDropboxUrl(event.images[i])) {
-          const ev = event;
           const idx = i;
           tasks.push(
-            fetchImageAsBlob(ev.images[idx]).then((blobUrl) => {
-              ev.images[idx] = blobUrl;
+            fetchImageAsBlob(event.images[idx]).then((blobUrl) => {
+              event.images[idx] = blobUrl;
             }).catch(() => {
-              ev.images[idx] = null;
+              event.images[idx] = null;
             })
           );
         }

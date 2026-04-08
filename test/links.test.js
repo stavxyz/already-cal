@@ -154,3 +154,115 @@ describe('extractLinks — URL stripping', () => {
     assert.ok(description.includes('example.com'));
   });
 });
+
+describe('platform canonicalization', () => {
+  it('canonicalizes Instagram profile URL', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://instagram.com/foo'));
+    assert.strictEqual(platform.canonicalize('https://www.instagram.com/savebigbend/'), 'instagram:savebigbend');
+  });
+
+  it('canonicalizes Instagram post URL', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://instagram.com/p/ABC'));
+    assert.strictEqual(platform.canonicalize('https://www.instagram.com/p/ABC123/'), 'instagram:p/ABC123');
+  });
+
+  it('canonicalizes X/Twitter profile — x.com', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://x.com/foo'));
+    assert.strictEqual(platform.canonicalize('https://x.com/nobigbendwall'), 'x:nobigbendwall');
+  });
+
+  it('canonicalizes X/Twitter profile — twitter.com', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://twitter.com/foo'));
+    assert.strictEqual(platform.canonicalize('https://twitter.com/nobigbendwall'), 'x:nobigbendwall');
+  });
+
+  it('canonicalizes Facebook profile', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://facebook.com/foo'));
+    assert.strictEqual(platform.canonicalize('https://www.facebook.com/savebigbend'), 'facebook:savebigbend');
+  });
+
+  it('canonicalizes Facebook group', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://facebook.com/groups/foo'));
+    assert.strictEqual(platform.canonicalize('https://facebook.com/groups/mygroup'), 'facebook:groups/mygroup');
+  });
+
+  it('canonicalizes YouTube video — full URL', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://youtube.com/watch?v=abc'));
+    assert.strictEqual(platform.canonicalize('https://youtube.com/watch?v=abc123'), 'youtube:abc123');
+  });
+
+  it('canonicalizes YouTube video — short URL', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://youtu.be/abc'));
+    assert.strictEqual(platform.canonicalize('https://youtu.be/abc123'), 'youtube:abc123');
+  });
+
+  it('canonicalizes Zoom meeting', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://zoom.us/j/123'));
+    assert.strictEqual(platform.canonicalize('https://zoom.us/j/123456789'), 'zoom:123456789');
+  });
+
+  it('canonicalizes Eventbrite event', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://eventbrite.com/e/foo'));
+    assert.strictEqual(platform.canonicalize('https://www.eventbrite.com/e/save-big-bend-rally-12345'), 'eventbrite:12345');
+  });
+
+  it('canonicalizes GoFundMe campaign', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://gofundme.com/f/foo'));
+    assert.strictEqual(platform.canonicalize('https://www.gofundme.com/f/save-big-bend'), 'gofundme:save-big-bend');
+  });
+
+  it('canonicalizes Reddit subreddit', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://reddit.com/r/BigBend'));
+    assert.strictEqual(platform.canonicalize('https://www.reddit.com/r/BigBend'), 'reddit:r/BigBend');
+  });
+
+  it('canonicalizes TikTok profile', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://tiktok.com/@foo'));
+    assert.strictEqual(platform.canonicalize('https://www.tiktok.com/@savebigbend'), 'tiktok:savebigbend');
+  });
+
+  it('canonicalizes Google Meet link', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://meet.google.com/abc'));
+    assert.strictEqual(platform.canonicalize('https://meet.google.com/abc-defg-hij'), 'googlemeet:abc-defg-hij');
+  });
+
+  it('canonicalizes Discord invite', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://discord.gg/abc'));
+    assert.strictEqual(platform.canonicalize('https://discord.gg/AbCdEf'), 'discord:AbCdEf');
+  });
+
+  it('canonicalizes Luma event', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://lu.ma/abc'));
+    assert.strictEqual(platform.canonicalize('https://lu.ma/my-event'), 'luma:my-event');
+  });
+
+  it('canonicalizes Google Maps URL', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://maps.app.goo.gl/abc'));
+    assert.strictEqual(platform.canonicalize('https://maps.app.goo.gl/xYz123'), 'googlemaps:xYz123');
+  });
+
+  it('canonicalizes Google Forms URL', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://docs.google.com/forms/d/e/abc'));
+    assert.strictEqual(platform.canonicalize('https://docs.google.com/forms/d/e/1FAIpQ/viewform'), 'googleforms:1FAIpQ');
+  });
+
+  it('canonicalizes Mobilize URL', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://mobilize.us/foo'));
+    assert.strictEqual(platform.canonicalize('https://www.mobilize.us/savebigbend/event/12345/'), 'mobilize:savebigbend/event/12345');
+  });
+
+  it('canonicalizes Action Network URL', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://actionnetwork.org/events/foo'));
+    assert.strictEqual(platform.canonicalize('https://actionnetwork.org/events/rally-for-big-bend'), 'actionnetwork:events/rally-for-big-bend');
+  });
+
+  it('canonicalizes Partiful URL', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://partiful.com/e/abc'));
+    assert.strictEqual(platform.canonicalize('https://partiful.com/e/AbC123'), 'partiful:AbC123');
+  });
+
+  it('canonicalizes LinkedIn URL', () => {
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://linkedin.com/in/foo'));
+    assert.strictEqual(platform.canonicalize('https://www.linkedin.com/in/johndoe'), 'linkedin:in/johndoe');
+  });
+});

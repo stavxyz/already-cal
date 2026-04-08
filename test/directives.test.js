@@ -126,7 +126,9 @@ describe('extractDirectives — description stripping', () => {
   it('strips directive wrapped in HTML <a> tag', () => {
     const result = extractDirectives('Info <a href="#">#ogcal:tag:fundraiser</a> here');
     assert.strictEqual(result.tokens.length, 1);
+    assert.strictEqual(result.tokens[0].metadata.value, 'fundraiser');
     assert.ok(!result.description.includes('#ogcal'));
+    assert.ok(!result.description.includes('</a>'), 'no orphaned closing tag');
   });
 
   it('deduplicates identical directives', () => {
@@ -181,5 +183,21 @@ describe('extractDirectives — edge cases', () => {
   it('ignores malformed directive without value', () => {
     const result = extractDirectives('#ogcal:tag');
     assert.deepStrictEqual(result.tokens, []);
+  });
+
+  it('strips malformed directive from description even when unparseable', () => {
+    const result = extractDirectives('Event info #ogcal:tag more text');
+    assert.deepStrictEqual(result.tokens, []);
+    assert.ok(!result.description.includes('#ogcal'));
+    assert.ok(result.description.includes('Event info'));
+    assert.ok(result.description.includes('more text'));
+  });
+
+  it('does not consume HTML closing tags in directive match', () => {
+    const result = extractDirectives('<a href="#">#ogcal:tag:outdoor</a>');
+    assert.strictEqual(result.tokens.length, 1);
+    assert.strictEqual(result.tokens[0].metadata.value, 'outdoor');
+    assert.ok(!result.description.includes('#ogcal'));
+    assert.ok(!result.description.includes('</a>'));
   });
 });

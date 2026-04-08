@@ -1,8 +1,9 @@
-import { cleanupHtml } from './sanitize.js';
+import { cleanupHtml, stripUrl } from './sanitize.js';
 import { normalizeImageUrl } from './images.js';
 
-// Directive regex: #ogcal: or #showcal: followed by non-whitespace chars
-const DIRECTIVE_PATTERN = /#(?:ogcal|showcal):(\S+)/gi;
+// Directive regex: #ogcal: or #showcal: followed by non-whitespace, non-HTML chars.
+// Excludes < and > so the match stops before any wrapping </a> tag.
+const DIRECTIVE_PATTERN = /#(?:ogcal|showcal):([^\s<>]+)/gi;
 
 // Map directive platform names to their labels and canonical prefix.
 const DIRECTIVE_PLATFORMS = {
@@ -100,6 +101,10 @@ export function extractDirectives(description) {
   for (const match of matches) {
     const fullMatch = match[0];
     const body = match[1];
+
+    // Always strip the directive from description, even if malformed
+    cleaned = stripUrl(cleaned, fullMatch);
+
     const token = parseDirective(body);
     if (!token) continue;
 
@@ -107,11 +112,6 @@ export function extractDirectives(description) {
       seen.add(token.canonicalId);
       tokens.push(token);
     }
-
-    // Strip the directive (and any wrapping <a> tag) from description
-    const escaped = fullMatch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escaped}</a>`, 'gi'), '');
-    cleaned = cleaned.replace(fullMatch, '');
   }
 
   cleaned = cleanupHtml(cleaned);

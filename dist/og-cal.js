@@ -26,12 +26,16 @@ var OgCal = (() => {
 
   // src/util/sanitize.js
   var ESC_MAP = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  var URL_PATTERN = /https?:\/\/[^\s<>"]+/gi;
   function escapeHtml(str) {
     if (!str) return "";
     return String(str).replace(/[&<>"']/g, (c) => ESC_MAP[c]);
   }
+  function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
   function stripUrl(html2, url) {
-    const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const escaped = escapeRegex(url);
     html2 = html2.replace(new RegExp(`<a[^>]*>${escaped}</a>`, "gi"), "");
     html2 = html2.replace(new RegExp(escaped, "g"), "");
     return html2;
@@ -40,6 +44,57 @@ var OgCal = (() => {
     if (!str) return "";
     return str.replace(/(<br\s*\/?>[\s]*){2,}/gi, "<br><br>").replace(/^(\s*<br\s*\/?>[\s]*)+/gi, "").replace(/(\s*<br\s*\/?>[\s]*)+$/gi, "").replace(/\n{3,}/g, "\n\n").trim();
   }
+
+  // src/util/tokens.js
+  var TRACKING_PARAMS = /* @__PURE__ */ new Set([
+    "fbclid",
+    // Facebook click ID
+    "si"
+    // Spotify session ID (share tracking)
+  ]);
+  var TRACKING_PREFIX = "utm_";
+  function normalizeUrl(url) {
+    try {
+      const u = new URL(url);
+      u.protocol = "https:";
+      u.hostname = u.hostname.replace(/^www\./, "");
+      const pathname = u.pathname.replace(/\/+$/, "");
+      const cleaned = new URLSearchParams();
+      for (const [key, value] of u.searchParams) {
+        if (key.startsWith(TRACKING_PREFIX)) continue;
+        if (TRACKING_PARAMS.has(key)) continue;
+        cleaned.append(key, value);
+      }
+      const search = cleaned.toString();
+      return u.origin + pathname + (search ? "?" + search : "") + u.hash;
+    } catch {
+      return url;
+    }
+  }
+  var TokenSet = class {
+    constructor() {
+      this._map = /* @__PURE__ */ new Map();
+    }
+    get size() {
+      return this._map.size;
+    }
+    has(canonicalId) {
+      return this._map.has(canonicalId);
+    }
+    add(token) {
+      if (!this._map.has(token.canonicalId)) {
+        this._map.set(token.canonicalId, token);
+        return true;
+      }
+      return false;
+    }
+    addAll(tokens) {
+      tokens.forEach((t) => this.add(t));
+    }
+    ofType(type) {
+      return [...this._map.values()].filter((t) => t.type === type);
+    }
+  };
 
   // src/util/images.js
   var DEFAULT_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
@@ -99,11 +154,12 @@ var OgCal = (() => {
     if (driveMatch) return `image:drive:${driveMatch[1]}`;
     const dropboxMatch = originalUrl.match(/dropbox\.com\/(?:scl\/fi|s)\/([^?]+)/);
     if (dropboxMatch) return `image:dropbox:${dropboxMatch[1]}`;
+    const normalized = normalizeUrl(originalUrl);
     try {
-      const u = new URL(originalUrl);
-      return `image:${u.hostname.replace(/^www\./, "")}${u.pathname}`;
+      const u = new URL(normalized);
+      return `image:${u.hostname}${u.pathname}`;
     } catch {
-      return `image:${originalUrl}`;
+      return `image:${normalized}`;
     }
   }
   function extractImageTokens(description, config) {
@@ -156,51 +212,6 @@ var OgCal = (() => {
     cleaned = cleanupHtml(cleaned);
     return { tokens, description: cleaned };
   }
-
-  // src/util/tokens.js
-  var TRACKING_PARAMS = /* @__PURE__ */ new Set([
-    "fbclid",
-    // Facebook click ID
-    "si"
-    // Spotify session ID (share tracking)
-  ]);
-  var TRACKING_PREFIX = "utm_";
-  function normalizeUrl(url) {
-    try {
-      const u = new URL(url);
-      u.protocol = "https:";
-      u.hostname = u.hostname.replace(/^www\./, "");
-      const pathname = u.pathname.replace(/\/+$/, "");
-      const cleaned = new URLSearchParams();
-      for (const [key, value] of u.searchParams) {
-        if (key.startsWith(TRACKING_PREFIX)) continue;
-        if (TRACKING_PARAMS.has(key)) continue;
-        cleaned.append(key, value);
-      }
-      const search = cleaned.toString();
-      return u.origin + pathname + (search ? "?" + search : "") + u.hash;
-    } catch {
-      return url;
-    }
-  }
-  var TokenSet = class {
-    constructor() {
-      this._map = /* @__PURE__ */ new Map();
-    }
-    add(token) {
-      if (!this._map.has(token.canonicalId)) {
-        this._map.set(token.canonicalId, token);
-        return true;
-      }
-      return false;
-    }
-    addAll(tokens) {
-      tokens.forEach((t) => this.add(t));
-    }
-    ofType(type) {
-      return [...this._map.values()].filter((t) => t.type === type);
-    }
-  };
 
   // src/util/links.js
   var PROFILE_PREFIXES = /* @__PURE__ */ new Set(["r", "u", "groups"]);
@@ -419,7 +430,6 @@ var OgCal = (() => {
       }
     }
   ];
-  var URL_PATTERN = /https?:\/\/[^\s<>"]+/gi;
   function extractLinkTokens(description, config) {
     if (!description) return { tokens: [], description };
     description = description.replace(/&amp;/g, "&");
@@ -427,6 +437,7 @@ var OgCal = (() => {
     const tokens = [];
     let cleaned = description;
     const seen = /* @__PURE__ */ new Set();
+    URL_PATTERN.lastIndex = 0;
     const urls = description.match(URL_PATTERN) || [];
     for (const url of urls) {
       const normalized = normalizeUrl(url);
@@ -434,9 +445,7 @@ var OgCal = (() => {
         if (platform.pattern.test(url)) {
           const canonicalId = platform.canonicalize ? platform.canonicalize(normalized) : null;
           if (canonicalId && seen.has(canonicalId)) {
-            const escapedUrl2 = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-            cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escapedUrl2}</a>`, "gi"), "");
-            cleaned = cleaned.replace(url, "");
+            cleaned = stripUrl(cleaned, url);
             break;
           }
           if (canonicalId) seen.add(canonicalId);
@@ -449,9 +458,7 @@ var OgCal = (() => {
             label,
             metadata: {}
           });
-          const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escapedUrl}</a>`, "gi"), "");
-          cleaned = cleaned.replace(url, "");
+          cleaned = stripUrl(cleaned, url);
           break;
         }
       }
@@ -2678,10 +2685,7 @@ ${text}</tr>
   }
 
   // src/util/attachments.js
-  var DROPBOX_PATTERN2 = /(?:www\.)?dropbox\.com\/(?:scl\/fi|s)\//;
-  var DROPBOX_DIRECT_PATTERN2 = /dl\.dropboxusercontent\.com/;
-  var IMAGE_EXTENSIONS = /* @__PURE__ */ new Set(["png", "jpg", "jpeg", "gif", "webp"]);
-  var URL_PATTERN2 = /https?:\/\/[^\s<>"]+/gi;
+  var IMAGE_EXTENSIONS = new Set(DEFAULT_IMAGE_EXTENSIONS);
   var EXTENSION_MAP = {
     pdf: { label: "Download PDF", type: "pdf" },
     doc: { label: "Download Document", type: "doc" },
@@ -2698,8 +2702,8 @@ ${text}</tr>
     if (!url) return url;
     const driveMatch = url.match(DRIVE_ID_PATTERN);
     if (driveMatch) return `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`;
-    if (DROPBOX_DIRECT_PATTERN2.test(url)) return url;
-    if (DROPBOX_PATTERN2.test(url)) {
+    if (DROPBOX_DIRECT_PATTERN.test(url)) return url;
+    if (DROPBOX_PATTERN.test(url)) {
       if (url.includes("dl=0")) return url.replace("dl=0", "raw=1");
       if (url.includes("?")) return url + "&raw=1";
       return url + "?raw=1";
@@ -2720,11 +2724,12 @@ ${text}</tr>
   function attachmentCanonicalId(url) {
     const driveMatch = url.match(DRIVE_ID_PATTERN);
     if (driveMatch) return `attachment:drive:${driveMatch[1]}`;
+    const normalized = normalizeUrl(url);
     try {
-      const u = new URL(url);
-      return `attachment:${u.hostname.replace(/^www\./, "")}${u.pathname}`;
+      const u = new URL(normalized);
+      return `attachment:${u.hostname}${u.pathname}`;
     } catch {
-      return `attachment:${url}`;
+      return `attachment:${normalized}`;
     }
   }
   function extractAttachmentTokens(description, config) {
@@ -2733,7 +2738,7 @@ ${text}</tr>
     const tokens = [];
     let cleaned = description;
     const seen = /* @__PURE__ */ new Set();
-    const urls = description.match(URL_PATTERN2) || [];
+    const urls = description.match(URL_PATTERN) || [];
     for (const url of urls) {
       const classification = classifyUrl(url);
       if (!classification) continue;
@@ -2778,30 +2783,30 @@ ${text}</tr>
   }
 
   // src/util/directives.js
-  var DIRECTIVE_PATTERN = /#(?:ogcal|showcal):(\S+)/gi;
+  var DIRECTIVE_PATTERN = /#(?:ogcal|showcal):([^\s<>]+)/gi;
   var DIRECTIVE_PLATFORMS = {
-    instagram: { label: (v) => `Follow @${v} on Instagram`, canonicalPrefix: "instagram" },
-    facebook: { label: (v) => `${v} on Facebook`, canonicalPrefix: "facebook" },
-    x: { label: (v) => `Follow @${v} on X`, canonicalPrefix: "x" },
-    twitter: { label: (v) => `Follow @${v} on X`, canonicalPrefix: "x" },
-    reddit: { label: (v) => `r/${v} on Reddit`, canonicalPrefix: "reddit" },
-    youtube: { label: () => "Watch on YouTube", canonicalPrefix: "youtube" },
-    tiktok: { label: (v) => `@${v} on TikTok`, canonicalPrefix: "tiktok" },
-    linkedin: { label: () => "View on LinkedIn", canonicalPrefix: "linkedin" },
-    discord: { label: () => "Join Discord", canonicalPrefix: "discord" },
-    zoom: { label: () => "Join Zoom", canonicalPrefix: "zoom" },
-    googlemeet: { label: () => "Join Google Meet", canonicalPrefix: "googlemeet" },
-    meet: { label: () => "Join Google Meet", canonicalPrefix: "googlemeet" },
-    eventbrite: { label: () => "RSVP on Eventbrite", canonicalPrefix: "eventbrite" },
-    luma: { label: () => "RSVP on Luma", canonicalPrefix: "luma" },
-    mobilize: { label: () => "RSVP on Mobilize", canonicalPrefix: "mobilize" },
-    actionnetwork: { label: () => "Take Action", canonicalPrefix: "actionnetwork" },
-    gofundme: { label: () => "Donate on GoFundMe", canonicalPrefix: "gofundme" },
-    partiful: { label: () => "RSVP on Partiful", canonicalPrefix: "partiful" },
-    googleforms: { label: () => "Fill Out Form", canonicalPrefix: "googleforms" },
-    forms: { label: () => "Fill Out Form", canonicalPrefix: "googleforms" },
-    googlemaps: { label: () => "View on Map", canonicalPrefix: "googlemaps" },
-    maps: { label: () => "View on Map", canonicalPrefix: "googlemaps" }
+    instagram: { label: (v) => `Follow @${v} on Instagram`, canonicalPrefix: "instagram", url: (v) => `https://instagram.com/${v}` },
+    facebook: { label: (v) => `${v} on Facebook`, canonicalPrefix: "facebook", url: (v) => `https://facebook.com/${v}` },
+    x: { label: (v) => `Follow @${v} on X`, canonicalPrefix: "x", url: (v) => `https://x.com/${v}` },
+    twitter: { label: (v) => `Follow @${v} on X`, canonicalPrefix: "x", url: (v) => `https://x.com/${v}` },
+    reddit: { label: (v) => `r/${v} on Reddit`, canonicalPrefix: "reddit", url: (v) => `https://reddit.com/r/${v}` },
+    youtube: { label: () => "Watch on YouTube", canonicalPrefix: "youtube", url: (v) => `https://youtube.com/${v}` },
+    tiktok: { label: (v) => `@${v} on TikTok`, canonicalPrefix: "tiktok", url: (v) => `https://tiktok.com/@${v}` },
+    linkedin: { label: () => "View on LinkedIn", canonicalPrefix: "linkedin", url: (v) => `https://linkedin.com/in/${v}` },
+    discord: { label: () => "Join Discord", canonicalPrefix: "discord", url: (v) => `https://discord.gg/${v}` },
+    zoom: { label: () => "Join Zoom", canonicalPrefix: "zoom", url: (v) => `https://zoom.us/j/${v}` },
+    googlemeet: { label: () => "Join Google Meet", canonicalPrefix: "googlemeet", url: (v) => `https://meet.google.com/${v}` },
+    meet: { label: () => "Join Google Meet", canonicalPrefix: "googlemeet", url: (v) => `https://meet.google.com/${v}` },
+    eventbrite: { label: () => "RSVP on Eventbrite", canonicalPrefix: "eventbrite", url: (v) => `https://eventbrite.com/e/${v}` },
+    luma: { label: () => "RSVP on Luma", canonicalPrefix: "luma", url: (v) => `https://lu.ma/${v}` },
+    mobilize: { label: () => "RSVP on Mobilize", canonicalPrefix: "mobilize", url: (v) => `https://mobilize.us/${v}` },
+    actionnetwork: { label: () => "Take Action", canonicalPrefix: "actionnetwork", url: (v) => `https://actionnetwork.org/${v}` },
+    gofundme: { label: () => "Donate on GoFundMe", canonicalPrefix: "gofundme", url: (v) => `https://gofundme.com/f/${v}` },
+    partiful: { label: () => "RSVP on Partiful", canonicalPrefix: "partiful", url: (v) => `https://partiful.com/e/${v}` },
+    googleforms: { label: () => "Fill Out Form", canonicalPrefix: "googleforms", url: (v) => `https://docs.google.com/forms/d/e/${v}/viewform` },
+    forms: { label: () => "Fill Out Form", canonicalPrefix: "googleforms", url: (v) => `https://docs.google.com/forms/d/e/${v}/viewform` },
+    googlemaps: { label: () => "View on Map", canonicalPrefix: "googlemaps", url: (v) => `https://maps.google.com/?q=${v}` },
+    maps: { label: () => "View on Map", canonicalPrefix: "googlemaps", url: (v) => `https://maps.google.com/?q=${v}` }
   };
   function parseDirective(body) {
     const colonIdx = body.indexOf(":");
@@ -2815,20 +2820,30 @@ ${text}</tr>
         canonicalId: `${platform.canonicalPrefix}:${value}`,
         type: "link",
         source: "directive",
-        url: null,
+        url: platform.url(value),
         label: platform.label(value),
         metadata: {}
       };
     }
     if (type === "image") {
-      const canonicalId = `image:${value}`;
-      const url = value.startsWith("http") ? value : null;
-      const normalized = url ? normalizeImageUrl(url) : null;
+      const driveMatch = value.match(/^drive:(.+)$/);
+      if (driveMatch) {
+        const driveId = driveMatch[1];
+        return {
+          canonicalId: `image:drive:${driveId}`,
+          type: "image",
+          source: "directive",
+          url: `https://lh3.googleusercontent.com/d/${driveId}`,
+          label: "",
+          metadata: {}
+        };
+      }
+      const url = value.startsWith("http") ? normalizeImageUrl(value) : null;
       return {
-        canonicalId,
+        canonicalId: `image:${value}`,
         type: "image",
         source: "directive",
-        url: normalized || value,
+        url: url || value,
         label: "",
         metadata: {}
       };
@@ -2854,6 +2869,7 @@ ${text}</tr>
   }
   function extractDirectives(description) {
     if (!description) return { tokens: [], description };
+    description = description.replace(/&amp;/g, "&");
     const tokens = [];
     const seen = /* @__PURE__ */ new Set();
     let cleaned = description;
@@ -2861,15 +2877,13 @@ ${text}</tr>
     for (const match of matches) {
       const fullMatch = match[0];
       const body = match[1];
+      cleaned = stripUrl(cleaned, fullMatch);
       const token = parseDirective(body);
       if (!token) continue;
       if (!seen.has(token.canonicalId)) {
         seen.add(token.canonicalId);
         tokens.push(token);
       }
-      const escaped = fullMatch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escaped}</a>`, "gi"), "");
-      cleaned = cleaned.replace(fullMatch, "");
     }
     cleaned = cleanupHtml(cleaned);
     return { tokens, description: cleaned };
@@ -3748,7 +3762,8 @@ ${text}</tr>
       content.appendChild(attachDiv);
     }
     const urlTags = (event.tags || []).filter((t) => t.key !== "tag" && t.value && t.value.startsWith("http"));
-    const allLinks = [...event.links || [], ...urlTags.map((t) => ({ label: t.key, url: t.value }))];
+    const titleCase = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+    const allLinks = [...event.links || [], ...urlTags.map((t) => ({ label: titleCase(t.key), url: t.value }))];
     if (allLinks.length > 0) {
       const linksDiv = document.createElement("div");
       linksDiv.className = "ogcal-detail-links";

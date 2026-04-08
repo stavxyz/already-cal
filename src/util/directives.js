@@ -6,29 +6,32 @@ import { normalizeImageUrl } from './images.js';
 const DIRECTIVE_PATTERN = /#(?:ogcal|showcal):([^\s<>]+)/gi;
 
 // Map directive platform names to their labels and canonical prefix.
+// Map directive platform names to their labels, canonical prefix, and URL builder.
+// The url function constructs a real link from the directive value so that
+// directive-sourced tokens can be rendered as clickable buttons.
 const DIRECTIVE_PLATFORMS = {
-  instagram:     { label: (v) => `Follow @${v} on Instagram`, canonicalPrefix: 'instagram' },
-  facebook:      { label: (v) => `${v} on Facebook`, canonicalPrefix: 'facebook' },
-  x:             { label: (v) => `Follow @${v} on X`, canonicalPrefix: 'x' },
-  twitter:       { label: (v) => `Follow @${v} on X`, canonicalPrefix: 'x' },
-  reddit:        { label: (v) => `r/${v} on Reddit`, canonicalPrefix: 'reddit' },
-  youtube:       { label: () => 'Watch on YouTube', canonicalPrefix: 'youtube' },
-  tiktok:        { label: (v) => `@${v} on TikTok`, canonicalPrefix: 'tiktok' },
-  linkedin:      { label: () => 'View on LinkedIn', canonicalPrefix: 'linkedin' },
-  discord:       { label: () => 'Join Discord', canonicalPrefix: 'discord' },
-  zoom:          { label: () => 'Join Zoom', canonicalPrefix: 'zoom' },
-  googlemeet:    { label: () => 'Join Google Meet', canonicalPrefix: 'googlemeet' },
-  meet:          { label: () => 'Join Google Meet', canonicalPrefix: 'googlemeet' },
-  eventbrite:    { label: () => 'RSVP on Eventbrite', canonicalPrefix: 'eventbrite' },
-  luma:          { label: () => 'RSVP on Luma', canonicalPrefix: 'luma' },
-  mobilize:      { label: () => 'RSVP on Mobilize', canonicalPrefix: 'mobilize' },
-  actionnetwork: { label: () => 'Take Action', canonicalPrefix: 'actionnetwork' },
-  gofundme:      { label: () => 'Donate on GoFundMe', canonicalPrefix: 'gofundme' },
-  partiful:      { label: () => 'RSVP on Partiful', canonicalPrefix: 'partiful' },
-  googleforms:   { label: () => 'Fill Out Form', canonicalPrefix: 'googleforms' },
-  forms:         { label: () => 'Fill Out Form', canonicalPrefix: 'googleforms' },
-  googlemaps:    { label: () => 'View on Map', canonicalPrefix: 'googlemaps' },
-  maps:          { label: () => 'View on Map', canonicalPrefix: 'googlemaps' },
+  instagram:     { label: (v) => `Follow @${v} on Instagram`, canonicalPrefix: 'instagram', url: (v) => `https://instagram.com/${v}` },
+  facebook:      { label: (v) => `${v} on Facebook`, canonicalPrefix: 'facebook', url: (v) => `https://facebook.com/${v}` },
+  x:             { label: (v) => `Follow @${v} on X`, canonicalPrefix: 'x', url: (v) => `https://x.com/${v}` },
+  twitter:       { label: (v) => `Follow @${v} on X`, canonicalPrefix: 'x', url: (v) => `https://x.com/${v}` },
+  reddit:        { label: (v) => `r/${v} on Reddit`, canonicalPrefix: 'reddit', url: (v) => `https://reddit.com/r/${v}` },
+  youtube:       { label: () => 'Watch on YouTube', canonicalPrefix: 'youtube', url: (v) => `https://youtube.com/${v}` },
+  tiktok:        { label: (v) => `@${v} on TikTok`, canonicalPrefix: 'tiktok', url: (v) => `https://tiktok.com/@${v}` },
+  linkedin:      { label: () => 'View on LinkedIn', canonicalPrefix: 'linkedin', url: (v) => `https://linkedin.com/in/${v}` },
+  discord:       { label: () => 'Join Discord', canonicalPrefix: 'discord', url: (v) => `https://discord.gg/${v}` },
+  zoom:          { label: () => 'Join Zoom', canonicalPrefix: 'zoom', url: (v) => `https://zoom.us/j/${v}` },
+  googlemeet:    { label: () => 'Join Google Meet', canonicalPrefix: 'googlemeet', url: (v) => `https://meet.google.com/${v}` },
+  meet:          { label: () => 'Join Google Meet', canonicalPrefix: 'googlemeet', url: (v) => `https://meet.google.com/${v}` },
+  eventbrite:    { label: () => 'RSVP on Eventbrite', canonicalPrefix: 'eventbrite', url: (v) => `https://eventbrite.com/e/${v}` },
+  luma:          { label: () => 'RSVP on Luma', canonicalPrefix: 'luma', url: (v) => `https://lu.ma/${v}` },
+  mobilize:      { label: () => 'RSVP on Mobilize', canonicalPrefix: 'mobilize', url: (v) => `https://mobilize.us/${v}` },
+  actionnetwork: { label: () => 'Take Action', canonicalPrefix: 'actionnetwork', url: (v) => `https://actionnetwork.org/${v}` },
+  gofundme:      { label: () => 'Donate on GoFundMe', canonicalPrefix: 'gofundme', url: (v) => `https://gofundme.com/f/${v}` },
+  partiful:      { label: () => 'RSVP on Partiful', canonicalPrefix: 'partiful', url: (v) => `https://partiful.com/e/${v}` },
+  googleforms:   { label: () => 'Fill Out Form', canonicalPrefix: 'googleforms', url: (v) => `https://docs.google.com/forms/d/e/${v}/viewform` },
+  forms:         { label: () => 'Fill Out Form', canonicalPrefix: 'googleforms', url: (v) => `https://docs.google.com/forms/d/e/${v}/viewform` },
+  googlemaps:    { label: () => 'View on Map', canonicalPrefix: 'googlemaps', url: (v) => `https://maps.google.com/?q=${v}` },
+  maps:          { label: () => 'View on Map', canonicalPrefix: 'googlemaps', url: (v) => `https://maps.google.com/?q=${v}` },
 };
 
 function parseDirective(body) {
@@ -46,7 +49,7 @@ function parseDirective(body) {
       canonicalId: `${platform.canonicalPrefix}:${value}`,
       type: 'link',
       source: 'directive',
-      url: null,
+      url: platform.url(value),
       label: platform.label(value),
       metadata: {},
     };

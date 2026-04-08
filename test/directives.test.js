@@ -9,12 +9,13 @@ before(async () => {
 });
 
 describe('extractDirectives — platform link directives', () => {
-  it('parses #ogcal:instagram:handle into a link token', () => {
+  it('parses #ogcal:instagram:handle into a link token with URL', () => {
     const result = extractDirectives('#ogcal:instagram:savebigbend');
     assert.strictEqual(result.tokens.length, 1);
     assert.strictEqual(result.tokens[0].type, 'link');
     assert.strictEqual(result.tokens[0].canonicalId, 'instagram:savebigbend');
     assert.strictEqual(result.tokens[0].label, 'Follow @savebigbend on Instagram');
+    assert.strictEqual(result.tokens[0].url, 'https://instagram.com/savebigbend');
     assert.strictEqual(result.tokens[0].source, 'directive');
     assert.strictEqual(result.description.trim(), '');
   });
@@ -36,18 +37,21 @@ describe('extractDirectives — platform link directives', () => {
     assert.strictEqual(result.tokens[0].type, 'link');
     assert.strictEqual(result.tokens[0].canonicalId, 'zoom:123456789');
     assert.strictEqual(result.tokens[0].label, 'Join Zoom');
+    assert.strictEqual(result.tokens[0].url, 'https://zoom.us/j/123456789');
   });
 
   it('parses #ogcal:discord:invitecode', () => {
     const result = extractDirectives('#ogcal:discord:AbCdEf');
     assert.strictEqual(result.tokens[0].canonicalId, 'discord:AbCdEf');
     assert.strictEqual(result.tokens[0].label, 'Join Discord');
+    assert.strictEqual(result.tokens[0].url, 'https://discord.gg/AbCdEf');
   });
 
   it('parses #ogcal:eventbrite:12345', () => {
     const result = extractDirectives('#ogcal:eventbrite:12345');
     assert.strictEqual(result.tokens[0].canonicalId, 'eventbrite:12345');
     assert.strictEqual(result.tokens[0].label, 'RSVP on Eventbrite');
+    assert.strictEqual(result.tokens[0].url, 'https://eventbrite.com/e/12345');
   });
 });
 

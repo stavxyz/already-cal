@@ -260,6 +260,55 @@ Dropbox and Google Drive URLs are normalized to direct-download links before bei
 
 Attachments are rendered as a list of download links in the detail view, below the event description.
 
+## Directives
+
+Directives let you control og-cal behavior directly from event descriptions using a hashtag syntax. This is useful when you don't have access to code — you can add platform links, images, and metadata tags right inside a Google Calendar event description.
+
+### Syntax
+
+```
+#ogcal:<type>:<value>
+#showcal:<type>:<value>
+```
+
+Both `ogcal` and `showcal` prefixes are supported (case-insensitive). Directives are stripped from the rendered description.
+
+### Platform link directives
+
+Add a platform button without pasting the full URL:
+
+```
+#ogcal:instagram:savebigbend     → "Follow @savebigbend on Instagram"
+#ogcal:zoom:123456789            → "Join Zoom" (links to zoom.us/j/123456789)
+#ogcal:discord:AbCdEf            → "Join Discord" (links to discord.gg/AbCdEf)
+#ogcal:eventbrite:12345          → "RSVP on Eventbrite"
+```
+
+All 18 built-in platforms are supported. Aliases: `twitter` → X, `meet` → Google Meet, `forms` → Google Forms, `maps` → Google Maps.
+
+Directives and URLs are deduplicated: `#ogcal:instagram:foo` and `https://instagram.com/foo` produce the same canonical ID, so only one button renders.
+
+### Image directives
+
+```
+#ogcal:image:https://example.com/flyer.png    → adds image to gallery
+#showcal:image:drive:ABC123                    → Google Drive image by file ID
+```
+
+### Tag directives
+
+Tags are rendered as badge pills in the detail view:
+
+```
+#ogcal:tag:fundraiser        → scalar tag badge "fundraiser"
+#ogcal:tag:outdoor           → scalar tag badge "outdoor"
+#ogcal:cost:$25              → key-value badge "cost: $25"
+#ogcal:capacity:50           → key-value badge "capacity: 50"
+#ogcal:rsvp:https://form.com → rendered as a link button "Rsvp"
+```
+
+Key-value tags where the value is a URL are rendered as link buttons alongside platform links.
+
 ## Responsive
 
 - **Desktop (>1024px)** — all views, full grid

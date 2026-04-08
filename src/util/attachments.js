@@ -104,29 +104,12 @@ export function extractAttachmentTokens(description, config) {
 
 export function extractAttachments(description, config) {
   if (!description) return { attachments: [], description };
-  description = description.replace(/&amp;/g, '&');
-
-  const attachments = [];
-  let cleaned = description;
-  const seen = new Set();
-
-  const urls = description.match(URL_PATTERN) || [];
-  for (const url of urls) {
-    if (seen.has(url)) continue;
-    const classification = classifyUrl(url);
-    if (!classification) continue;
-
-    seen.add(url);
-    const normalizedUrl = normalizeAttachmentUrl(url);
-    attachments.push({
-      label: classification.label,
-      url: normalizedUrl,
-      type: classification.type,
-    });
-    cleaned = stripUrl(cleaned, url);
-  }
-
-  cleaned = cleanupHtml(cleaned);
+  const { tokens, description: cleaned } = extractAttachmentTokens(description, config);
+  const attachments = tokens.map(t => ({
+    label: t.label,
+    url: t.url,
+    type: t.metadata.fileType || 'file',
+  }));
   return { attachments, description: cleaned };
 }
 

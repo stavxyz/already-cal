@@ -157,60 +157,7 @@ export function extractImageTokens(description, config) {
 
 export function extractImage(description, config) {
   if (!description) return { image: null, images: [], description };
-  // Decode HTML entities in URLs upfront so href and text content versions match.
-  // Google Calendar API descriptions use &amp; in text content but & in href attrs.
-  description = description.replace(/&amp;/g, '&');
-  const extensions = (config && config.imageExtensions) || DEFAULT_IMAGE_EXTENSIONS;
-  const pattern = buildImagePattern(extensions);
-  const seen = new Set();
-  const images = [];
-  // Track original URLs for removal from description
-  const originalUrls = [];
-  let match;
-
-  // Extract standard image URLs (by extension)
-  while ((match = pattern.exec(description)) !== null) {
-    const originalUrl = match[1];
-    const normalized = normalizeImageUrl(originalUrl);
-    if (normalized && !seen.has(normalized)) {
-      seen.add(normalized);
-      images.push(normalized);
-      originalUrls.push(originalUrl);
-    }
-  }
-
-  // Extract Google Drive image URLs
-  DRIVE_URL_PATTERN.lastIndex = 0;
-  while ((match = DRIVE_URL_PATTERN.exec(description)) !== null) {
-    const originalUrl = match[0];
-    const normalized = normalizeImageUrl(originalUrl);
-    if (normalized && !seen.has(normalized)) {
-      seen.add(normalized);
-      images.push(normalized);
-      originalUrls.push(originalUrl);
-    }
-  }
-
-  // Extract Dropbox image URLs
-  DROPBOX_URL_PATTERN.lastIndex = 0;
-  while ((match = DROPBOX_URL_PATTERN.exec(description)) !== null) {
-    const originalUrl = match[0];
-    const ext = getPathExtension(originalUrl);
-    // Skip known non-image extensions (they'll be picked up by attachment extraction)
-    if (ext && NON_IMAGE_EXTENSIONS.has(ext)) continue;
-    const normalized = normalizeImageUrl(originalUrl);
-    if (normalized && !seen.has(normalized)) {
-      seen.add(normalized);
-      images.push(normalized);
-      originalUrls.push(originalUrl);
-    }
-  }
-
-  // Remove image URLs and any <a> tags wrapping them from description
-  let cleaned = description;
-  for (const url of originalUrls) {
-    cleaned = stripUrl(cleaned, url);
-  }
-  cleaned = cleanupHtml(cleaned);
+  const { tokens, description: cleaned } = extractImageTokens(description, config);
+  const images = tokens.map(t => t.url);
   return { image: images[0] || null, images, description: cleaned };
 }

@@ -64,10 +64,11 @@ describe('extractDirectives — image directives', () => {
     assert.strictEqual(result.tokens[0].source, 'directive');
   });
 
-  it('parses #showcal:image:drive:ABC123', () => {
+  it('parses #showcal:image:drive:ABC123 into a direct lh3 URL', () => {
     const result = extractDirectives('#showcal:image:drive:ABC123');
     assert.strictEqual(result.tokens[0].type, 'image');
     assert.strictEqual(result.tokens[0].canonicalId, 'image:drive:ABC123');
+    assert.strictEqual(result.tokens[0].url, 'https://lh3.googleusercontent.com/d/ABC123');
   });
 });
 

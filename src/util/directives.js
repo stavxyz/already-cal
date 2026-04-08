@@ -57,14 +57,25 @@ function parseDirective(body) {
 
   // 2. Image?
   if (type === 'image') {
-    const canonicalId = `image:${value}`;
-    const url = value.startsWith('http') ? value : null;
-    const normalized = url ? normalizeImageUrl(url) : null;
+    // Handle drive:ID shorthand → lh3.googleusercontent.com direct URL
+    const driveMatch = value.match(/^drive:(.+)$/);
+    if (driveMatch) {
+      const driveId = driveMatch[1];
+      return {
+        canonicalId: `image:drive:${driveId}`,
+        type: 'image',
+        source: 'directive',
+        url: `https://lh3.googleusercontent.com/d/${driveId}`,
+        label: '',
+        metadata: {},
+      };
+    }
+    const url = value.startsWith('http') ? normalizeImageUrl(value) : null;
     return {
-      canonicalId,
+      canonicalId: `image:${value}`,
       type: 'image',
       source: 'directive',
-      url: normalized || value,
+      url: url || value,
       label: '',
       metadata: {},
     };

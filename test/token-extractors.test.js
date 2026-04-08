@@ -56,6 +56,21 @@ describe('extractImageTokens', () => {
   });
 });
 
+describe('extractImageTokens — Dropbox', () => {
+  it('produces token with Dropbox canonical ID', () => {
+    const result = extractImageTokens('https://www.dropbox.com/scl/fi/abc123/photo.png?rlkey=xyz&dl=0');
+    assert.strictEqual(result.tokens.length, 1);
+    assert.strictEqual(result.tokens[0].canonicalId, 'image:dropbox:abc123/photo.png');
+  });
+
+  it('deduplicates Dropbox URLs with different query params', () => {
+    const result = extractImageTokens(
+      'https://dropbox.com/scl/fi/abc/img.png?rlkey=a&dl=0 https://dropbox.com/scl/fi/abc/img.png?rlkey=b&dl=0'
+    );
+    assert.strictEqual(result.tokens.length, 1);
+  });
+});
+
 describe('extractAttachmentTokens', () => {
   it('produces tokens with canonicalId for PDF URL', () => {
     const result = extractAttachmentTokens('Get https://example.com/report.pdf');
@@ -69,5 +84,12 @@ describe('extractAttachmentTokens', () => {
   it('produces token with Drive canonical ID', () => {
     const result = extractAttachmentTokens('https://drive.google.com/file/d/XYZ/view');
     assert.strictEqual(result.tokens[0].canonicalId, 'attachment:drive:XYZ');
+  });
+
+  it('deduplicates www and non-www attachment URLs', () => {
+    const result = extractAttachmentTokens(
+      'https://example.com/doc.pdf https://www.example.com/doc.pdf'
+    );
+    assert.strictEqual(result.tokens.length, 1);
   });
 });

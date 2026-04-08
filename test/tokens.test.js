@@ -54,6 +54,24 @@ describe('TokenSet', () => {
     assert.strictEqual(links[0].label, 'first');
     assert.strictEqual(links[1].label, 'second');
   });
+
+  it('has() returns true for existing canonicalId', () => {
+    const ts = new TokenSet();
+    ts.add({ canonicalId: 'instagram:foo', type: 'link', source: 'url', url: 'u', label: 'l', metadata: {} });
+    assert.strictEqual(ts.has('instagram:foo'), true);
+    assert.strictEqual(ts.has('instagram:bar'), false);
+  });
+
+  it('size reflects the number of unique tokens', () => {
+    const ts = new TokenSet();
+    assert.strictEqual(ts.size, 0);
+    ts.add({ canonicalId: 'a', type: 'link', source: 'url', url: 'u', label: 'l', metadata: {} });
+    assert.strictEqual(ts.size, 1);
+    ts.add({ canonicalId: 'a', type: 'link', source: 'url', url: 'u2', label: 'l2', metadata: {} });
+    assert.strictEqual(ts.size, 1);
+    ts.add({ canonicalId: 'b', type: 'link', source: 'url', url: 'u3', label: 'l3', metadata: {} });
+    assert.strictEqual(ts.size, 2);
+  });
 });
 
 describe('normalizeUrl', () => {

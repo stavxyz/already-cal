@@ -198,6 +198,12 @@ describe('extractDirectives — edge cases', () => {
     assert.ok(result.description.includes('more text'));
   });
 
+  it('decodes &amp; entities before parsing directives', () => {
+    const result = extractDirectives('Info #ogcal:tag:free&amp;open');
+    assert.strictEqual(result.tokens.length, 1);
+    assert.strictEqual(result.tokens[0].metadata.value, 'free&open');
+  });
+
   it('does not consume HTML closing tags in directive match', () => {
     const result = extractDirectives('<a href="#">#ogcal:tag:outdoor</a>');
     assert.strictEqual(result.tokens.length, 1);

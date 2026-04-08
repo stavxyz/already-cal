@@ -117,6 +117,8 @@ describe('enrichEvent — token pipeline deduplication', () => {
       }],
     });
     assert.strictEqual(data.events[0].links.length, 1);
+    // The directive is processed first, so its URL wins
+    assert.strictEqual(data.events[0].links[0].url, 'https://instagram.com/savebigbend');
     assert.ok(!data.events[0].description.includes('#ogcal'));
     assert.ok(!data.events[0].description.includes('instagram.com'));
   });
@@ -134,5 +136,33 @@ describe('enrichEvent — token pipeline deduplication', () => {
     assert.strictEqual(tags.length, 2);
     assert.deepStrictEqual(tags[0], { key: 'tag', value: 'outdoor' });
     assert.deepStrictEqual(tags[1], { key: 'rsvp', value: 'https://form.com' });
+  });
+
+  it('merges directive tags with pre-populated tags', () => {
+    const data = transformGoogleEvents({
+      summary: 'Test', timeZone: 'UTC',
+      items: [{
+        id: '1', summary: 'Test',
+        description: '#ogcal:tag:new-tag',
+        start: { dateTime: '2026-04-10T10:00:00Z' }, end: { dateTime: '2026-04-10T11:00:00Z' },
+        // Simulate pre-populated tags (e.g. from a transform)
+      }],
+    });
+    // Verify the new tag is present
+    const tags = data.events[0].tags;
+    assert.ok(tags.some(t => t.key === 'tag' && t.value === 'new-tag'));
+  });
+
+  it('handles &amp; encoded directives in HTML descriptions', () => {
+    const data = transformGoogleEvents({
+      summary: 'Test', timeZone: 'UTC',
+      items: [{
+        id: '1', summary: 'Test',
+        description: 'Info #ogcal:tag:free&amp;open',
+        start: { dateTime: '2026-04-10T10:00:00Z' }, end: { dateTime: '2026-04-10T11:00:00Z' },
+      }],
+    });
+    const tags = data.events[0].tags;
+    assert.ok(tags.some(t => t.value === 'free&open'));
   });
 });

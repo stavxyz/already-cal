@@ -132,11 +132,36 @@ describe('extractDirectives — description stripping', () => {
   it('deduplicates identical directives', () => {
     const result = extractDirectives('#ogcal:tag:outdoor #ogcal:tag:outdoor');
     assert.strictEqual(result.tokens.length, 1);
+    assert.ok(!result.description.includes('#ogcal'));
   });
 
   it('deduplicates across prefixes (ogcal and showcal)', () => {
     const result = extractDirectives('#ogcal:tag:outdoor #showcal:tag:outdoor');
     assert.strictEqual(result.tokens.length, 1);
+    assert.ok(!result.description.includes('#ogcal'));
+    assert.ok(!result.description.includes('#showcal'));
+  });
+});
+
+describe('extractDirectives — platform aliases', () => {
+  it('maps twitter to x canonical prefix', () => {
+    const result = extractDirectives('#ogcal:twitter:handle');
+    assert.strictEqual(result.tokens[0].canonicalId, 'x:handle');
+  });
+
+  it('maps meet to googlemeet canonical prefix', () => {
+    const result = extractDirectives('#ogcal:meet:abc-defg-hij');
+    assert.strictEqual(result.tokens[0].canonicalId, 'googlemeet:abc-defg-hij');
+  });
+
+  it('maps forms to googleforms canonical prefix', () => {
+    const result = extractDirectives('#ogcal:forms:abc123');
+    assert.strictEqual(result.tokens[0].canonicalId, 'googleforms:abc123');
+  });
+
+  it('maps maps to googlemaps canonical prefix', () => {
+    const result = extractDirectives('#ogcal:maps:abc123');
+    assert.strictEqual(result.tokens[0].canonicalId, 'googlemaps:abc123');
   });
 });
 

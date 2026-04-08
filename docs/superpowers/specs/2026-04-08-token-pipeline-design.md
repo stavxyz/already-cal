@@ -57,7 +57,7 @@ Each token type produces a canonical ID by normalizing its input to a stable str
 - Strip `www.` prefix from hostname
 - Normalize protocol to `https`
 - Remove trailing slash from path
-- Strip tracking params: `utm_*`, `fbclid`, `ref`, `si`
+- Strip tracking params: `utm_*`, `fbclid`, `si`
 
 ### Platform Links
 
@@ -103,6 +103,14 @@ Each platform definition gains a `canonicalize(url)` function alongside its exis
 **Format:** `#ogcal:<type>:<value>` or `#showcal:<type>:<value>` (case-insensitive prefix)
 
 Directives can appear anywhere in the description text and are stripped after extraction.
+
+### Parsing Rules
+
+- The directive regex matches `#(?:ogcal|showcal):` followed by non-whitespace characters (terminated by whitespace, newline, or end of string)
+- The prefix is split off first, then the remainder is split on the **first** colon to get `type` and `value` — e.g., `image:drive:ABC123` splits into type `image` and value `drive:ABC123`
+- Values may contain colons, slashes, and other URL-safe characters
+- Values must not contain whitespace (whitespace terminates the directive)
+- If the directive appears inside an HTML tag (e.g., `<a>` wrapping), the tag is also stripped
 
 ### Examples
 

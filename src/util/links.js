@@ -21,7 +21,7 @@ function pathSegments(url) {
 
 export function handleAt(url) {
   try {
-    const segments = new URL(url).pathname.replace(/\/+$/, '').split('/').filter(Boolean);
+    const segments = pathSegments(url);
     if (segments.length === 0) return null;
 
     // Two-segment profile-like paths: /r/subreddit, /u/username, /groups/name

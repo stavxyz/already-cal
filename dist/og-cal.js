@@ -94,33 +94,47 @@ var OgCal = (() => {
     const ext = extensions.join("|");
     return new RegExp(`(https?://[^\\s<>"]+\\.(?:${ext})(?:\\?[^\\s<>"]*)?)`, "gi");
   }
-  function extractImage(description, config) {
-    if (!description) return { image: null, images: [], description };
+  function imageCanonicalId(originalUrl) {
+    const driveMatch = originalUrl.match(DRIVE_ID_PATTERN);
+    if (driveMatch) return `image:drive:${driveMatch[1]}`;
+    const dropboxMatch = originalUrl.match(/dropbox\.com\/(?:scl\/fi|s)\/([^?]+)/);
+    if (dropboxMatch) return `image:dropbox:${dropboxMatch[1]}`;
+    try {
+      const u = new URL(originalUrl);
+      return `image:${u.hostname.replace(/^www\./, "")}${u.pathname}`;
+    } catch {
+      return `image:${originalUrl}`;
+    }
+  }
+  function extractImageTokens(description, config) {
+    if (!description) return { tokens: [], description };
     description = description.replace(/&amp;/g, "&");
     const extensions = config && config.imageExtensions || DEFAULT_IMAGE_EXTENSIONS;
     const pattern = buildImagePattern(extensions);
     const seen = /* @__PURE__ */ new Set();
-    const images = [];
+    const tokens = [];
     const originalUrls = [];
     let match;
     while ((match = pattern.exec(description)) !== null) {
       const originalUrl = match[1];
       const normalized = normalizeImageUrl(originalUrl);
-      if (normalized && !seen.has(normalized)) {
-        seen.add(normalized);
-        images.push(normalized);
-        originalUrls.push(originalUrl);
+      const cid = imageCanonicalId(originalUrl);
+      if (normalized && !seen.has(cid)) {
+        seen.add(cid);
+        tokens.push({ canonicalId: cid, type: "image", source: "url", url: normalized, label: "", metadata: {} });
       }
+      originalUrls.push(originalUrl);
     }
     DRIVE_URL_PATTERN.lastIndex = 0;
     while ((match = DRIVE_URL_PATTERN.exec(description)) !== null) {
       const originalUrl = match[0];
       const normalized = normalizeImageUrl(originalUrl);
-      if (normalized && !seen.has(normalized)) {
-        seen.add(normalized);
-        images.push(normalized);
-        originalUrls.push(originalUrl);
+      const cid = imageCanonicalId(originalUrl);
+      if (normalized && !seen.has(cid)) {
+        seen.add(cid);
+        tokens.push({ canonicalId: cid, type: "image", source: "url", url: normalized, label: "", metadata: {} });
       }
+      originalUrls.push(originalUrl);
     }
     DROPBOX_URL_PATTERN.lastIndex = 0;
     while ((match = DROPBOX_URL_PATTERN.exec(description)) !== null) {
@@ -128,25 +142,78 @@ var OgCal = (() => {
       const ext = getPathExtension(originalUrl);
       if (ext && NON_IMAGE_EXTENSIONS.has(ext)) continue;
       const normalized = normalizeImageUrl(originalUrl);
-      if (normalized && !seen.has(normalized)) {
-        seen.add(normalized);
-        images.push(normalized);
-        originalUrls.push(originalUrl);
+      const cid = imageCanonicalId(originalUrl);
+      if (normalized && !seen.has(cid)) {
+        seen.add(cid);
+        tokens.push({ canonicalId: cid, type: "image", source: "url", url: normalized, label: "", metadata: {} });
       }
+      originalUrls.push(originalUrl);
     }
     let cleaned = description;
     for (const url of originalUrls) {
       cleaned = stripUrl(cleaned, url);
     }
     cleaned = cleanupHtml(cleaned);
-    return { image: images[0] || null, images, description: cleaned };
+    return { tokens, description: cleaned };
   }
+
+  // src/util/tokens.js
+  var TRACKING_PARAMS = /* @__PURE__ */ new Set([
+    "fbclid",
+    // Facebook click ID
+    "si"
+    // Spotify session ID (share tracking)
+  ]);
+  var TRACKING_PREFIX = "utm_";
+  function normalizeUrl(url) {
+    try {
+      const u = new URL(url);
+      u.protocol = "https:";
+      u.hostname = u.hostname.replace(/^www\./, "");
+      const pathname = u.pathname.replace(/\/+$/, "");
+      const cleaned = new URLSearchParams();
+      for (const [key, value] of u.searchParams) {
+        if (key.startsWith(TRACKING_PREFIX)) continue;
+        if (TRACKING_PARAMS.has(key)) continue;
+        cleaned.append(key, value);
+      }
+      const search = cleaned.toString();
+      return u.origin + pathname + (search ? "?" + search : "") + u.hash;
+    } catch {
+      return url;
+    }
+  }
+  var TokenSet = class {
+    constructor() {
+      this._map = /* @__PURE__ */ new Map();
+    }
+    add(token) {
+      if (!this._map.has(token.canonicalId)) {
+        this._map.set(token.canonicalId, token);
+        return true;
+      }
+      return false;
+    }
+    addAll(tokens) {
+      tokens.forEach((t) => this.add(t));
+    }
+    ofType(type) {
+      return [...this._map.values()].filter((t) => t.type === type);
+    }
+  };
 
   // src/util/links.js
   var PROFILE_PREFIXES = /* @__PURE__ */ new Set(["r", "u", "groups"]);
+  function pathSegments(url) {
+    try {
+      return new URL(url).pathname.replace(/\/+$/, "").split("/").filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
   function handleAt(url) {
     try {
-      const segments = new URL(url).pathname.replace(/\/+$/, "").split("/").filter(Boolean);
+      const segments = pathSegments(url);
       if (segments.length === 0) return null;
       if (segments.length === 2 && PROFILE_PREFIXES.has(segments[0])) {
         return `${segments[0]}/${segments[1]}`;
@@ -162,56 +229,226 @@ var OgCal = (() => {
     }
   }
   var DEFAULT_PLATFORMS = [
-    { pattern: /eventbrite\.com/i, label: "RSVP on Eventbrite" },
-    { pattern: /docs\.google\.com\/forms/i, label: "Fill Out Form" },
-    { pattern: /goo\.gl\/maps|maps\.app\.goo\.gl|google\.com\/maps/i, label: "View on Map" },
-    { pattern: /zoom\.us/i, label: "Join Zoom" },
-    { pattern: /meet\.google\.com/i, label: "Join Google Meet" },
-    { pattern: /instagram\.com/i, labelFn: (url) => {
-      const h = handleAt(url);
-      return h ? `Follow @${h} on Instagram` : "View on Instagram";
-    } },
-    { pattern: /facebook\.com|fb\.com/i, labelFn: (url) => {
-      const h = handleAt(url);
-      return h ? `${h} on Facebook` : "View on Facebook";
-    } },
-    { pattern: /(?:twitter\.com|(?:^|\/\/)(?:www\.)?x\.com)/i, labelFn: (url) => {
-      const h = handleAt(url);
-      return h ? `Follow @${h} on X` : "View on X";
-    } },
-    { pattern: /reddit\.com/i, labelFn: (url) => {
-      const h = handleAt(url);
-      return h ? `${h} on Reddit` : "View on Reddit";
-    } },
-    { pattern: /youtube\.com|youtu\.be/i, label: "Watch on YouTube" },
-    { pattern: /tiktok\.com/i, labelFn: (url) => {
-      const h = handleAt(url);
-      return h ? `@${h} on TikTok` : "View on TikTok";
-    } },
-    { pattern: /linkedin\.com/i, label: "View on LinkedIn" },
-    { pattern: /discord\.gg|discord\.com/i, label: "Join Discord" },
-    { pattern: /lu\.ma/i, label: "RSVP on Luma" },
-    { pattern: /mobilize\.us/i, label: "RSVP on Mobilize" },
-    { pattern: /actionnetwork\.org/i, label: "Take Action" },
-    { pattern: /gofundme\.com/i, label: "Donate on GoFundMe" },
-    { pattern: /partiful\.com/i, label: "RSVP on Partiful" }
+    {
+      pattern: /eventbrite\.com/i,
+      label: "RSVP on Eventbrite",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        const slug = segs[segs.length - 1] || "";
+        const m = slug.match(/(\d+)$/);
+        return `eventbrite:${m ? m[1] : slug}`;
+      }
+    },
+    {
+      pattern: /docs\.google\.com\/forms/i,
+      label: "Fill Out Form",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        const eIdx = segs.indexOf("e");
+        const id = eIdx !== -1 ? segs[eIdx + 1] : segs[segs.length - 1];
+        return `googleforms:${id || ""}`;
+      }
+    },
+    {
+      pattern: /goo\.gl\/maps|maps\.app\.goo\.gl|google\.com\/maps/i,
+      label: "View on Map",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        if (/maps\.app\.goo\.gl/.test(url)) {
+          return `googlemaps:${segs[0] || ""}`;
+        }
+        return `googlemaps:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /zoom\.us/i,
+      label: "Join Zoom",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        const jIdx = segs.indexOf("j");
+        const id = jIdx !== -1 ? segs[jIdx + 1] : segs[segs.length - 1];
+        return `zoom:${id || ""}`;
+      }
+    },
+    {
+      pattern: /meet\.google\.com/i,
+      label: "Join Google Meet",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        return `googlemeet:${segs[0] || ""}`;
+      }
+    },
+    {
+      pattern: /instagram\.com/i,
+      labelFn: (url) => {
+        const h = handleAt(url);
+        return h ? `Follow @${h} on Instagram` : "View on Instagram";
+      },
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        if (segs.length === 0) return "instagram:";
+        if (segs.length === 1) return `instagram:${segs[0].replace(/^@/, "")}`;
+        return `instagram:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /facebook\.com|fb\.com/i,
+      labelFn: (url) => {
+        const h = handleAt(url);
+        return h ? `${h} on Facebook` : "View on Facebook";
+      },
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        return `facebook:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /(?:twitter\.com|(?:^|\/\/)(?:www\.)?x\.com)/i,
+      labelFn: (url) => {
+        const h = handleAt(url);
+        return h ? `Follow @${h} on X` : "View on X";
+      },
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        return `x:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /reddit\.com/i,
+      labelFn: (url) => {
+        const h = handleAt(url);
+        return h ? `${h} on Reddit` : "View on Reddit";
+      },
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        return `reddit:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /youtube\.com|youtu\.be/i,
+      label: "Watch on YouTube",
+      canonicalize(url) {
+        try {
+          const parsed = new URL(url);
+          if (/youtu\.be/.test(url)) {
+            const segs2 = pathSegments(url);
+            return `youtube:${segs2[0] || ""}`;
+          }
+          const v = parsed.searchParams.get("v");
+          if (v) return `youtube:${v}`;
+          const segs = pathSegments(url);
+          return `youtube:${segs.join("/")}`;
+        } catch {
+          return "youtube:";
+        }
+      }
+    },
+    {
+      pattern: /tiktok\.com/i,
+      labelFn: (url) => {
+        const h = handleAt(url);
+        return h ? `@${h} on TikTok` : "View on TikTok";
+      },
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        if (segs.length === 0) return "tiktok:";
+        return `tiktok:${segs[0].replace(/^@/, "")}`;
+      }
+    },
+    {
+      pattern: /linkedin\.com/i,
+      label: "View on LinkedIn",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        return `linkedin:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /discord\.gg|discord\.com/i,
+      label: "Join Discord",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        if (/discord\.gg/.test(url)) return `discord:${segs[0] || ""}`;
+        const invIdx = segs.indexOf("invite");
+        if (invIdx !== -1) return `discord:${segs[invIdx + 1] || ""}`;
+        return `discord:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /lu\.ma/i,
+      label: "RSVP on Luma",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        return `luma:${segs[0] || ""}`;
+      }
+    },
+    {
+      pattern: /mobilize\.us/i,
+      label: "RSVP on Mobilize",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        return `mobilize:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /actionnetwork\.org/i,
+      label: "Take Action",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        return `actionnetwork:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /gofundme\.com/i,
+      label: "Donate on GoFundMe",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        const fIdx = segs.indexOf("f");
+        const slug = fIdx !== -1 ? segs[fIdx + 1] : segs[segs.length - 1];
+        return `gofundme:${slug || ""}`;
+      }
+    },
+    {
+      pattern: /partiful\.com/i,
+      label: "RSVP on Partiful",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        const eIdx = segs.indexOf("e");
+        const id = eIdx !== -1 ? segs[eIdx + 1] : segs[segs.length - 1];
+        return `partiful:${id || ""}`;
+      }
+    }
   ];
   var URL_PATTERN = /https?:\/\/[^\s<>"]+/gi;
-  function extractLinks(description, config) {
-    if (!description) return { links: [], description };
+  function extractLinkTokens(description, config) {
+    if (!description) return { tokens: [], description };
     description = description.replace(/&amp;/g, "&");
     const platforms = config && config.knownPlatforms || DEFAULT_PLATFORMS;
-    const links = [];
+    const tokens = [];
     let cleaned = description;
     const seen = /* @__PURE__ */ new Set();
     const urls = description.match(URL_PATTERN) || [];
     for (const url of urls) {
-      if (seen.has(url)) continue;
+      const normalized = normalizeUrl(url);
       for (const platform of platforms) {
         if (platform.pattern.test(url)) {
-          seen.add(url);
+          const canonicalId = platform.canonicalize ? platform.canonicalize(normalized) : null;
+          if (canonicalId && seen.has(canonicalId)) {
+            const escapedUrl2 = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escapedUrl2}</a>`, "gi"), "");
+            cleaned = cleaned.replace(url, "");
+            break;
+          }
+          if (canonicalId) seen.add(canonicalId);
           const label = platform.labelFn ? platform.labelFn(url) : platform.label;
-          links.push({ label, url });
+          tokens.push({
+            canonicalId: canonicalId || `link:${normalized}`,
+            type: "link",
+            source: "url",
+            url,
+            label,
+            metadata: {}
+          });
           const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
           cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escapedUrl}</a>`, "gi"), "");
           cleaned = cleaned.replace(url, "");
@@ -220,7 +457,7 @@ var OgCal = (() => {
       }
     }
     cleaned = cleanupHtml(cleaned);
-    return { links, description: cleaned };
+    return { tokens, description: cleaned };
   }
 
   // node_modules/marked/lib/marked.esm.js
@@ -2480,28 +2717,45 @@ ${text}</tr>
     if (driveMatch) return { label: "Download File", type: "file" };
     return null;
   }
-  function extractAttachments(description, config) {
-    if (!description) return { attachments: [], description };
+  function attachmentCanonicalId(url) {
+    const driveMatch = url.match(DRIVE_ID_PATTERN);
+    if (driveMatch) return `attachment:drive:${driveMatch[1]}`;
+    try {
+      const u = new URL(url);
+      return `attachment:${u.hostname.replace(/^www\./, "")}${u.pathname}`;
+    } catch {
+      return `attachment:${url}`;
+    }
+  }
+  function extractAttachmentTokens(description, config) {
+    if (!description) return { tokens: [], description };
     description = description.replace(/&amp;/g, "&");
-    const attachments = [];
+    const tokens = [];
     let cleaned = description;
     const seen = /* @__PURE__ */ new Set();
     const urls = description.match(URL_PATTERN2) || [];
     for (const url of urls) {
-      if (seen.has(url)) continue;
       const classification = classifyUrl(url);
       if (!classification) continue;
-      seen.add(url);
+      const cid = attachmentCanonicalId(url);
+      if (seen.has(cid)) {
+        cleaned = stripUrl(cleaned, url);
+        continue;
+      }
+      seen.add(cid);
       const normalizedUrl = normalizeAttachmentUrl(url);
-      attachments.push({
-        label: classification.label,
+      tokens.push({
+        canonicalId: cid,
+        type: "attachment",
+        source: "url",
         url: normalizedUrl,
-        type: classification.type
+        label: classification.label,
+        metadata: { fileType: classification.type }
       });
       cleaned = stripUrl(cleaned, url);
     }
     cleaned = cleanupHtml(cleaned);
-    return { attachments, description: cleaned };
+    return { tokens, description: cleaned };
   }
   function deriveTypeFromMimeType(mimeType) {
     if (!mimeType) return "file";
@@ -2521,6 +2775,104 @@ ${text}</tr>
       archive: "Download Archive"
     };
     return map[type] || "Download File";
+  }
+
+  // src/util/directives.js
+  var DIRECTIVE_PATTERN = /#(?:ogcal|showcal):(\S+)/gi;
+  var DIRECTIVE_PLATFORMS = {
+    instagram: { label: (v) => `Follow @${v} on Instagram`, canonicalPrefix: "instagram" },
+    facebook: { label: (v) => `${v} on Facebook`, canonicalPrefix: "facebook" },
+    x: { label: (v) => `Follow @${v} on X`, canonicalPrefix: "x" },
+    twitter: { label: (v) => `Follow @${v} on X`, canonicalPrefix: "x" },
+    reddit: { label: (v) => `r/${v} on Reddit`, canonicalPrefix: "reddit" },
+    youtube: { label: () => "Watch on YouTube", canonicalPrefix: "youtube" },
+    tiktok: { label: (v) => `@${v} on TikTok`, canonicalPrefix: "tiktok" },
+    linkedin: { label: () => "View on LinkedIn", canonicalPrefix: "linkedin" },
+    discord: { label: () => "Join Discord", canonicalPrefix: "discord" },
+    zoom: { label: () => "Join Zoom", canonicalPrefix: "zoom" },
+    googlemeet: { label: () => "Join Google Meet", canonicalPrefix: "googlemeet" },
+    meet: { label: () => "Join Google Meet", canonicalPrefix: "googlemeet" },
+    eventbrite: { label: () => "RSVP on Eventbrite", canonicalPrefix: "eventbrite" },
+    luma: { label: () => "RSVP on Luma", canonicalPrefix: "luma" },
+    mobilize: { label: () => "RSVP on Mobilize", canonicalPrefix: "mobilize" },
+    actionnetwork: { label: () => "Take Action", canonicalPrefix: "actionnetwork" },
+    gofundme: { label: () => "Donate on GoFundMe", canonicalPrefix: "gofundme" },
+    partiful: { label: () => "RSVP on Partiful", canonicalPrefix: "partiful" },
+    googleforms: { label: () => "Fill Out Form", canonicalPrefix: "googleforms" },
+    forms: { label: () => "Fill Out Form", canonicalPrefix: "googleforms" },
+    googlemaps: { label: () => "View on Map", canonicalPrefix: "googlemaps" },
+    maps: { label: () => "View on Map", canonicalPrefix: "googlemaps" }
+  };
+  function parseDirective(body) {
+    const colonIdx = body.indexOf(":");
+    if (colonIdx === -1) return null;
+    const type = body.slice(0, colonIdx).toLowerCase();
+    const value = body.slice(colonIdx + 1);
+    if (!value) return null;
+    const platform = DIRECTIVE_PLATFORMS[type];
+    if (platform) {
+      return {
+        canonicalId: `${platform.canonicalPrefix}:${value}`,
+        type: "link",
+        source: "directive",
+        url: null,
+        label: platform.label(value),
+        metadata: {}
+      };
+    }
+    if (type === "image") {
+      const canonicalId = `image:${value}`;
+      const url = value.startsWith("http") ? value : null;
+      const normalized = url ? normalizeImageUrl(url) : null;
+      return {
+        canonicalId,
+        type: "image",
+        source: "directive",
+        url: normalized || value,
+        label: "",
+        metadata: {}
+      };
+    }
+    if (type === "tag") {
+      return {
+        canonicalId: `tag:${value}`,
+        type: "tag",
+        source: "directive",
+        url: null,
+        label: value,
+        metadata: { key: "tag", value }
+      };
+    }
+    return {
+      canonicalId: `tag:${type}:${value}`,
+      type: "tag",
+      source: "directive",
+      url: value.startsWith("http") ? value : null,
+      label: `${type}: ${value}`,
+      metadata: { key: type, value }
+    };
+  }
+  function extractDirectives(description) {
+    if (!description) return { tokens: [], description };
+    const tokens = [];
+    const seen = /* @__PURE__ */ new Set();
+    let cleaned = description;
+    const matches = [...description.matchAll(DIRECTIVE_PATTERN)];
+    for (const match of matches) {
+      const fullMatch = match[0];
+      const body = match[1];
+      const token = parseDirective(body);
+      if (!token) continue;
+      if (!seen.has(token.canonicalId)) {
+        seen.add(token.canonicalId);
+        tokens.push(token);
+      }
+      const escaped = fullMatch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escaped}</a>`, "gi"), "");
+      cleaned = cleaned.replace(fullMatch, "");
+    }
+    cleaned = cleanupHtml(cleaned);
+    return { tokens, description: cleaned };
   }
 
   // src/data.js
@@ -2557,38 +2909,71 @@ ${text}</tr>
     let image = event.image || null;
     let images = event.images && event.images.length > 0 ? event.images : [];
     let links = event.links && event.links.length > 0 ? event.links : [];
-    if (images.length === 0 && description) {
-      const result = extractImage(description, config);
-      image = result.image;
-      images = result.images;
+    const tokenSet = new TokenSet();
+    if (description) {
+      const result = extractDirectives(description);
       description = result.description;
+      tokenSet.addAll(result.tokens);
+    }
+    if (images.length === 0 && description) {
+      const result = extractImageTokens(description, config);
+      description = result.description;
+      tokenSet.addAll(result.tokens);
     }
     const attachmentImages = getImagesFromAttachments(event._imageAttachments || event.attachments);
     if (attachmentImages.length > 0) {
-      const existing = new Set(images);
+      const imgTokens = tokenSet.ofType("image");
+      const existing = new Set(imgTokens.map((t) => t.url));
       for (const ai of attachmentImages) {
         if (!existing.has(ai)) {
-          images.push(ai);
+          tokenSet.add({
+            canonicalId: `image:attachment:${ai}`,
+            type: "image",
+            source: "url",
+            url: ai,
+            label: "",
+            metadata: {}
+          });
         }
       }
     }
-    if (!image && images.length > 0) image = images[0];
     if (links.length === 0 && description) {
-      const result = extractLinks(description, config);
-      links = result.links;
+      const result = extractLinkTokens(description, config);
       description = result.description;
+      tokenSet.addAll(result.tokens);
     }
     let attachments = event.attachments && event.attachments.length > 0 ? event.attachments : [];
     if (description) {
-      const result = extractAttachments(description, config);
-      if (result.attachments.length > 0) {
-        attachments = [...attachments, ...result.attachments];
+      const result = extractAttachmentTokens(description, config);
+      if (result.tokens.length > 0) {
+        tokenSet.addAll(result.tokens);
         description = result.description;
       }
     }
+    const imageTokens = tokenSet.ofType("image");
+    if (imageTokens.length > 0 && images.length === 0) {
+      images = imageTokens.map((t) => t.url);
+    }
+    if (!image && images.length > 0) image = images[0];
+    const linkTokens = tokenSet.ofType("link");
+    if (linkTokens.length > 0 && links.length === 0) {
+      links = linkTokens.map((t) => ({ label: t.label, url: t.url || "" }));
+    }
+    const attachmentTokens = tokenSet.ofType("attachment");
+    if (attachmentTokens.length > 0) {
+      const tokenAttachments = attachmentTokens.map((t) => ({
+        label: t.label,
+        url: t.url,
+        type: t.metadata.fileType || "file"
+      }));
+      attachments = [...attachments, ...tokenAttachments];
+    }
+    const tagTokens = tokenSet.ofType("tag");
+    const existingTags = event.tags || [];
+    const tags = tagTokens.length > 0 ? tagTokens.map((t) => ({ key: t.metadata.key, value: t.metadata.value })) : existingTags;
     const descriptionFormat = event.descriptionFormat || detectFormat(description);
     const { _imageAttachments, ...rest } = event;
-    return { ...rest, description, descriptionFormat, image, images, links, attachments };
+    return { ...rest, description, descriptionFormat, image, images, links, attachments, tags };
   }
   async function fetchGoogleCalendar({ apiKey, calendarId, maxResults = 50 }, config) {
     const now = (/* @__PURE__ */ new Date()).toISOString();
@@ -2618,7 +3003,7 @@ ${text}</tr>
           });
         }
       }
-      return {
+      return enrichEvent({
         id: item.id,
         title: item.summary || "Untitled Event",
         description: item.description || "",
@@ -2631,7 +3016,7 @@ ${text}</tr>
         links: [],
         attachments: apiAttachments,
         _imageAttachments: imageAttachments
-      };
+      }, config);
     });
     return {
       events,
@@ -3323,6 +3708,22 @@ ${text}</tr>
       meta.innerHTML += `<div class="ogcal-detail-location"><a href="${mapsUrl}" target="_blank" rel="noopener">${escapeHtml(event.location)}</a></div>`;
     }
     content.appendChild(meta);
+    const scalarAndTextTags = (event.tags || []).filter((t) => {
+      if (t.key === "tag") return true;
+      if (t.value && !t.value.startsWith("http")) return true;
+      return false;
+    });
+    if (scalarAndTextTags.length > 0) {
+      const tagsDiv = document.createElement("div");
+      tagsDiv.className = "ogcal-detail-tags";
+      for (const tag2 of scalarAndTextTags) {
+        const span = document.createElement("span");
+        span.className = "ogcal-detail-tag";
+        span.textContent = tag2.key === "tag" ? tag2.value : `${tag2.key}: ${tag2.value}`;
+        tagsDiv.appendChild(span);
+      }
+      content.appendChild(tagsDiv);
+    }
     if (event.description) {
       const desc = document.createElement("div");
       desc.className = "ogcal-detail-description";
@@ -3343,10 +3744,12 @@ ${text}</tr>
       }
       content.appendChild(attachDiv);
     }
-    if (event.links && event.links.length > 0) {
+    const urlTags = (event.tags || []).filter((t) => t.key !== "tag" && t.value && t.value.startsWith("http"));
+    const allLinks = [...event.links || [], ...urlTags.map((t) => ({ label: t.key, url: t.value }))];
+    if (allLinks.length > 0) {
       const linksDiv = document.createElement("div");
       linksDiv.className = "ogcal-detail-links";
-      for (const link2 of event.links) {
+      for (const link2 of allLinks) {
         const a = document.createElement("a");
         a.className = "ogcal-detail-link";
         a.href = link2.url;

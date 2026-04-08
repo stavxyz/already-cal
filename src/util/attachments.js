@@ -56,6 +56,54 @@ function classifyUrl(url) {
   return null;
 }
 
+function attachmentCanonicalId(url) {
+  const driveMatch = url.match(DRIVE_ID_PATTERN);
+  if (driveMatch) return `attachment:drive:${driveMatch[1]}`;
+
+  try {
+    const u = new URL(url);
+    return `attachment:${u.hostname.replace(/^www\./, '')}${u.pathname}`;
+  } catch {
+    return `attachment:${url}`;
+  }
+}
+
+export function extractAttachmentTokens(description, config) {
+  if (!description) return { tokens: [], description };
+  description = description.replace(/&amp;/g, '&');
+
+  const tokens = [];
+  let cleaned = description;
+  const seen = new Set();
+
+  const urls = description.match(URL_PATTERN) || [];
+  for (const url of urls) {
+    const classification = classifyUrl(url);
+    if (!classification) continue;
+
+    const cid = attachmentCanonicalId(url);
+    if (seen.has(cid)) {
+      cleaned = stripUrl(cleaned, url);
+      continue;
+    }
+    seen.add(cid);
+
+    const normalizedUrl = normalizeAttachmentUrl(url);
+    tokens.push({
+      canonicalId: cid,
+      type: 'attachment',
+      source: 'url',
+      url: normalizedUrl,
+      label: classification.label,
+      metadata: { fileType: classification.type },
+    });
+    cleaned = stripUrl(cleaned, url);
+  }
+
+  cleaned = cleanupHtml(cleaned);
+  return { tokens, description: cleaned };
+}
+
 export function extractAttachments(description, config) {
   if (!description) return { attachments: [], description };
   description = description.replace(/&amp;/g, '&');

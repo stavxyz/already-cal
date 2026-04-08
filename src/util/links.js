@@ -1,4 +1,5 @@
 import { cleanupHtml } from './sanitize.js';
+import { normalizeUrl } from './tokens.js';
 
 // Two-segment path prefixes that represent profile-like destinations,
 // not individual content.  Keyed by the first segment.
@@ -257,4 +258,47 @@ export function extractLinks(description, config) {
   cleaned = cleanupHtml(cleaned);
 
   return { links, description: cleaned };
+}
+
+export function extractLinkTokens(description, config) {
+  if (!description) return { tokens: [], description };
+  description = description.replace(/&amp;/g, '&');
+  const platforms = (config && config.knownPlatforms) || DEFAULT_PLATFORMS;
+  const tokens = [];
+  let cleaned = description;
+  const seen = new Set();
+
+  const urls = description.match(URL_PATTERN) || [];
+  for (const url of urls) {
+    const normalized = normalizeUrl(url);
+    for (const platform of platforms) {
+      if (platform.pattern.test(url)) {
+        const canonicalId = platform.canonicalize ? platform.canonicalize(normalized) : null;
+        if (canonicalId && seen.has(canonicalId)) {
+          // Duplicate — still strip from description
+          const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escapedUrl}</a>`, 'gi'), '');
+          cleaned = cleaned.replace(url, '');
+          break;
+        }
+        if (canonicalId) seen.add(canonicalId);
+        const label = platform.labelFn ? platform.labelFn(url) : platform.label;
+        tokens.push({
+          canonicalId: canonicalId || `link:${normalized}`,
+          type: 'link',
+          source: 'url',
+          url,
+          label,
+          metadata: {},
+        });
+        const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        cleaned = cleaned.replace(new RegExp(`<a[^>]*>${escapedUrl}</a>`, 'gi'), '');
+        cleaned = cleaned.replace(url, '');
+        break;
+      }
+    }
+  }
+
+  cleaned = cleanupHtml(cleaned);
+  return { tokens, description: cleaned };
 }

@@ -79,6 +79,82 @@ function buildImagePattern(extensions) {
 
 export { getPathExtension, NON_IMAGE_EXTENSIONS };
 
+function imageCanonicalId(originalUrl) {
+  // Drive URLs: use file ID
+  const driveMatch = originalUrl.match(DRIVE_ID_PATTERN);
+  if (driveMatch) return `image:drive:${driveMatch[1]}`;
+
+  // Dropbox URLs: use hash/filename from path
+  const dropboxMatch = originalUrl.match(/dropbox\.com\/(?:scl\/fi|s)\/([^?]+)/);
+  if (dropboxMatch) return `image:dropbox:${dropboxMatch[1]}`;
+
+  // General: host + path
+  try {
+    const u = new URL(originalUrl);
+    return `image:${u.hostname.replace(/^www\./, '')}${u.pathname}`;
+  } catch {
+    return `image:${originalUrl}`;
+  }
+}
+
+export function extractImageTokens(description, config) {
+  if (!description) return { tokens: [], description };
+  description = description.replace(/&amp;/g, '&');
+  const extensions = (config && config.imageExtensions) || DEFAULT_IMAGE_EXTENSIONS;
+  const pattern = buildImagePattern(extensions);
+  const seen = new Set();
+  const tokens = [];
+  const originalUrls = [];
+  let match;
+
+  // Standard image URLs (by extension)
+  while ((match = pattern.exec(description)) !== null) {
+    const originalUrl = match[1];
+    const normalized = normalizeImageUrl(originalUrl);
+    const cid = imageCanonicalId(originalUrl);
+    if (normalized && !seen.has(cid)) {
+      seen.add(cid);
+      tokens.push({ canonicalId: cid, type: 'image', source: 'url', url: normalized, label: '', metadata: {} });
+    }
+    originalUrls.push(originalUrl);
+  }
+
+  // Google Drive image URLs
+  DRIVE_URL_PATTERN.lastIndex = 0;
+  while ((match = DRIVE_URL_PATTERN.exec(description)) !== null) {
+    const originalUrl = match[0];
+    const normalized = normalizeImageUrl(originalUrl);
+    const cid = imageCanonicalId(originalUrl);
+    if (normalized && !seen.has(cid)) {
+      seen.add(cid);
+      tokens.push({ canonicalId: cid, type: 'image', source: 'url', url: normalized, label: '', metadata: {} });
+    }
+    originalUrls.push(originalUrl);
+  }
+
+  // Dropbox image URLs
+  DROPBOX_URL_PATTERN.lastIndex = 0;
+  while ((match = DROPBOX_URL_PATTERN.exec(description)) !== null) {
+    const originalUrl = match[0];
+    const ext = getPathExtension(originalUrl);
+    if (ext && NON_IMAGE_EXTENSIONS.has(ext)) continue;
+    const normalized = normalizeImageUrl(originalUrl);
+    const cid = imageCanonicalId(originalUrl);
+    if (normalized && !seen.has(cid)) {
+      seen.add(cid);
+      tokens.push({ canonicalId: cid, type: 'image', source: 'url', url: normalized, label: '', metadata: {} });
+    }
+    originalUrls.push(originalUrl);
+  }
+
+  let cleaned = description;
+  for (const url of originalUrls) {
+    cleaned = stripUrl(cleaned, url);
+  }
+  cleaned = cleanupHtml(cleaned);
+  return { tokens, description: cleaned };
+}
+
 export function extractImage(description, config) {
   if (!description) return { image: null, images: [], description };
   // Decode HTML entities in URLs upfront so href and text content versions match.

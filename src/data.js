@@ -1,7 +1,9 @@
-import { extractImage, normalizeImageUrl } from './util/images.js';
-import { extractLinks } from './util/links.js';
+import { normalizeImageUrl, extractImageTokens } from './util/images.js';
+import { extractLinkTokens } from './util/links.js';
 import { detectFormat } from './util/description.js';
-import { extractAttachments, deriveTypeFromMimeType, labelForType } from './util/attachments.js';
+import { deriveTypeFromMimeType, labelForType, extractAttachmentTokens } from './util/attachments.js';
+import { extractDirectives } from './util/directives.js';
+import { TokenSet } from './util/tokens.js';
 
 export async function loadData(config) {
   let data;
@@ -53,51 +55,92 @@ function enrichEvent(event, config) {
   let images = (event.images && event.images.length > 0) ? event.images : [];
   let links = (event.links && event.links.length > 0) ? event.links : [];
 
-  // Extract images from description if not already set
-  if (images.length === 0 && description) {
-    const result = extractImage(description, config);
-    image = result.image;
-    images = result.images;
+  const tokenSet = new TokenSet();
+
+  // Step 1: Extract directives (#ogcal:/#showcal: syntax)
+  if (description) {
+    const result = extractDirectives(description);
     description = result.description;
+    tokenSet.addAll(result.tokens);
+  }
+
+  // Step 2: Extract images from description if not already set
+  if (images.length === 0 && description) {
+    const result = extractImageTokens(description, config);
+    description = result.description;
+    tokenSet.addAll(result.tokens);
   }
 
   // Fallback: check attachments for images
   const attachmentImages = getImagesFromAttachments(event._imageAttachments || event.attachments);
   if (attachmentImages.length > 0) {
-    // Append attachment images that aren't already in the list
-    const existing = new Set(images);
+    const imgTokens = tokenSet.ofType('image');
+    const existing = new Set(imgTokens.map(t => t.url));
     for (const ai of attachmentImages) {
       if (!existing.has(ai)) {
-        images.push(ai);
+        tokenSet.add({
+          canonicalId: `image:attachment:${ai}`,
+          type: 'image',
+          source: 'url',
+          url: ai,
+          label: '',
+          metadata: {},
+        });
       }
     }
   }
 
-  // Set primary image
-  if (!image && images.length > 0) image = images[0];
-
-  // Extract links from description if not already populated
+  // Step 3: Extract links from description if not already populated
   if (links.length === 0 && description) {
-    const result = extractLinks(description, config);
-    links = result.links;
+    const result = extractLinkTokens(description, config);
     description = result.description;
+    tokenSet.addAll(result.tokens);
   }
 
-  // Extract file attachments from description
+  // Step 4: Extract file attachments from description
   let attachments = (event.attachments && event.attachments.length > 0) ? event.attachments : [];
   if (description) {
-    const result = extractAttachments(description, config);
-    if (result.attachments.length > 0) {
-      attachments = [...attachments, ...result.attachments];
+    const result = extractAttachmentTokens(description, config);
+    if (result.tokens.length > 0) {
+      tokenSet.addAll(result.tokens);
       description = result.description;
     }
   }
+
+  // Build output arrays from token set
+  const imageTokens = tokenSet.ofType('image');
+  if (imageTokens.length > 0 && images.length === 0) {
+    images = imageTokens.map(t => t.url);
+  }
+  if (!image && images.length > 0) image = images[0];
+
+  const linkTokens = tokenSet.ofType('link');
+  if (linkTokens.length > 0 && links.length === 0) {
+    links = linkTokens.map(t => ({ label: t.label, url: t.url || '' }));
+  }
+
+  const attachmentTokens = tokenSet.ofType('attachment');
+  if (attachmentTokens.length > 0) {
+    const tokenAttachments = attachmentTokens.map(t => ({
+      label: t.label,
+      url: t.url,
+      type: t.metadata.fileType || 'file',
+    }));
+    attachments = [...attachments, ...tokenAttachments];
+  }
+
+  // Build tags from tag tokens, preserving any existing tags
+  const tagTokens = tokenSet.ofType('tag');
+  const existingTags = event.tags || [];
+  const tags = tagTokens.length > 0
+    ? tagTokens.map(t => ({ key: t.metadata.key, value: t.metadata.value }))
+    : existingTags;
 
   // Detect format if not set
   const descriptionFormat = event.descriptionFormat || detectFormat(description);
 
   const { _imageAttachments, ...rest } = event;
-  return { ...rest, description, descriptionFormat, image, images, links, attachments };
+  return { ...rest, description, descriptionFormat, image, images, links, attachments, tags };
 }
 
 async function fetchGoogleCalendar({ apiKey, calendarId, maxResults = 50 }, config) {
@@ -141,7 +184,7 @@ export function transformGoogleEvents(googleData, config) {
 
     // Build base event shape — enrichEvent handles description extraction.
     // _imageAttachments is internal, stripped by enrichEvent before returning.
-    return {
+    return enrichEvent({
       id: item.id,
       title: item.summary || 'Untitled Event',
       description: item.description || '',
@@ -154,7 +197,7 @@ export function transformGoogleEvents(googleData, config) {
       links: [],
       attachments: apiAttachments,
       _imageAttachments: imageAttachments,
-    };
+    }, config);
   });
 
   return {

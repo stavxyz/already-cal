@@ -230,29 +230,8 @@ export const DEFAULT_PLATFORMS = [
 
 export function extractLinks(description, config) {
   if (!description) return { links: [], description };
-  description = description.replace(/&amp;/g, '&');
-  const platforms = (config && config.knownPlatforms) || DEFAULT_PLATFORMS;
-  const links = [];
-  let cleaned = description;
-  const seen = new Set();
-
-  URL_PATTERN.lastIndex = 0;
-  const urls = description.match(URL_PATTERN) || [];
-  for (const url of urls) {
-    if (seen.has(url)) continue;
-    for (const platform of platforms) {
-      if (platform.pattern.test(url)) {
-        seen.add(url);
-        const label = platform.labelFn ? platform.labelFn(url) : platform.label;
-        links.push({ label, url });
-        cleaned = stripUrl(cleaned, url);
-        break;
-      }
-    }
-  }
-
-  cleaned = cleanupHtml(cleaned);
-
+  const { tokens, description: cleaned } = extractLinkTokens(description, config);
+  const links = tokens.map(t => ({ label: t.label, url: t.url }));
   return { links, description: cleaned };
 }
 

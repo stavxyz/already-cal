@@ -847,6 +847,22 @@
   outline: 2px solid var(--ogcal-primary);
   outline-offset: 2px;
 }
+.ogcal-detail-tags {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+.ogcal-detail-tag {
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  background: var(--ogcal-surface);
+  color: var(--ogcal-text-secondary);
+  border: 1px solid var(--ogcal-text-secondary);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
 @media (max-width: 1024px) {
   .ogcal-grid {
     grid-template-columns: repeat(2, 1fr);

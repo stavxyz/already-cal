@@ -98,7 +98,7 @@ OgCal.init({
   // --- Data (pick one) ---
   data: { /* og-cal or Google Calendar API JSON */ },
   fetchUrl: 'https://...',
-  google: { apiKey, calendarId },
+  google: { apiKey, calendarId, maxResults: 50 },
 
   // --- Header ---
   showHeader: true,                    // calendar name + description + subscribe button
@@ -154,7 +154,7 @@ OgCal.init({
   maxEventsPerDay: 3,                  // month view: chips before "+N more"
   locationLinkTemplate: 'https://maps.google.com/?q={location}',
   storageKeyPrefix: 'ogcal',          // for multiple instances
-  imageExtensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'],
+  imageExtensions: null,               // null = defaults: png, jpg, jpeg, gif, webp
 
   // --- Link extraction ---
   // 18 built-in: Eventbrite, Google Forms, Google Maps, Zoom, Google Meet,
@@ -191,6 +191,8 @@ OgCal.init({
 });
 ```
 
+For detailed descriptions of every option, callback signatures, custom renderer examples, and data hook behavior, see the **[full configuration reference](docs/configuration.md)**.
+
 All options also work as HTML `data-` attributes for zero-JS setup. See the [data attributes table](#data-attributes) below.
 
 ### Data attributes
@@ -200,6 +202,7 @@ All options also work as HTML `data-` attributes for zero-JS setup. See the [dat
 | `data-og-cal` | Enables auto-init (required) |
 | `data-api-key` | `google.apiKey` |
 | `data-calendar-id` | `google.calendarId` |
+| `data-max-results` | `google.maxResults` |
 | `data-fetch-url` | `fetchUrl` |
 | `data-default-view` | `defaultView` |
 | `data-views` | `views` (comma-separated: `"month,week,list"`) |
@@ -208,7 +211,9 @@ All options also work as HTML `data-` attributes for zero-JS setup. See the [dat
 | `data-show-past-events` | `showPastEvents` (`"true"`) |
 | `data-mobile-breakpoint` | `mobileBreakpoint` |
 | `data-mobile-default-view` | `mobileDefaultView` |
+| `data-mobile-hidden-views` | `mobileHiddenViews` (comma-separated) |
 | `data-max-events-per-day` | `maxEventsPerDay` |
+| `data-location-link-template` | `locationLinkTemplate` |
 | `data-storage-key-prefix` | `storageKeyPrefix` |
 | `data-theme-*` | `theme.*` (e.g. `data-theme-primary="#333"`) |
 
@@ -356,6 +361,24 @@ Priority order: `initialEvent` > URL hash/path > localStorage > `defaultView`.
 
 **Note:** og-cal manages client-side OG meta tags (`og:title`, `og:description`, `og:image`) when viewing event details. This works for JavaScript-rendering crawlers (like Google) but social media crawlers (Facebook, Twitter) that don't execute JS will not see these tags. For full social sharing support, use server-side rendering or a prerender service.
 
+## Description Rendering
+
+Event descriptions are auto-detected as HTML, markdown, or plain text:
+
+- **HTML** (contains `<tag>`) — sanitized to allowed tags and attributes
+- **Markdown** (contains `# headings`, `**bold**`, `[links](url)`, `- lists`) — parsed with [marked](https://github.com/markedjs/marked), then sanitized
+- **Plain text** (default) — escaped, newlines converted to `<br>`
+
+Extracted URLs (images, platform links, file attachments, directives) are removed from the rendered description. Sanitization rules are configurable via `sanitization` config.
+
+## Past Events
+
+A toggle button appears when past events exist. Visitors can show/hide past events, and the labels are configurable via `i18n.showPastEvents` and `i18n.hidePastEvents`. The initial state is controlled by `showPastEvents` config.
+
+## Event Object
+
+Events are enriched with extracted images, links, attachments, tags, and featured/hidden flags. For the full event schema and data pipeline details, see **[docs/event-schema.md](docs/event-schema.md)**.
+
 ## Responsive
 
 - **Desktop (>1024px)** — all views, full grid
@@ -375,6 +398,14 @@ OgCal.init({ el: '#events-a', storageKeyPrefix: 'cal-a', ... });
 OgCal.init({ el: '#events-b', storageKeyPrefix: 'cal-b', ... });
 ```
 
+## Accessibility
+
+- All interactive elements have `tabindex="0"` and `role="button"` or `role="tab"`
+- Keyboard navigation: Enter/Space to activate buttons, arrow keys in image galleries
+- ARIA attributes: `role="tablist"` on view selector, `aria-selected` on active tab, `aria-live="polite"` on the view container, `aria-label` on navigation buttons
+- `role="grid"` and `role="gridcell"` on the month view calendar
+- Focus management: back button auto-focused when entering detail view
+
 ## Development
 
 ```bash
@@ -388,10 +419,12 @@ open dev.html     # local preview with mock data
 ## Built with
 
 - Vanilla JavaScript (no framework)
-- [esbuild](https://esbuild.github.io/) for bundling
+- [esbuild](https://esbuild.github.io/) for bundling (IIFE format, `OgCal` global)
 - [marked](https://github.com/markedjs/marked) for markdown (bundled)
 - CSS custom properties for theming
 - `Intl.DateTimeFormat` for locale-aware formatting
+
+Build outputs: `dist/og-cal.js` (+ sourcemap), `dist/og-cal.min.js`, `dist/og-cal.css`, `dist/og-cal.min.css`. The default config object is available as `OgCal.DEFAULTS` for extending (e.g., `OgCal.DEFAULTS.knownPlatforms`).
 
 ## License
 

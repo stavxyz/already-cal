@@ -124,7 +124,7 @@ describe('createEventImage', () => {
     assert.ok(img);
     assert.strictEqual(img.src, 'https://example.com/img.jpg');
     assert.strictEqual(img.alt, 'My Event');
-    assert.strictEqual(img.loading, 'lazy');
+    assert.strictEqual(img.getAttribute('loading'), 'lazy');
   });
 
   it('hides wrapper on image error', () => {

@@ -43,7 +43,7 @@ export function createEventImage(event, className) {
   const img = document.createElement('img');
   img.src = event.image;
   img.alt = event.title;
-  img.loading = 'lazy';
+  img.setAttribute('loading', 'lazy');
   img.onerror = () => { wrapper.style.display = 'none'; };
   wrapper.appendChild(img);
   return wrapper;

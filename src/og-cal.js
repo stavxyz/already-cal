@@ -9,7 +9,7 @@ import { renderDayView } from './views/day.js';
 import { renderGridView } from './views/grid.js';
 import { renderListView } from './views/list.js';
 import { renderDetailView } from './views/detail.js';
-import { isPast } from './util/dates.js';
+import { isPast, formatDate, formatDatetime } from './util/dates.js';
 import { DEFAULT_PLATFORMS } from './util/links.js';
 import { renderHeader } from './ui/header.js';
 import { createTagFilter } from './ui/tag-filter.js';
@@ -132,6 +132,53 @@ export function init(userConfig) {
 
   const isMobile = () => window.innerWidth < config.mobileBreakpoint;
 
+  // OG meta tag management
+  let originalMeta = null;
+
+  function captureOriginalMeta() {
+    originalMeta = {};
+    for (const prop of ['og:title', 'og:description', 'og:image', 'og:url']) {
+      const el = document.querySelector(`meta[property="${prop}"]`);
+      originalMeta[prop] = el ? el.getAttribute('content') : null;
+    }
+  }
+
+  function setMetaTag(property, content) {
+    let el = document.querySelector(`meta[property="${property}"]`);
+    if (!el) {
+      el = document.createElement('meta');
+      el.setAttribute('property', property);
+      document.head.appendChild(el);
+    }
+    el.setAttribute('content', content);
+  }
+
+  function setEventMeta(event) {
+    const tz = data?.calendar?.timezone || 'UTC';
+    const dateStr = event.allDay
+      ? formatDate(event.start, tz, config.locale)
+      : formatDatetime(event.start, tz, config.locale);
+    const descParts = [dateStr];
+    if (event.location) descParts.push(event.location);
+
+    setMetaTag('og:title', event.title);
+    setMetaTag('og:description', descParts.join(' \u00b7 '));
+    if (event.image) setMetaTag('og:image', event.image);
+    setMetaTag('og:url', window.location.href);
+  }
+
+  function restoreOriginalMeta() {
+    if (!originalMeta) return;
+    for (const [prop, content] of Object.entries(originalMeta)) {
+      if (content === null) {
+        const el = document.querySelector(`meta[property="${prop}"]`);
+        if (el) el.remove();
+      } else {
+        setMetaTag(prop, content);
+      }
+    }
+  }
+
   function getFilteredEvents() {
     if (!data) return [];
     if (showPast) return data.events;
@@ -161,6 +208,11 @@ export function init(userConfig) {
     // Apply tag filter
     const tagFilterFn = tagFilter.getFilter();
     const events = tagFilterFn ? visibleEvents.filter(tagFilterFn) : visibleEvents;
+
+    // OG meta management
+    if (viewState.view !== 'detail') {
+      restoreOriginalMeta();
+    }
 
     // Fire onViewChange callback
     if (config.onViewChange && viewState.view !== 'detail') {
@@ -201,6 +253,7 @@ export function init(userConfig) {
             const result = config.onEventClick(event, 'detail');
             if (result === false) return;
           }
+          setEventMeta(event);
           selectorContainer.innerHTML = '';
           renderDetailView(viewContainer, event, timezone, () => {
             setView(lastView || config.defaultView, config);
@@ -233,6 +286,7 @@ export function init(userConfig) {
 
   // Load and render
   async function start() {
+    captureOriginalMeta();
     renderLoading(viewContainer, config);
 
     try {

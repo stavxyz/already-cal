@@ -6,6 +6,12 @@ function storageKey(config) {
 }
 
 export function parseHash() {
+  // Check path for /event/{id} (allows server-side routing)
+  const pathMatch = window.location.pathname.match(/\/event\/([^/]+)\/?$/);
+  if (pathMatch) {
+    return { view: 'detail', eventId: decodeURIComponent(pathMatch[1]) };
+  }
+
   const hash = window.location.hash.slice(1); // remove #
   if (!hash) return null;
 
@@ -28,7 +34,11 @@ export function parseHash() {
 }
 
 export function getInitialView(defaultView, enabledViews, config) {
-  // Priority: hash > localStorage > config default
+  // Priority: initialEvent > hash/path > localStorage > config default
+  if (config && config.initialEvent) {
+    return { view: 'detail', eventId: config.initialEvent };
+  }
+
   const fromHash = parseHash();
   if (fromHash) return fromHash;
 

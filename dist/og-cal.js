@@ -3543,6 +3543,7 @@ ${text}</tr>
         const block2 = createElement("div", "ogcal-week-event" + (event.featured ? " ogcal-week-event--featured" : ""));
         block2.textContent = event.title;
         block2.setAttribute("tabindex", "0");
+        block2.setAttribute("role", "button");
         block2.addEventListener("click", () => {
           if (config.onEventClick) {
             const result = config.onEventClick(event, "week");
@@ -4027,8 +4028,7 @@ ${text}</tr>
     noEventsThisDay: "No events this day.",
     back: "\u2190 Back",
     moreEvents: "+{count} more",
-    subscribe: "Subscribe",
-    clearFilter: "Clear"
+    subscribe: "Subscribe"
   };
   var THEME_DEFAULTS = {
     primary: "#8B4513",

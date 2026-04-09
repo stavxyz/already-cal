@@ -60,7 +60,6 @@ const I18N_DEFAULTS = {
   back: '\u2190 Back',
   moreEvents: '+{count} more',
   subscribe: 'Subscribe',
-  clearFilter: 'Clear',
 };
 
 const THEME_DEFAULTS = {

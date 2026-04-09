@@ -65,6 +65,7 @@ export function renderWeekView(container, events, timezone, currentDate, config)
       const block = createElement('div', 'ogcal-week-event' + (event.featured ? ' ogcal-week-event--featured' : ''));
       block.textContent = event.title;
       block.setAttribute('tabindex', '0');
+      block.setAttribute('role', 'button');
       block.addEventListener('click', () => {
         if (config.onEventClick) {
           const result = config.onEventClick(event, 'week');

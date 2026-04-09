@@ -1208,3 +1208,72 @@
     border: 1px solid #ddd;
   }
 }
+
+/* Featured events — accent border + star indicator */
+.ogcal-grid-card--featured,
+.ogcal-list-item--featured,
+.ogcal-day-event--featured {
+  border-left: 3px solid var(--ogcal-primary);
+}
+
+.ogcal-month-chip--featured,
+.ogcal-week-event--featured {
+  border-left: 2px solid var(--ogcal-primary);
+}
+
+.ogcal-grid-card--featured .ogcal-grid-title::before,
+.ogcal-list-item--featured .ogcal-list-title::before,
+.ogcal-day-event--featured .ogcal-day-event-title::before,
+.ogcal-month-chip--featured::before,
+.ogcal-week-event--featured::before {
+  content: '\2605';
+  font-size: 0.75em;
+  color: var(--ogcal-primary);
+  margin-right: 0.25em;
+}
+
+/* Tag filter */
+.ogcal-tag-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.ogcal-tag-pill {
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid var(--ogcal-text-secondary);
+  background: transparent;
+  color: var(--ogcal-text);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: var(--ogcal-font-family);
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.ogcal-tag-pill:hover {
+  border-color: var(--ogcal-primary);
+  color: var(--ogcal-primary);
+}
+
+.ogcal-tag-pill--active {
+  background: var(--ogcal-primary);
+  color: var(--ogcal-primary-text);
+  border-color: var(--ogcal-primary);
+}
+
+.ogcal-tag-clear {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--ogcal-text-secondary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: var(--ogcal-font-family);
+  text-decoration: underline;
+}
+
+.ogcal-tag-clear:hover {
+  color: var(--ogcal-text);
+}

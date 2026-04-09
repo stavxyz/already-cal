@@ -13,7 +13,7 @@ function renderGallery(images, altText) {
   imgEl.className = 'ogcal-detail-gallery-img';
   imgEl.src = images[0];
   imgEl.alt = altText;
-  imgEl.loading = 'lazy';
+  imgEl.setAttribute('loading', 'lazy');
   imgEl.onerror = () => {
     loadedImages = loadedImages.filter(u => u !== imgEl.src);
     if (loadedImages.length === 0) {

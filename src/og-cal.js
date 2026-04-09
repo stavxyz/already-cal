@@ -12,6 +12,7 @@ import { renderDetailView } from './views/detail.js';
 import { isPast } from './util/dates.js';
 import { DEFAULT_PLATFORMS } from './util/links.js';
 import { renderHeader } from './ui/header.js';
+import { createTagFilter } from './ui/tag-filter.js';
 
 const DEFAULTS = {
   defaultView: 'month',
@@ -44,6 +45,7 @@ const DEFAULTS = {
   renderLoading: null,
   renderError: null,
   i18n: {},
+  initialEvent: null,
 };
 
 const I18N_DEFAULTS = {
@@ -58,6 +60,7 @@ const I18N_DEFAULTS = {
   back: '\u2190 Back',
   moreEvents: '+{count} more',
   subscribe: 'Subscribe',
+  clearFilter: 'Clear',
 };
 
 const THEME_DEFAULTS = {
@@ -103,6 +106,8 @@ export function init(userConfig) {
   headerContainer.className = 'ogcal-header-container';
   const selectorContainer = document.createElement('div');
   selectorContainer.className = 'ogcal-selector-container';
+  const tagFilterContainer = document.createElement('div');
+  tagFilterContainer.className = 'ogcal-tag-filter-container';
   const viewContainer = document.createElement('div');
   viewContainer.className = 'ogcal-view-container';
   viewContainer.setAttribute('aria-live', 'polite');
@@ -112,6 +117,7 @@ export function init(userConfig) {
   el.innerHTML = '';
   el.appendChild(headerContainer);
   el.appendChild(selectorContainer);
+  el.appendChild(tagFilterContainer);
   el.appendChild(viewContainer);
   el.appendChild(toggleContainer);
 
@@ -119,6 +125,10 @@ export function init(userConfig) {
   let showPast = config.showPastEvents;
   let currentDate = new Date();
   let lastView = null;
+  let lastViewState = null;
+  const tagFilter = createTagFilter(() => {
+    if (lastViewState) renderView(lastViewState);
+  });
 
   const isMobile = () => window.innerWidth < config.mobileBreakpoint;
 
@@ -134,8 +144,23 @@ export function init(userConfig) {
   }
 
   function renderView(viewState) {
-    const events = getFilteredEvents();
+    lastViewState = viewState;
+    const allEvents = getFilteredEvents();
     const timezone = data?.calendar?.timezone || 'UTC';
+
+    // Hidden filtering — visible events used for tag pills
+    const visibleEvents = allEvents.filter(e => !e.hidden);
+
+    // Tag filter UI (render pills from all non-hidden events, not filtered by tags)
+    if (viewState.view !== 'detail') {
+      tagFilter.render(tagFilterContainer, visibleEvents);
+    } else {
+      tagFilterContainer.innerHTML = '';
+    }
+
+    // Apply tag filter
+    const tagFilterFn = tagFilter.getFilter();
+    const events = tagFilterFn ? visibleEvents.filter(tagFilterFn) : visibleEvents;
 
     // Fire onViewChange callback
     if (config.onViewChange && viewState.view !== 'detail') {

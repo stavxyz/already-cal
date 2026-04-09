@@ -1,4 +1,4 @@
-var OgCal = (() => {
+var ShowCal = (() => {
   var __defProp = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -17,9 +17,9 @@ var OgCal = (() => {
   };
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-  // src/og-cal.js
-  var og_cal_exports = {};
-  __export(og_cal_exports, {
+  // src/showcal.js
+  var showcal_exports = {};
+  __export(showcal_exports, {
     DEFAULTS: () => DEFAULTS,
     init: () => init
   });
@@ -136,7 +136,7 @@ var OgCal = (() => {
     if (DROPBOX_DIRECT_PATTERN.test(url)) return url;
     if (DROPBOX_PATTERN.test(url)) {
       if (typeof console !== "undefined" && console.warn && !normalizeImageUrl._dropboxWarned) {
-        console.warn("og-cal: Dropbox image URL detected. If images fail to render, Dropbox may be serving incorrect content-type headers. Consider re-hosting images on a more reliable service.");
+        console.warn("showcal: Dropbox image URL detected. If images fail to render, Dropbox may be serving incorrect content-type headers. Consider re-hosting images on a more reliable service.");
         normalizeImageUrl._dropboxWarned = true;
       }
       if (url.includes("dl=0")) return url.replace("dl=0", "raw=1");
@@ -2783,7 +2783,7 @@ ${text}</tr>
   }
 
   // src/util/directives.js
-  var DIRECTIVE_PATTERN = /#(?:ogcal|showcal):([^\s<>]+)/gi;
+  var DIRECTIVE_PATTERN = /#(?:showcal|ogcal):([^\s<>]+)/gi;
   var DIRECTIVE_PLATFORMS = {
     instagram: { label: (v) => `Follow @${v} on Instagram`, canonicalPrefix: "instagram", url: (v) => `https://instagram.com/${v}` },
     facebook: { label: (v) => `${v} on Facebook`, canonicalPrefix: "facebook", url: (v) => `https://facebook.com/${v}` },
@@ -2916,7 +2916,7 @@ ${text}</tr>
     } else if (config.google) {
       data = await fetchGoogleCalendar(config.google, config);
     } else {
-      throw new Error("og-cal: No data source configured. Provide data, fetchUrl, or google config.");
+      throw new Error("showcal: No data source configured. Provide data, fetchUrl, or google config.");
     }
     if (data.events) {
       data = { ...data, events: data.events.map((event) => enrichEvent(event, config)) };
@@ -3064,7 +3064,7 @@ ${text}</tr>
   // src/router.js
   var VALID_VIEWS = ["month", "week", "day", "grid", "list"];
   function storageKey(config) {
-    const prefix = config && config.storageKeyPrefix || "ogcal";
+    const prefix = config && config.storageKeyPrefix || "showcal";
     return `${prefix}-view`;
   }
   function parseHash() {
@@ -3127,11 +3127,11 @@ ${text}</tr>
     const mobileHiddenViews = config && config.mobileHiddenViews || ["week"];
     const filtered = isMobile ? views.filter((v) => !mobileHiddenViews.includes(v)) : views;
     const bar = document.createElement("div");
-    bar.className = "ogcal-view-selector";
+    bar.className = "showcal-view-selector";
     bar.setAttribute("role", "tablist");
     for (const view of filtered) {
       const tab = document.createElement("button");
-      tab.className = "ogcal-view-tab" + (view === activeView ? " ogcal-view-tab--active" : "");
+      tab.className = "showcal-view-tab" + (view === activeView ? " showcal-view-tab--active" : "");
       tab.textContent = viewLabels[view] || view;
       tab.setAttribute("role", "tab");
       tab.setAttribute("aria-selected", view === activeView ? "true" : "false");
@@ -3155,10 +3155,10 @@ ${text}</tr>
       return;
     }
     container.innerHTML = `
-    <div class="ogcal-loading">
-      <div class="ogcal-loading-pulse"></div>
-      <div class="ogcal-loading-pulse"></div>
-      <div class="ogcal-loading-pulse"></div>
+    <div class="showcal-loading">
+      <div class="showcal-loading-pulse"></div>
+      <div class="showcal-loading-pulse"></div>
+      <div class="showcal-loading-pulse"></div>
     </div>`;
   }
   function renderEmpty(container, hasPastEvents, onShowPast, config) {
@@ -3175,15 +3175,15 @@ ${text}</tr>
       }
       return;
     }
-    const pastLink = hasPastEvents ? `<button class="ogcal-empty-past-link" onclick="this.dispatchEvent(new CustomEvent('ogcal:show-past', { bubbles: true }))">${showPastEvents}</button>` : "";
+    const pastLink = hasPastEvents ? `<button class="showcal-empty-past-link" onclick="this.dispatchEvent(new CustomEvent('showcal:show-past', { bubbles: true }))">${showPastEvents}</button>` : "";
     container.innerHTML = `
-    <div class="ogcal-empty">
-      <div class="ogcal-empty-icon">\u{1F4C5}</div>
+    <div class="showcal-empty">
+      <div class="showcal-empty-icon">\u{1F4C5}</div>
       <p>${noUpcomingEvents}</p>
       ${pastLink}
     </div>`;
     if (hasPastEvents) {
-      container.querySelector(".ogcal-empty-past-link")?.addEventListener("click", onShowPast);
+      container.querySelector(".showcal-empty-past-link")?.addEventListener("click", onShowPast);
     }
   }
   function renderError(container, message, onRetry, config) {
@@ -3201,11 +3201,11 @@ ${text}</tr>
       return;
     }
     container.innerHTML = `
-    <div class="ogcal-error">
+    <div class="showcal-error">
       <p>${couldNotLoad}</p>
-      <button class="ogcal-error-retry">${retry}</button>
+      <button class="showcal-error-retry">${retry}</button>
     </div>`;
-    container.querySelector(".ogcal-error-retry")?.addEventListener("click", onRetry);
+    container.querySelector(".showcal-error-retry")?.addEventListener("click", onRetry);
   }
 
   // src/ui/past-toggle.js
@@ -3214,7 +3214,7 @@ ${text}</tr>
     const showLabel = i18n.showPastEvents || "Show past events";
     const hideLabel = i18n.hidePastEvents || "Hide past events";
     const btn = document.createElement("button");
-    btn.className = "ogcal-past-toggle";
+    btn.className = "showcal-past-toggle";
     btn.textContent = showingPast ? hideLabel : showLabel;
     btn.addEventListener("click", onToggle);
     container.innerHTML = "";
@@ -3410,35 +3410,35 @@ ${text}</tr>
       if (!eventsByDate[key]) eventsByDate[key] = [];
       eventsByDate[key].push(event);
     }
-    const grid = createElement("div", "ogcal-month");
-    const nav = createElement("div", "ogcal-month-nav");
-    const prevBtn = createElement("button", "ogcal-month-prev", { "aria-label": "Previous month" });
+    const grid = createElement("div", "showcal-month");
+    const nav = createElement("div", "showcal-month-nav");
+    const prevBtn = createElement("button", "showcal-month-prev", { "aria-label": "Previous month" });
     prevBtn.textContent = "\u2039";
     prevBtn.addEventListener("click", () => {
       renderMonthView(container, events, timezone, new Date(year, month - 1, 1), config);
     });
     nav.appendChild(prevBtn);
-    const title = createElement("span", "ogcal-month-title");
+    const title = createElement("span", "showcal-month-title");
     title.textContent = `${monthName} ${year}`;
     nav.appendChild(title);
-    const nextBtn = createElement("button", "ogcal-month-next", { "aria-label": "Next month" });
+    const nextBtn = createElement("button", "showcal-month-next", { "aria-label": "Next month" });
     nextBtn.textContent = "\u203A";
     nextBtn.addEventListener("click", () => {
       renderMonthView(container, events, timezone, new Date(year, month + 1, 1), config);
     });
     nav.appendChild(nextBtn);
     grid.appendChild(nav);
-    const headerRow = createElement("div", "ogcal-month-header", { role: "row" });
+    const headerRow = createElement("div", "showcal-month-header", { role: "row" });
     for (const name of dayNames) {
-      const cell = createElement("div", "ogcal-month-dayname");
+      const cell = createElement("div", "showcal-month-dayname");
       cell.textContent = name;
       headerRow.appendChild(cell);
     }
     grid.appendChild(headerRow);
-    const body = createElement("div", "ogcal-month-body", { role: "grid" });
-    let row = createElement("div", "ogcal-month-row", { role: "row" });
+    const body = createElement("div", "showcal-month-body", { role: "grid" });
+    let row = createElement("div", "showcal-month-row", { role: "row" });
     for (let i = 0; i < firstDay; i++) {
-      row.appendChild(createElement("div", "ogcal-month-cell ogcal-month-cell--empty", { role: "gridcell" }));
+      row.appendChild(createElement("div", "showcal-month-cell showcal-month-cell--empty", { role: "gridcell" }));
     }
     for (let d = 1; d <= daysInMonth; d++) {
       const cellDate = new Date(year, month, d);
@@ -3446,31 +3446,31 @@ ${text}</tr>
       const dayEvents = sortFeatured(eventsByDate[key] || []);
       const today = isToday(cellDate);
       const cell = createElement("div", null, { role: "gridcell" });
-      cell.className = "ogcal-month-cell" + (today ? " ogcal-month-cell--today" : "") + (dayEvents.length ? " ogcal-month-cell--has-events" : "");
-      const dayNum = createElement("div", "ogcal-month-day");
+      cell.className = "showcal-month-cell" + (today ? " showcal-month-cell--today" : "") + (dayEvents.length ? " showcal-month-cell--has-events" : "");
+      const dayNum = createElement("div", "showcal-month-day");
       dayNum.textContent = d;
       cell.appendChild(dayNum);
       for (const event of dayEvents.slice(0, maxEventsPerDay)) {
-        const chip = createElement("div", "ogcal-month-chip" + (event.featured ? " ogcal-month-chip--featured" : ""));
+        const chip = createElement("div", "showcal-month-chip" + (event.featured ? " showcal-month-chip--featured" : ""));
         chip.textContent = event.title;
         bindEventClick(chip, event, "month", config, { stopPropagation: true });
         cell.appendChild(chip);
       }
       if (dayEvents.length > maxEventsPerDay) {
-        const more = createElement("div", "ogcal-month-more");
+        const more = createElement("div", "showcal-month-more");
         more.textContent = moreEventsTemplate.replace("{count}", dayEvents.length - maxEventsPerDay);
         cell.appendChild(more);
       }
       row.appendChild(cell);
       if ((firstDay + d) % 7 === 0) {
         body.appendChild(row);
-        row = createElement("div", "ogcal-month-row", { role: "row" });
+        row = createElement("div", "showcal-month-row", { role: "row" });
       }
     }
     const remaining = (firstDay + daysInMonth) % 7;
     if (remaining > 0) {
       for (let i = remaining; i < 7; i++) {
-        row.appendChild(createElement("div", "ogcal-month-cell ogcal-month-cell--empty", { role: "gridcell" }));
+        row.appendChild(createElement("div", "showcal-month-cell showcal-month-cell--empty", { role: "gridcell" }));
       }
       body.appendChild(row);
     }
@@ -3486,11 +3486,11 @@ ${text}</tr>
     const weekStartDay = config.weekStartDay || 0;
     const dates = getWeekDates(currentDate, weekStartDay);
     events = filterHidden(events);
-    const week = createElement("div", "ogcal-week");
-    const nav = createElement("div", "ogcal-week-nav");
+    const week = createElement("div", "showcal-week");
+    const nav = createElement("div", "showcal-week-nav");
     const startLabel = formatDateShort(dates[0].toISOString(), timezone, locale);
     const endLabel = formatDateShort(dates[6].toISOString(), timezone, locale);
-    const prevBtn = createElement("button", "ogcal-week-prev", { "aria-label": "Previous week" });
+    const prevBtn = createElement("button", "showcal-week-prev", { "aria-label": "Previous week" });
     prevBtn.textContent = "\u2039";
     prevBtn.addEventListener("click", () => {
       const prev = new Date(currentDate);
@@ -3498,10 +3498,10 @@ ${text}</tr>
       renderWeekView(container, events, timezone, prev, config);
     });
     nav.appendChild(prevBtn);
-    const title = createElement("span", "ogcal-week-title");
+    const title = createElement("span", "showcal-week-title");
     title.textContent = `${startLabel} \u2013 ${endLabel}`;
     nav.appendChild(title);
-    const nextBtn = createElement("button", "ogcal-week-next", { "aria-label": "Next week" });
+    const nextBtn = createElement("button", "showcal-week-next", { "aria-label": "Next week" });
     nextBtn.textContent = "\u203A";
     nextBtn.addEventListener("click", () => {
       const next = new Date(currentDate);
@@ -3510,16 +3510,16 @@ ${text}</tr>
     });
     nav.appendChild(nextBtn);
     week.appendChild(nav);
-    const columns = createElement("div", "ogcal-week-columns");
+    const columns = createElement("div", "showcal-week-columns");
     const dayFmt = new Intl.DateTimeFormat(locale || "en-US", { weekday: "short" });
     for (const date of dates) {
-      const col = createElement("div", "ogcal-week-col" + (isToday(date) ? " ogcal-week-col--today" : ""));
-      const header = createElement("div", "ogcal-week-col-header");
+      const col = createElement("div", "showcal-week-col" + (isToday(date) ? " showcal-week-col--today" : ""));
+      const header = createElement("div", "showcal-week-col-header");
       const dayName = dayFmt.format(date);
-      const dayNameEl = createElement("span", "ogcal-week-dayname");
+      const dayNameEl = createElement("span", "showcal-week-dayname");
       dayNameEl.textContent = dayName;
       header.appendChild(dayNameEl);
-      const dayNumEl = createElement("span", "ogcal-week-daynum");
+      const dayNumEl = createElement("span", "showcal-week-daynum");
       dayNumEl.textContent = date.getDate();
       header.appendChild(dayNumEl);
       col.appendChild(header);
@@ -3528,7 +3528,7 @@ ${text}</tr>
         return parts.year === date.getFullYear() && parts.month === date.getMonth() && parts.day === date.getDate();
       }));
       for (const event of dayEvents) {
-        const block2 = createElement("div", "ogcal-week-event" + (event.featured ? " ogcal-week-event--featured" : ""));
+        const block2 = createElement("div", "showcal-week-event" + (event.featured ? " showcal-week-event--featured" : ""));
         block2.textContent = event.title;
         bindEventClick(block2, event, "week", config);
         col.appendChild(block2);
@@ -3548,9 +3548,9 @@ ${text}</tr>
     const allDayLabel = i18n.allDay || "All Day";
     const noEventsLabel = i18n.noEventsThisDay || "No events this day.";
     events = filterHidden(events);
-    const day = createElement("div", "ogcal-day");
-    const nav = createElement("div", "ogcal-day-nav");
-    const prevBtn = createElement("button", "ogcal-day-prev", { "aria-label": "Previous day" });
+    const day = createElement("div", "showcal-day");
+    const nav = createElement("div", "showcal-day-nav");
+    const prevBtn = createElement("button", "showcal-day-prev", { "aria-label": "Previous day" });
     prevBtn.textContent = "\u2039";
     prevBtn.addEventListener("click", () => {
       const prev = new Date(currentDate);
@@ -3558,10 +3558,10 @@ ${text}</tr>
       renderDayView(container, events, timezone, prev, config);
     });
     nav.appendChild(prevBtn);
-    const title = createElement("span", "ogcal-day-title");
+    const title = createElement("span", "showcal-day-title");
     title.textContent = formatDate(currentDate.toISOString(), timezone, locale);
     nav.appendChild(title);
-    const nextBtn = createElement("button", "ogcal-day-next", { "aria-label": "Next day" });
+    const nextBtn = createElement("button", "showcal-day-next", { "aria-label": "Next day" });
     nextBtn.textContent = "\u203A";
     nextBtn.addEventListener("click", () => {
       const next = new Date(currentDate);
@@ -3574,23 +3574,23 @@ ${text}</tr>
     let dayEvents = events.filter((e) => isSameDay(parseEventDate(e.start), currentDate));
     dayEvents = sortFeatured(dayEvents);
     if (dayEvents.length === 0) {
-      const empty = createElement("div", "ogcal-day-empty");
+      const empty = createElement("div", "showcal-day-empty");
       empty.textContent = noEventsLabel;
       day.appendChild(empty);
     } else {
       for (const event of dayEvents) {
         const item = createElement("div");
-        applyEventClasses(item, event, "ogcal-day-event");
+        applyEventClasses(item, event, "showcal-day-event");
         bindEventClick(item, event, "day", config);
-        const timeEl = createElement("div", "ogcal-day-event-time");
+        const timeEl = createElement("div", "showcal-day-event-time");
         timeEl.textContent = event.allDay ? allDayLabel : formatTime(event.start, timezone, locale);
         item.appendChild(timeEl);
-        const info = createElement("div", "ogcal-day-event-info");
-        const titleEl = createElement("div", "ogcal-day-event-title");
+        const info = createElement("div", "showcal-day-event-info");
+        const titleEl = createElement("div", "showcal-day-event-title");
         titleEl.textContent = event.title;
         info.appendChild(titleEl);
         if (event.location) {
-          const loc = createElement("div", "ogcal-day-event-location");
+          const loc = createElement("div", "showcal-day-event-location");
           loc.textContent = event.location;
           info.appendChild(loc);
         }
@@ -3608,25 +3608,25 @@ ${text}</tr>
     const locale = config.locale;
     events = filterHidden(events);
     events = sortFeaturedByDate(events, timezone, locale);
-    const grid = createElement("div", "ogcal-grid");
+    const grid = createElement("div", "showcal-grid");
     for (const event of events) {
       const card = createElement("div");
-      applyEventClasses(card, event, "ogcal-grid-card");
+      applyEventClasses(card, event, "showcal-grid-card");
       bindEventClick(card, event, "grid", config);
       if (event.image) {
-        card.appendChild(createEventImage(event, "ogcal-grid-image"));
+        card.appendChild(createEventImage(event, "showcal-grid-image"));
       }
-      const body = createElement("div", "ogcal-grid-body");
-      const title = createElement("div", "ogcal-grid-title");
+      const body = createElement("div", "showcal-grid-body");
+      const title = createElement("div", "showcal-grid-title");
       title.textContent = event.title;
       body.appendChild(title);
       const dateStr = formatDateShort(event.start, timezone, locale);
       const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
-      const meta = createElement("div", "ogcal-grid-meta");
+      const meta = createElement("div", "showcal-grid-meta");
       meta.textContent = `${dateStr}${timeStr}`;
       body.appendChild(meta);
       if (event.location) {
-        const loc = createElement("div", "ogcal-grid-location");
+        const loc = createElement("div", "showcal-grid-location");
         loc.textContent = event.location;
         body.appendChild(loc);
       }
@@ -3645,25 +3645,25 @@ ${text}</tr>
     const allDayLabel = i18n.allDay || "All Day";
     events = filterHidden(events);
     events = sortFeaturedByDate(events, timezone, locale);
-    const list2 = createElement("div", "ogcal-list");
+    const list2 = createElement("div", "showcal-list");
     for (const event of events) {
       const item = createElement("div");
-      applyEventClasses(item, event, "ogcal-list-item");
+      applyEventClasses(item, event, "showcal-list-item");
       bindEventClick(item, event, "list", config);
-      const dateCol = createElement("div", "ogcal-list-date");
-      const dateDay = createElement("div", "ogcal-list-date-day");
+      const dateCol = createElement("div", "showcal-list-date");
+      const dateDay = createElement("div", "showcal-list-date-day");
       dateDay.textContent = formatDate(event.start, timezone, locale);
       dateCol.appendChild(dateDay);
-      const dateTime = createElement("div", "ogcal-list-date-time");
+      const dateTime = createElement("div", "showcal-list-date-time");
       dateTime.textContent = event.allDay ? allDayLabel : formatTime(event.start, timezone, locale);
       dateCol.appendChild(dateTime);
       item.appendChild(dateCol);
-      const info = createElement("div", "ogcal-list-info");
-      const title = createElement("div", "ogcal-list-title");
+      const info = createElement("div", "showcal-list-info");
+      const title = createElement("div", "showcal-list-title");
       title.textContent = event.title;
       info.appendChild(title);
       if (event.location) {
-        const loc = createElement("div", "ogcal-list-location");
+        const loc = createElement("div", "showcal-list-location");
         loc.textContent = event.location;
         info.appendChild(loc);
       }
@@ -3676,19 +3676,19 @@ ${text}</tr>
 
   // src/views/detail.js
   function renderGallery(images, altText) {
-    const gallery = createElement("div", "ogcal-detail-gallery");
+    const gallery = createElement("div", "showcal-detail-gallery");
     let loadedImages = [...images];
     let current = 0;
     let counter = null;
     const imgEl = document.createElement("img");
-    imgEl.className = "ogcal-detail-gallery-img";
+    imgEl.className = "showcal-detail-gallery-img";
     imgEl.src = images[0];
     imgEl.alt = altText;
     imgEl.setAttribute("loading", "lazy");
     imgEl.onerror = () => {
       loadedImages = loadedImages.filter((u) => u !== imgEl.src);
       if (loadedImages.length === 0) {
-        gallery.closest(".ogcal-detail-image")?.remove();
+        gallery.closest(".showcal-detail-image")?.remove();
         return;
       }
       current = 0;
@@ -3697,13 +3697,13 @@ ${text}</tr>
     };
     gallery.appendChild(imgEl);
     if (images.length <= 1) return gallery;
-    counter = createElement("div", "ogcal-detail-gallery-counter");
+    counter = createElement("div", "showcal-detail-gallery-counter");
     counter.textContent = `1 / ${images.length}`;
     gallery.appendChild(counter);
-    const prevBtn = createElement("button", "ogcal-detail-gallery-prev", { "aria-label": "Previous image" });
+    const prevBtn = createElement("button", "showcal-detail-gallery-prev", { "aria-label": "Previous image" });
     prevBtn.textContent = "\u2039";
     gallery.appendChild(prevBtn);
-    const nextBtn = createElement("button", "ogcal-detail-gallery-next", { "aria-label": "Next image" });
+    const nextBtn = createElement("button", "showcal-detail-gallery-next", { "aria-label": "Next image" });
     nextBtn.textContent = "\u203A";
     gallery.appendChild(nextBtn);
     function goTo(idx) {
@@ -3734,29 +3734,29 @@ ${text}</tr>
     const locationTemplate = config.locationLinkTemplate || "https://maps.google.com/?q={location}";
     const images = event.images && event.images.length > 0 ? event.images : event.image ? [event.image] : [];
     const hasImages = images.length > 0;
-    const detail = createElement("div", "ogcal-detail");
-    const backBtn = createElement("button", "ogcal-detail-back");
+    const detail = createElement("div", "showcal-detail");
+    const backBtn = createElement("button", "showcal-detail-back");
     backBtn.textContent = backLabel;
     backBtn.addEventListener("click", onBack);
     detail.appendChild(backBtn);
-    const body = createElement("div", hasImages ? "ogcal-detail-body ogcal-detail-body--has-image" : "ogcal-detail-body");
+    const body = createElement("div", hasImages ? "showcal-detail-body showcal-detail-body--has-image" : "showcal-detail-body");
     if (hasImages) {
-      const galleryCol = createElement("div", "ogcal-detail-image");
+      const galleryCol = createElement("div", "showcal-detail-image");
       galleryCol.appendChild(renderGallery(images, event.title));
       body.appendChild(galleryCol);
     }
-    const content = createElement("div", "ogcal-detail-content");
-    const titleEl = createElement("h2", "ogcal-detail-title");
+    const content = createElement("div", "showcal-detail-content");
+    const titleEl = createElement("h2", "showcal-detail-title");
     titleEl.textContent = event.title;
     content.appendChild(titleEl);
-    const meta = createElement("div", "ogcal-detail-meta");
+    const meta = createElement("div", "showcal-detail-meta");
     const dateStr = event.allDay ? formatDate(event.start, timezone, locale) : formatDatetime(event.start, timezone, locale);
-    const dateDiv = createElement("div", "ogcal-detail-date");
+    const dateDiv = createElement("div", "showcal-detail-date");
     dateDiv.textContent = dateStr;
     meta.appendChild(dateDiv);
     if (event.location) {
       const mapsUrl = locationTemplate.replace("{location}", encodeURIComponent(event.location));
-      const locDiv = createElement("div", "ogcal-detail-location");
+      const locDiv = createElement("div", "showcal-detail-location");
       const locLink = createElement("a", null, { href: mapsUrl, target: "_blank", rel: "noopener" });
       locLink.textContent = event.location;
       locDiv.appendChild(locLink);
@@ -3769,23 +3769,23 @@ ${text}</tr>
       return false;
     });
     if (scalarAndTextTags.length > 0) {
-      const tagsDiv = createElement("div", "ogcal-detail-tags");
+      const tagsDiv = createElement("div", "showcal-detail-tags");
       for (const tag2 of scalarAndTextTags) {
-        const span = createElement("span", "ogcal-detail-tag");
+        const span = createElement("span", "showcal-detail-tag");
         span.textContent = tag2.key === "tag" ? tag2.value : `${tag2.key}: ${tag2.value}`;
         tagsDiv.appendChild(span);
       }
       content.appendChild(tagsDiv);
     }
     if (event.description) {
-      const desc = createElement("div", "ogcal-detail-description");
+      const desc = createElement("div", "showcal-detail-description");
       desc.innerHTML = renderDescription(event.description, config);
       content.appendChild(desc);
     }
     if (event.attachments && event.attachments.length > 0) {
-      const attachDiv = createElement("div", "ogcal-detail-attachments");
+      const attachDiv = createElement("div", "showcal-detail-attachments");
       for (const att of event.attachments) {
-        const a = createElement("a", "ogcal-detail-attachment", { href: att.url, target: "_blank", rel: "noopener" });
+        const a = createElement("a", "showcal-detail-attachment", { href: att.url, target: "_blank", rel: "noopener" });
         a.textContent = att.label;
         attachDiv.appendChild(a);
       }
@@ -3795,9 +3795,9 @@ ${text}</tr>
     const titleCase = (s) => s.charAt(0).toUpperCase() + s.slice(1);
     const allLinks = [...event.links || [], ...urlTags.map((t) => ({ label: titleCase(t.key), url: t.value }))];
     if (allLinks.length > 0) {
-      const linksDiv = createElement("div", "ogcal-detail-links");
+      const linksDiv = createElement("div", "showcal-detail-links");
       for (const link2 of allLinks) {
-        const a = createElement("a", "ogcal-detail-link", { href: link2.url, target: "_blank", rel: "noopener" });
+        const a = createElement("a", "showcal-detail-link", { href: link2.url, target: "_blank", rel: "noopener" });
         a.textContent = link2.label;
         linksDiv.appendChild(a);
       }
@@ -3834,30 +3834,30 @@ ${text}</tr>
       subscribeUrl = `https://calendar.google.com/calendar/u/0?cid=${cid}`;
     }
     const header = document.createElement("div");
-    header.className = "ogcal-header";
+    header.className = "showcal-header";
     if (config.headerIcon) {
       const icon = document.createElement("img");
-      icon.className = "ogcal-header-icon";
+      icon.className = "showcal-header-icon";
       icon.src = config.headerIcon;
       icon.alt = "";
       icon.loading = "lazy";
       header.appendChild(icon);
     }
     const textCol = document.createElement("div");
-    textCol.className = "ogcal-header-text";
+    textCol.className = "showcal-header-text";
     if (name) {
       const h = document.createElement("h2");
-      h.className = "ogcal-header-name";
+      h.className = "showcal-header-name";
       h.textContent = name;
       textCol.appendChild(h);
     }
     if (description) {
       const p = document.createElement("p");
-      p.className = "ogcal-header-description";
+      p.className = "showcal-header-description";
       if (subscribeUrl && /subscribe/i.test(description)) {
         p.innerHTML = description.replace(
           /(subscribe)/i,
-          `<a href="${subscribeUrl}" target="_blank" rel="noopener" class="ogcal-header-description-link">$1</a>`
+          `<a href="${subscribeUrl}" target="_blank" rel="noopener" class="showcal-header-description-link">$1</a>`
         );
       } else {
         p.textContent = description;
@@ -3867,7 +3867,7 @@ ${text}</tr>
     header.appendChild(textCol);
     if (subscribeUrl) {
       const btn = document.createElement("a");
-      btn.className = "ogcal-header-subscribe";
+      btn.className = "showcal-header-subscribe";
       btn.href = subscribeUrl;
       btn.target = "_blank";
       btn.rel = "noopener";
@@ -3900,10 +3900,10 @@ ${text}</tr>
       }
       const sortedTags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]);
       const bar = document.createElement("div");
-      bar.className = "ogcal-tag-filter";
+      bar.className = "showcal-tag-filter";
       for (const [label] of sortedTags) {
         const pill = document.createElement("button");
-        pill.className = "ogcal-tag-pill" + (selectedTags.has(label) ? " ogcal-tag-pill--active" : "");
+        pill.className = "showcal-tag-pill" + (selectedTags.has(label) ? " showcal-tag-pill--active" : "");
         pill.textContent = label;
         pill.addEventListener("click", () => {
           if (selectedTags.has(label)) {
@@ -3918,7 +3918,7 @@ ${text}</tr>
       }
       if (selectedTags.size > 0) {
         const clear = document.createElement("button");
-        clear.className = "ogcal-tag-clear";
+        clear.className = "showcal-tag-clear";
         clear.textContent = clearLabel;
         clear.addEventListener("click", () => {
           selectedTags.clear();
@@ -3946,7 +3946,7 @@ ${text}</tr>
     return { render, getFilter, getSelectedTags };
   }
 
-  // src/og-cal.js
+  // src/showcal.js
   var DEFAULTS = {
     defaultView: "month",
     showPastEvents: false,
@@ -3956,7 +3956,7 @@ ${text}</tr>
     // defaults to navigator.language || 'en-US' at runtime
     weekStartDay: 0,
     // 0=Sunday, 1=Monday, etc.
-    storageKeyPrefix: "ogcal",
+    storageKeyPrefix: "showcal",
     mobileBreakpoint: 768,
     mobileDefaultView: "list",
     mobileHiddenViews: ["week"],
@@ -4022,25 +4022,25 @@ ${text}</tr>
     const theme = { ...THEME_DEFAULTS, ...config.theme };
     const el = typeof config.el === "string" ? document.querySelector(config.el) : config.el;
     if (!el) {
-      console.error("og-cal: Element not found:", config.el);
+      console.error("showcal: Element not found:", config.el);
       return;
     }
     for (const [key, value] of Object.entries(theme)) {
-      const prop = `--ogcal-${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`;
+      const prop = `--showcal-${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`;
       el.style.setProperty(prop, value);
     }
-    el.classList.add("ogcal");
+    el.classList.add("showcal");
     const headerContainer = document.createElement("div");
-    headerContainer.className = "ogcal-header-container";
+    headerContainer.className = "showcal-header-container";
     const selectorContainer = document.createElement("div");
-    selectorContainer.className = "ogcal-selector-container";
+    selectorContainer.className = "showcal-selector-container";
     const tagFilterContainer = document.createElement("div");
-    tagFilterContainer.className = "ogcal-tag-filter-container";
+    tagFilterContainer.className = "showcal-tag-filter-container";
     const viewContainer = document.createElement("div");
-    viewContainer.className = "ogcal-view-container";
+    viewContainer.className = "showcal-view-container";
     viewContainer.setAttribute("aria-live", "polite");
     const toggleContainer = document.createElement("div");
-    toggleContainer.className = "ogcal-toggle-container";
+    toggleContainer.className = "showcal-toggle-container";
     el.innerHTML = "";
     el.appendChild(headerContainer);
     el.appendChild(selectorContainer);
@@ -4188,7 +4188,7 @@ ${text}</tr>
           config.onDataLoad(data);
         }
       } catch (err) {
-        console.error("og-cal:", err);
+        console.error("showcal:", err);
         if (config.onError) {
           config.onError(err);
         }
@@ -4208,7 +4208,7 @@ ${text}</tr>
     start();
   }
   function autoInit() {
-    const elements = document.querySelectorAll("[data-og-cal]");
+    const elements = document.querySelectorAll("[data-showcal]");
     for (const el of elements) {
       const config = { el };
       const dataset = el.dataset;
@@ -4254,6 +4254,6 @@ ${text}</tr>
       Promise.resolve().then(autoInit);
     }
   }
-  return __toCommonJS(og_cal_exports);
+  return __toCommonJS(showcal_exports);
 })();
-//# sourceMappingURL=og-cal.js.map
+//# sourceMappingURL=showcal.js.map

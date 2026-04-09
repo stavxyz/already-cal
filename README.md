@@ -83,7 +83,7 @@ OgCal.init({
 | Day | `#day` or `#day/2026-04-04` | Single day |
 | Grid | `#grid` | Card layout with thumbnails |
 | List | `#list` | Compact chronological list |
-| Detail | `#event/<id>` | Two-column: image gallery + event info |
+| Detail | `#event/<id>` or `/event/<id>` | Two-column: image gallery + event info |
 
 Visitors can switch views via the selector bar. Their preference is saved in localStorage. Detail view shows a gallery with arrow navigation when an event has multiple images.
 
@@ -139,12 +139,16 @@ OgCal.init({
     back: '← Back',
     moreEvents: '+{count} more',
     subscribe: 'Subscribe',
+    clearFilter: 'Clear',
   },
 
   // --- Responsive ---
   mobileBreakpoint: 768,
   mobileDefaultView: 'list',
   mobileHiddenViews: ['week'],
+
+  // --- Deep-linking ---
+  initialEvent: null,                  // event ID to open on load
 
   // --- Behavior ---
   maxEventsPerDay: 3,                  // month view: chips before "+N more"
@@ -295,9 +299,20 @@ Directives and URLs are deduplicated: `#ogcal:instagram:foo` and `https://instag
 #showcal:image:drive:ABC123                    → Google Drive image by file ID
 ```
 
+### Featured and hidden directives
+
+Control event visibility and prominence:
+
+```
+#ogcal:featured    → pins event to top of its date group, adds star badge
+#ogcal:hidden      → hides event from all views (still accessible via direct link)
+```
+
+Featured events sort first within their date in all views. Hidden events are filtered out before rendering. Both flags are available on the event object as `event.featured` and `event.hidden` booleans.
+
 ### Tag directives
 
-Tags are rendered as badge pills in the detail view:
+Tags are rendered as badge pills in the detail view and as filterable pills in the tag filter bar:
 
 ```
 #ogcal:tag:fundraiser        → scalar tag badge "fundraiser"
@@ -308,6 +323,38 @@ Tags are rendered as badge pills in the detail view:
 ```
 
 Key-value tags where the value is a URL are rendered as link buttons alongside platform links.
+
+## Tag Filtering
+
+When events have tags (via `#ogcal:tag:` directives or key-value directives), a filter bar appears above the view. Tags display as clickable pills ordered by frequency.
+
+- Click a pill to filter events to those matching that tag
+- Select multiple pills for union/OR filtering (events matching **any** selected tag)
+- A "Clear" button appears when tags are selected
+- URL-valued tags are excluded from the filter bar (they render as link buttons instead)
+
+The clear button label is configurable via `i18n.clearFilter`.
+
+## Event Deep-Linking
+
+Events can be linked directly via hash or path:
+
+- **Hash:** `#event/<event-id>` — works on any page
+- **Path:** `/event/<event-id>` — requires server-side routing to serve the same page
+
+Use `initialEvent` to open a specific event on load:
+
+```js
+OgCal.init({
+  el: '#cal',
+  initialEvent: 'abc123',  // opens detail view for this event ID
+  // ...
+});
+```
+
+Priority order: `initialEvent` > URL hash/path > localStorage > `defaultView`.
+
+**Note:** og-cal manages client-side OG meta tags (`og:title`, `og:description`, `og:image`) when viewing event details. This works for JavaScript-rendering crawlers (like Google) but social media crawlers (Facebook, Twitter) that don't execute JS will not see these tags. For full social sharing support, use server-side rendering or a prerender service.
 
 ## Responsive
 

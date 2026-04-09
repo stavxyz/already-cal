@@ -3328,8 +3328,9 @@ ${text}</tr>
     }
     return el;
   }
-  function bindEventClick(el, event, viewName, config) {
-    function handleClick() {
+  function bindEventClick(el, event, viewName, config, { stopPropagation = false } = {}) {
+    function handleClick(e) {
+      if (stopPropagation) e.stopPropagation();
       if (config.onEventClick) {
         const result = config.onEventClick(event, viewName);
         if (result === false) return;
@@ -3340,7 +3341,8 @@ ${text}</tr>
     el.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        handleClick();
+        if (stopPropagation) e.stopPropagation();
+        handleClick(e);
       }
     });
     el.setAttribute("tabindex", "0");
@@ -3375,10 +3377,15 @@ ${text}</tr>
       const p = getDatePartsInTz(e.start, timezone, locale);
       return `${p.year}-${p.month}-${p.day}`;
     };
-    return [...events].sort((a, b) => {
-      if (dateKey(a) !== dateKey(b)) return 0;
-      return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
-    });
+    const groups = /* @__PURE__ */ new Map();
+    for (const e of events) {
+      const key = dateKey(e);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(e);
+    }
+    return [...groups.values()].flatMap(
+      (group) => [...group].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))
+    );
   }
 
   // src/views/month.js
@@ -3446,27 +3453,7 @@ ${text}</tr>
       for (const event of dayEvents.slice(0, maxEventsPerDay)) {
         const chip = createElement("div", "ogcal-month-chip" + (event.featured ? " ogcal-month-chip--featured" : ""));
         chip.textContent = event.title;
-        chip.setAttribute("tabindex", "0");
-        chip.setAttribute("role", "button");
-        chip.addEventListener("click", (e) => {
-          e.stopPropagation();
-          if (config.onEventClick) {
-            const result = config.onEventClick(event, "month");
-            if (result === false) return;
-          }
-          setEventDetail(event.id);
-        });
-        chip.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            e.stopPropagation();
-            if (config.onEventClick) {
-              const result = config.onEventClick(event, "month");
-              if (result === false) return;
-            }
-            setEventDetail(event.id);
-          }
-        });
+        bindEventClick(chip, event, "month", config, { stopPropagation: true });
         cell.appendChild(chip);
       }
       if (dayEvents.length > maxEventsPerDay) {
@@ -3524,10 +3511,11 @@ ${text}</tr>
     nav.appendChild(nextBtn);
     week.appendChild(nav);
     const columns = createElement("div", "ogcal-week-columns");
+    const dayFmt = new Intl.DateTimeFormat(locale || "en-US", { weekday: "short" });
     for (const date of dates) {
       const col = createElement("div", "ogcal-week-col" + (isToday(date) ? " ogcal-week-col--today" : ""));
       const header = createElement("div", "ogcal-week-col-header");
-      const dayName = new Intl.DateTimeFormat(locale || "en-US", { weekday: "short" }).format(date);
+      const dayName = dayFmt.format(date);
       const dayNameEl = createElement("span", "ogcal-week-dayname");
       dayNameEl.textContent = dayName;
       header.appendChild(dayNameEl);
@@ -3542,25 +3530,7 @@ ${text}</tr>
       for (const event of dayEvents) {
         const block2 = createElement("div", "ogcal-week-event" + (event.featured ? " ogcal-week-event--featured" : ""));
         block2.textContent = event.title;
-        block2.setAttribute("tabindex", "0");
-        block2.setAttribute("role", "button");
-        block2.addEventListener("click", () => {
-          if (config.onEventClick) {
-            const result = config.onEventClick(event, "week");
-            if (result === false) return;
-          }
-          setEventDetail(event.id);
-        });
-        block2.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            if (config.onEventClick) {
-              const result = config.onEventClick(event, "week");
-              if (result === false) return;
-            }
-            setEventDetail(event.id);
-          }
-        });
+        bindEventClick(block2, event, "week", config);
         col.appendChild(block2);
       }
       columns.appendChild(col);
@@ -3714,7 +3684,7 @@ ${text}</tr>
     imgEl.className = "ogcal-detail-gallery-img";
     imgEl.src = images[0];
     imgEl.alt = altText;
-    imgEl.loading = "lazy";
+    imgEl.setAttribute("loading", "lazy");
     imgEl.onerror = () => {
       loadedImages = loadedImages.filter((u) => u !== imgEl.src);
       if (loadedImages.length === 0) {
@@ -3909,8 +3879,9 @@ ${text}</tr>
   }
 
   // src/ui/tag-filter.js
-  function createTagFilter(onFilterChange) {
+  function createTagFilter(onFilterChange, config) {
     const selectedTags = /* @__PURE__ */ new Set();
+    const clearLabel = config && config.i18n && config.i18n.clearFilter || "Clear";
     function getTagLabel(tag2) {
       return tag2.key === "tag" ? tag2.value : `${tag2.key}: ${tag2.value}`;
     }
@@ -3948,7 +3919,7 @@ ${text}</tr>
       if (selectedTags.size > 0) {
         const clear = document.createElement("button");
         clear.className = "ogcal-tag-clear";
-        clear.textContent = "Clear";
+        clear.textContent = clearLabel;
         clear.addEventListener("click", () => {
           selectedTags.clear();
           render(container, events);
@@ -4028,7 +3999,8 @@ ${text}</tr>
     noEventsThisDay: "No events this day.",
     back: "\u2190 Back",
     moreEvents: "+{count} more",
-    subscribe: "Subscribe"
+    subscribe: "Subscribe",
+    clearFilter: "Clear"
   };
   var THEME_DEFAULTS = {
     primary: "#8B4513",
@@ -4082,24 +4054,24 @@ ${text}</tr>
     let lastViewState = null;
     const tagFilter = createTagFilter(() => {
       if (lastViewState) renderView(lastViewState);
-    });
+    }, config);
     const isMobile = () => window.innerWidth < config.mobileBreakpoint;
     let originalMeta = null;
     function captureOriginalMeta() {
       originalMeta = {};
       for (const prop of ["og:title", "og:description", "og:image", "og:url"]) {
-        const el2 = document.querySelector(`meta[property="${prop}"]`);
-        originalMeta[prop] = el2 ? el2.getAttribute("content") : null;
+        const metaEl = document.querySelector(`meta[property="${prop}"]`);
+        originalMeta[prop] = metaEl ? metaEl.getAttribute("content") : null;
       }
     }
     function setMetaTag(property, content) {
-      let el2 = document.querySelector(`meta[property="${property}"]`);
-      if (!el2) {
-        el2 = document.createElement("meta");
-        el2.setAttribute("property", property);
-        document.head.appendChild(el2);
+      let metaEl = document.querySelector(`meta[property="${property}"]`);
+      if (!metaEl) {
+        metaEl = document.createElement("meta");
+        metaEl.setAttribute("property", property);
+        document.head.appendChild(metaEl);
       }
-      el2.setAttribute("content", content);
+      metaEl.setAttribute("content", content);
     }
     function setEventMeta(event) {
       const tz = data?.calendar?.timezone || "UTC";
@@ -4115,8 +4087,8 @@ ${text}</tr>
       if (!originalMeta) return;
       for (const [prop, content] of Object.entries(originalMeta)) {
         if (content === null) {
-          const el2 = document.querySelector(`meta[property="${prop}"]`);
-          if (el2) el2.remove();
+          const metaEl = document.querySelector(`meta[property="${prop}"]`);
+          if (metaEl) metaEl.remove();
         } else {
           setMetaTag(prop, content);
         }

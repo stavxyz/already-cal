@@ -10,12 +10,12 @@ export function renderDayView(container, events, timezone, currentDate, config) 
 
   events = filterHidden(events);
 
-  const day = createElement('div', 'ogcal-day');
+  const day = createElement('div', 'showcal-day');
 
   // Navigation
-  const nav = createElement('div', 'ogcal-day-nav');
+  const nav = createElement('div', 'showcal-day-nav');
 
-  const prevBtn = createElement('button', 'ogcal-day-prev', { 'aria-label': 'Previous day' });
+  const prevBtn = createElement('button', 'showcal-day-prev', { 'aria-label': 'Previous day' });
   prevBtn.textContent = '\u2039';
   prevBtn.addEventListener('click', () => {
     const prev = new Date(currentDate);
@@ -24,11 +24,11 @@ export function renderDayView(container, events, timezone, currentDate, config) 
   });
   nav.appendChild(prevBtn);
 
-  const title = createElement('span', 'ogcal-day-title');
+  const title = createElement('span', 'showcal-day-title');
   title.textContent = formatDate(currentDate.toISOString(), timezone, locale);
   nav.appendChild(title);
 
-  const nextBtn = createElement('button', 'ogcal-day-next', { 'aria-label': 'Next day' });
+  const nextBtn = createElement('button', 'showcal-day-next', { 'aria-label': 'Next day' });
   nextBtn.textContent = '\u203a';
   nextBtn.addEventListener('click', () => {
     const next = new Date(currentDate);
@@ -45,25 +45,25 @@ export function renderDayView(container, events, timezone, currentDate, config) 
   dayEvents = sortFeatured(dayEvents);
 
   if (dayEvents.length === 0) {
-    const empty = createElement('div', 'ogcal-day-empty');
+    const empty = createElement('div', 'showcal-day-empty');
     empty.textContent = noEventsLabel;
     day.appendChild(empty);
   } else {
     for (const event of dayEvents) {
       const item = createElement('div');
-      applyEventClasses(item, event, 'ogcal-day-event');
+      applyEventClasses(item, event, 'showcal-day-event');
       bindEventClick(item, event, 'day', config);
 
-      const timeEl = createElement('div', 'ogcal-day-event-time');
+      const timeEl = createElement('div', 'showcal-day-event-time');
       timeEl.textContent = event.allDay ? allDayLabel : formatTime(event.start, timezone, locale);
       item.appendChild(timeEl);
 
-      const info = createElement('div', 'ogcal-day-event-info');
-      const titleEl = createElement('div', 'ogcal-day-event-title');
+      const info = createElement('div', 'showcal-day-event-info');
+      const titleEl = createElement('div', 'showcal-day-event-title');
       titleEl.textContent = event.title;
       info.appendChild(titleEl);
       if (event.location) {
-        const loc = createElement('div', 'ogcal-day-event-location');
+        const loc = createElement('div', 'showcal-day-event-location');
         loc.textContent = event.location;
         info.appendChild(loc);
       }

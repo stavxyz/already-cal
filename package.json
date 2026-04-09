@@ -1,8 +1,8 @@
 {
-  "name": "og-cal",
+  "name": "showcal",
   "version": "0.1.0",
   "description": "Open-source Google Calendar event display widget",
-  "main": "dist/og-cal.js",
+  "main": "dist/showcal.js",
   "scripts": {
     "build": "node build.js",
     "dev": "node build.js --watch",

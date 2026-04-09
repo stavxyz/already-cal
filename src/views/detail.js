@@ -3,21 +3,21 @@ import { renderDescription } from '../util/description.js';
 import { createElement } from './helpers.js';
 
 function renderGallery(images, altText) {
-  const gallery = createElement('div', 'ogcal-detail-gallery');
+  const gallery = createElement('div', 'showcal-detail-gallery');
 
   let loadedImages = [...images];
   let current = 0;
   let counter = null;
 
   const imgEl = document.createElement('img');
-  imgEl.className = 'ogcal-detail-gallery-img';
+  imgEl.className = 'showcal-detail-gallery-img';
   imgEl.src = images[0];
   imgEl.alt = altText;
   imgEl.setAttribute('loading', 'lazy');
   imgEl.onerror = () => {
     loadedImages = loadedImages.filter(u => u !== imgEl.src);
     if (loadedImages.length === 0) {
-      gallery.closest('.ogcal-detail-image')?.remove();
+      gallery.closest('.showcal-detail-image')?.remove();
       return;
     }
     current = 0;
@@ -28,15 +28,15 @@ function renderGallery(images, altText) {
 
   if (images.length <= 1) return gallery;
 
-  counter = createElement('div', 'ogcal-detail-gallery-counter');
+  counter = createElement('div', 'showcal-detail-gallery-counter');
   counter.textContent = `1 / ${images.length}`;
   gallery.appendChild(counter);
 
-  const prevBtn = createElement('button', 'ogcal-detail-gallery-prev', { 'aria-label': 'Previous image' });
+  const prevBtn = createElement('button', 'showcal-detail-gallery-prev', { 'aria-label': 'Previous image' });
   prevBtn.textContent = '\u2039';
   gallery.appendChild(prevBtn);
 
-  const nextBtn = createElement('button', 'ogcal-detail-gallery-next', { 'aria-label': 'Next image' });
+  const nextBtn = createElement('button', 'showcal-detail-gallery-next', { 'aria-label': 'Next image' });
   nextBtn.textContent = '\u203a';
   gallery.appendChild(nextBtn);
 
@@ -68,39 +68,39 @@ export function renderDetailView(container, event, timezone, onBack, config) {
   const images = event.images && event.images.length > 0 ? event.images : (event.image ? [event.image] : []);
   const hasImages = images.length > 0;
 
-  const detail = createElement('div', 'ogcal-detail');
+  const detail = createElement('div', 'showcal-detail');
 
-  const backBtn = createElement('button', 'ogcal-detail-back');
+  const backBtn = createElement('button', 'showcal-detail-back');
   backBtn.textContent = backLabel;
   backBtn.addEventListener('click', onBack);
   detail.appendChild(backBtn);
 
   // Two-column layout: gallery left, content right
-  const body = createElement('div', hasImages ? 'ogcal-detail-body ogcal-detail-body--has-image' : 'ogcal-detail-body');
+  const body = createElement('div', hasImages ? 'showcal-detail-body showcal-detail-body--has-image' : 'showcal-detail-body');
 
   if (hasImages) {
-    const galleryCol = createElement('div', 'ogcal-detail-image');
+    const galleryCol = createElement('div', 'showcal-detail-image');
     galleryCol.appendChild(renderGallery(images, event.title));
     body.appendChild(galleryCol);
   }
 
-  const content = createElement('div', 'ogcal-detail-content');
+  const content = createElement('div', 'showcal-detail-content');
 
-  const titleEl = createElement('h2', 'ogcal-detail-title');
+  const titleEl = createElement('h2', 'showcal-detail-title');
   titleEl.textContent = event.title;
   content.appendChild(titleEl);
 
-  const meta = createElement('div', 'ogcal-detail-meta');
+  const meta = createElement('div', 'showcal-detail-meta');
   const dateStr = event.allDay
     ? formatDate(event.start, timezone, locale)
     : formatDatetime(event.start, timezone, locale);
-  const dateDiv = createElement('div', 'ogcal-detail-date');
+  const dateDiv = createElement('div', 'showcal-detail-date');
   dateDiv.textContent = dateStr;
   meta.appendChild(dateDiv);
 
   if (event.location) {
     const mapsUrl = locationTemplate.replace('{location}', encodeURIComponent(event.location));
-    const locDiv = createElement('div', 'ogcal-detail-location');
+    const locDiv = createElement('div', 'showcal-detail-location');
     const locLink = createElement('a', null, { href: mapsUrl, target: '_blank', rel: 'noopener' });
     locLink.textContent = event.location;
     locDiv.appendChild(locLink);
@@ -116,9 +116,9 @@ export function renderDetailView(container, event, timezone, onBack, config) {
   });
 
   if (scalarAndTextTags.length > 0) {
-    const tagsDiv = createElement('div', 'ogcal-detail-tags');
+    const tagsDiv = createElement('div', 'showcal-detail-tags');
     for (const tag of scalarAndTextTags) {
-      const span = createElement('span', 'ogcal-detail-tag');
+      const span = createElement('span', 'showcal-detail-tag');
       span.textContent = tag.key === 'tag' ? tag.value : `${tag.key}: ${tag.value}`;
       tagsDiv.appendChild(span);
     }
@@ -126,15 +126,15 @@ export function renderDetailView(container, event, timezone, onBack, config) {
   }
 
   if (event.description) {
-    const desc = createElement('div', 'ogcal-detail-description');
+    const desc = createElement('div', 'showcal-detail-description');
     desc.innerHTML = renderDescription(event.description, config);
     content.appendChild(desc);
   }
 
   if (event.attachments && event.attachments.length > 0) {
-    const attachDiv = createElement('div', 'ogcal-detail-attachments');
+    const attachDiv = createElement('div', 'showcal-detail-attachments');
     for (const att of event.attachments) {
-      const a = createElement('a', 'ogcal-detail-attachment', { href: att.url, target: '_blank', rel: 'noopener' });
+      const a = createElement('a', 'showcal-detail-attachment', { href: att.url, target: '_blank', rel: 'noopener' });
       a.textContent = att.label;
       attachDiv.appendChild(a);
     }
@@ -147,9 +147,9 @@ export function renderDetailView(container, event, timezone, onBack, config) {
   const allLinks = [...(event.links || []), ...urlTags.map(t => ({ label: titleCase(t.key), url: t.value }))];
 
   if (allLinks.length > 0) {
-    const linksDiv = createElement('div', 'ogcal-detail-links');
+    const linksDiv = createElement('div', 'showcal-detail-links');
     for (const link of allLinks) {
-      const a = createElement('a', 'ogcal-detail-link', { href: link.url, target: '_blank', rel: 'noopener' });
+      const a = createElement('a', 'showcal-detail-link', { href: link.url, target: '_blank', rel: 'noopener' });
       a.textContent = link.label;
       linksDiv.appendChild(a);
     }

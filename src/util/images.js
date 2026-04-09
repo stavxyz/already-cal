@@ -61,7 +61,7 @@ export function normalizeImageUrl(url) {
   // fail to render, consider re-hosting on a service with reliable MIME types.
   if (DROPBOX_PATTERN.test(url)) {
     if (typeof console !== 'undefined' && console.warn && !normalizeImageUrl._dropboxWarned) {
-      console.warn('og-cal: Dropbox image URL detected. If images fail to render, Dropbox may be serving incorrect content-type headers. Consider re-hosting images on a more reliable service.');
+      console.warn('showcal: Dropbox image URL detected. If images fail to render, Dropbox may be serving incorrect content-type headers. Consider re-hosting images on a more reliable service.');
       normalizeImageUrl._dropboxWarned = true;
     }
     if (url.includes('dl=0')) return url.replace('dl=0', 'raw=1');

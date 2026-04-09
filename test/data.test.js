@@ -99,12 +99,12 @@ describe('enrichEvent — token pipeline deduplication', () => {
       summary: 'Test', timeZone: 'UTC',
       items: [{
         id: '1', summary: 'Test',
-        description: 'Event info #ogcal:tag:fundraiser #ogcal:cost:$25',
+        description: 'Event info #showcal:tag:fundraiser #showcal:cost:$25',
         start: { dateTime: '2026-04-10T10:00:00Z' }, end: { dateTime: '2026-04-10T11:00:00Z' },
       }],
     });
     assert.strictEqual(data.events[0].tags.length, 2);
-    assert.ok(!data.events[0].description.includes('#ogcal'));
+    assert.ok(!data.events[0].description.includes('#showcal'));
   });
 
   it('deduplicates directive and URL producing same canonical ID', () => {
@@ -112,14 +112,14 @@ describe('enrichEvent — token pipeline deduplication', () => {
       summary: 'Test', timeZone: 'UTC',
       items: [{
         id: '1', summary: 'Test',
-        description: '#ogcal:instagram:savebigbend https://instagram.com/savebigbend',
+        description: '#showcal:instagram:savebigbend https://instagram.com/savebigbend',
         start: { dateTime: '2026-04-10T10:00:00Z' }, end: { dateTime: '2026-04-10T11:00:00Z' },
       }],
     });
     assert.strictEqual(data.events[0].links.length, 1);
     // The directive is processed first, so its URL wins
     assert.strictEqual(data.events[0].links[0].url, 'https://instagram.com/savebigbend');
-    assert.ok(!data.events[0].description.includes('#ogcal'));
+    assert.ok(!data.events[0].description.includes('#showcal'));
     assert.ok(!data.events[0].description.includes('instagram.com'));
   });
 
@@ -128,7 +128,7 @@ describe('enrichEvent — token pipeline deduplication', () => {
       summary: 'Test', timeZone: 'UTC',
       items: [{
         id: '1', summary: 'Test',
-        description: '#ogcal:tag:outdoor #ogcal:rsvp:https://form.com',
+        description: '#showcal:tag:outdoor #showcal:rsvp:https://form.com',
         start: { dateTime: '2026-04-10T10:00:00Z' }, end: { dateTime: '2026-04-10T11:00:00Z' },
       }],
     });
@@ -143,7 +143,7 @@ describe('enrichEvent — token pipeline deduplication', () => {
       summary: 'Test', timeZone: 'UTC',
       items: [{
         id: '1', summary: 'Test',
-        description: '#ogcal:tag:new-tag',
+        description: '#showcal:tag:new-tag',
         start: { dateTime: '2026-04-10T10:00:00Z' }, end: { dateTime: '2026-04-10T11:00:00Z' },
         // Simulate pre-populated tags (e.g. from a transform)
       }],
@@ -158,7 +158,7 @@ describe('enrichEvent — token pipeline deduplication', () => {
       summary: 'Test', timeZone: 'UTC',
       items: [{
         id: '1', summary: 'Test',
-        description: 'Info #ogcal:tag:free&amp;open',
+        description: 'Info #showcal:tag:free&amp;open',
         start: { dateTime: '2026-04-10T10:00:00Z' }, end: { dateTime: '2026-04-10T11:00:00Z' },
       }],
     });

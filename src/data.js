@@ -28,7 +28,7 @@ export async function loadData(config) {
     data = await fetchGoogleCalendar(config.google, config);
   }
   else {
-    throw new Error('og-cal: No data source configured. Provide data, fetchUrl, or google config.');
+    throw new Error('showcal: No data source configured. Provide data, fetchUrl, or google config.');
   }
 
   // Enrich events: extract images/links from descriptions for all data sources
@@ -59,7 +59,7 @@ export function enrichEvent(event, config) {
 
   const tokenSet = new TokenSet();
 
-  // Step 1: Extract directives (#ogcal:/#showcal: syntax)
+  // Step 1: Extract directives (#showcal:/#showcal: syntax)
   if (description) {
     const result = extractDirectives(description);
     description = result.description;

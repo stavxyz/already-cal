@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>og-cal dev</title>
-  <link rel="stylesheet" href="dist/og-cal.css">
+  <title>showcal dev</title>
+  <link rel="stylesheet" href="dist/showcal.css">
 </head>
 <body style="max-width:900px;margin:2em auto;padding:0 1em;">
-  <h1>og-cal dev</h1>
+  <h1>showcal dev</h1>
 
   <h2>JS init</h2>
-  <div id="og-cal"></div>
+  <div id="showcal"></div>
 
   <h2>Data-attribute auto-init</h2>
-  <div data-og-cal
+  <div data-showcal
        data-default-view="list"
        data-theme-primary="#2e7d32"
        data-theme-font-family="Georgia, serif"
@@ -22,9 +22,9 @@
        data-max-events-per-day="2"
        data-show-past-events="true"
        data-views="month,list,grid"
-       id="og-cal-auto"></div>
+       id="showcal-auto"></div>
 
-  <script src="dist/og-cal.js"></script>
+  <script src="dist/showcal.js"></script>
   <script>
     var demoData = {
       events: [
@@ -76,8 +76,8 @@
     };
 
     // JS init example
-    OgCal.init({
-      el: '#og-cal',
+    ShowCal.init({
+      el: '#showcal',
       defaultView: 'month',
       locale: 'en-US',
       weekStartDay: 0,
@@ -102,16 +102,16 @@
 
     // Auto-init example gets data injected via a global
     // (In real usage, auto-init would use data-fetch-url or data-calendar-id + data-api-key)
-    document.getElementById('og-cal-auto')._ogCalData = demoData;
+    document.getElementById('showcal-auto')._showCalData = demoData;
   </script>
   <script>
     // Inject data for auto-init demo (auto-init uses data attribute for URL/Google,
     // but for demo we patch it after the fact)
     (function() {
-      var el = document.getElementById('og-cal-auto');
+      var el = document.getElementById('showcal-auto');
       // The auto-init already fired, but since it has no data source, we re-init with data
-      OgCal.init({
-        el: '#og-cal-auto',
+      ShowCal.init({
+        el: '#showcal-auto',
         defaultView: 'list',
         locale: 'en-US',
         weekStartDay: 1,

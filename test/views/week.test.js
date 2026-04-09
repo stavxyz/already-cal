@@ -21,31 +21,31 @@ describe('renderWeekView', () => {
   it('renders 7 day columns', () => {
     const container = document.createElement('div');
     renderWeekView(container, [], 'UTC', wednesday, {});
-    assert.strictEqual(container.querySelectorAll('.ogcal-week-col').length, 7);
+    assert.strictEqual(container.querySelectorAll('.showcal-week-col').length, 7);
   });
 
   it('renders navigation with date range', () => {
     const container = document.createElement('div');
     renderWeekView(container, [], 'UTC', wednesday, {});
-    assert.ok(container.querySelector('.ogcal-week-prev'));
-    assert.ok(container.querySelector('.ogcal-week-next'));
-    assert.ok(container.querySelector('.ogcal-week-title'));
+    assert.ok(container.querySelector('.showcal-week-prev'));
+    assert.ok(container.querySelector('.showcal-week-next'));
+    assert.ok(container.querySelector('.showcal-week-title'));
   });
 
   it('renders column headers with day name and number', () => {
     const container = document.createElement('div');
     renderWeekView(container, [], 'UTC', wednesday, {});
-    const headers = container.querySelectorAll('.ogcal-week-col-header');
+    const headers = container.querySelectorAll('.showcal-week-col-header');
     assert.strictEqual(headers.length, 7);
-    assert.ok(headers[0].querySelector('.ogcal-week-dayname'));
-    assert.ok(headers[0].querySelector('.ogcal-week-daynum'));
+    assert.ok(headers[0].querySelector('.showcal-week-dayname'));
+    assert.ok(headers[0].querySelector('.showcal-week-daynum'));
   });
 
   it('renders event blocks in correct column', () => {
     const container = document.createElement('div');
     const events = [createTestEvent({ title: 'Wed Event', start: '2026-04-15T10:00:00Z' })];
     renderWeekView(container, events, 'UTC', wednesday, {});
-    const blocks = container.querySelectorAll('.ogcal-week-event');
+    const blocks = container.querySelectorAll('.showcal-week-event');
     assert.strictEqual(blocks.length, 1);
     assert.strictEqual(blocks[0].textContent, 'Wed Event');
   });
@@ -54,7 +54,7 @@ describe('renderWeekView', () => {
     const container = document.createElement('div');
     const events = [createTestEvent({ id: 'week-click', start: '2026-04-15T10:00:00Z' })];
     renderWeekView(container, events, 'UTC', wednesday, {});
-    container.querySelector('.ogcal-week-event').click();
+    container.querySelector('.showcal-week-event').click();
     assert.strictEqual(window.location.hash, '#event/week-click');
   });
 
@@ -65,14 +65,14 @@ describe('renderWeekView', () => {
       createTestEvent({ id: '2', start: '2026-04-15T14:00:00Z', hidden: true }),
     ];
     renderWeekView(container, events, 'UTC', wednesday, {});
-    assert.strictEqual(container.querySelectorAll('.ogcal-week-event').length, 1);
+    assert.strictEqual(container.querySelectorAll('.showcal-week-event').length, 1);
   });
 
   it('adds --featured class to featured events', () => {
     const container = document.createElement('div');
     const events = [createTestEvent({ start: '2026-04-15T10:00:00Z', featured: true })];
     renderWeekView(container, events, 'UTC', wednesday, {});
-    assert.ok(container.querySelector('.ogcal-week-event--featured'));
+    assert.ok(container.querySelector('.showcal-week-event--featured'));
   });
 
   it('sorts featured first within a day column', () => {
@@ -82,7 +82,7 @@ describe('renderWeekView', () => {
       createTestEvent({ id: '2', title: 'Star', start: '2026-04-15T14:00:00Z', featured: true }),
     ];
     renderWeekView(container, events, 'UTC', wednesday, {});
-    const blocks = [...container.querySelectorAll('.ogcal-week-event')];
+    const blocks = [...container.querySelectorAll('.showcal-week-event')];
     assert.strictEqual(blocks[0].textContent, 'Star');
     assert.strictEqual(blocks[1].textContent, 'Normal');
   });

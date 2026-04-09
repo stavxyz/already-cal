@@ -15,12 +15,12 @@ export function renderViewSelector(container, views, activeView, isMobile, confi
   const filtered = isMobile ? views.filter(v => !mobileHiddenViews.includes(v)) : views;
 
   const bar = document.createElement('div');
-  bar.className = 'ogcal-view-selector';
+  bar.className = 'showcal-view-selector';
   bar.setAttribute('role', 'tablist');
 
   for (const view of filtered) {
     const tab = document.createElement('button');
-    tab.className = 'ogcal-view-tab' + (view === activeView ? ' ogcal-view-tab--active' : '');
+    tab.className = 'showcal-view-tab' + (view === activeView ? ' showcal-view-tab--active' : '');
     tab.textContent = viewLabels[view] || view;
     tab.setAttribute('role', 'tab');
     tab.setAttribute('aria-selected', view === activeView ? 'true' : 'false');

@@ -29,11 +29,11 @@ export function createTagFilter(onFilterChange, config) {
     const sortedTags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]);
 
     const bar = document.createElement('div');
-    bar.className = 'ogcal-tag-filter';
+    bar.className = 'showcal-tag-filter';
 
     for (const [label] of sortedTags) {
       const pill = document.createElement('button');
-      pill.className = 'ogcal-tag-pill' + (selectedTags.has(label) ? ' ogcal-tag-pill--active' : '');
+      pill.className = 'showcal-tag-pill' + (selectedTags.has(label) ? ' showcal-tag-pill--active' : '');
       pill.textContent = label;
       pill.addEventListener('click', () => {
         if (selectedTags.has(label)) {
@@ -49,7 +49,7 @@ export function createTagFilter(onFilterChange, config) {
 
     if (selectedTags.size > 0) {
       const clear = document.createElement('button');
-      clear.className = 'ogcal-tag-clear';
+      clear.className = 'showcal-tag-clear';
       clear.textContent = clearLabel;
       clear.addEventListener('click', () => {
         selectedTags.clear();

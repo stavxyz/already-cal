@@ -1,9 +1,9 @@
 import { cleanupHtml, stripUrl } from './sanitize.js';
 import { normalizeImageUrl } from './images.js';
 
-// Directive regex: #ogcal: or #showcal: followed by non-whitespace, non-HTML chars.
+// Directive regex: #showcal: or #ogcal: followed by non-whitespace, non-HTML chars.
 // Excludes < and > so the match stops before any wrapping </a> tag.
-const DIRECTIVE_PATTERN = /#(?:ogcal|showcal):([^\s<>]+)/gi;
+const DIRECTIVE_PATTERN = /#(?:showcal|ogcal):([^\s<>]+)/gi;
 
 // Map directive platform names to their labels and canonical prefix.
 // Map directive platform names to their labels, canonical prefix, and URL builder.

@@ -27,7 +27,7 @@ describe('createTagFilter', () => {
       createTestEvent({ tags: [{ key: 'tag', value: 'music' }] }),
     ];
     render(container, events);
-    assert.strictEqual(container.querySelectorAll('.ogcal-tag-pill').length, 2);
+    assert.strictEqual(container.querySelectorAll('.showcal-tag-pill').length, 2);
   });
 
   it('orders tags by frequency (most common first)', () => {
@@ -39,7 +39,7 @@ describe('createTagFilter', () => {
       createTestEvent({ tags: [{ key: 'tag', value: 'outdoor' }] }),
     ];
     render(container, events);
-    const pills = container.querySelectorAll('.ogcal-tag-pill');
+    const pills = container.querySelectorAll('.showcal-tag-pill');
     assert.strictEqual(pills[0].textContent, 'outdoor');
     assert.strictEqual(pills[1].textContent, 'music');
   });
@@ -54,7 +54,7 @@ describe('createTagFilter', () => {
       ]}),
     ];
     render(container, events);
-    assert.strictEqual(container.querySelectorAll('.ogcal-tag-pill').length, 1);
+    assert.strictEqual(container.querySelectorAll('.showcal-tag-pill').length, 1);
   });
 
   it('displays key-value text tags as "key: value"', () => {
@@ -64,7 +64,7 @@ describe('createTagFilter', () => {
       createTestEvent({ tags: [{ key: 'cost', value: '$25' }] }),
     ];
     render(container, events);
-    assert.strictEqual(container.querySelector('.ogcal-tag-pill').textContent, 'cost: $25');
+    assert.strictEqual(container.querySelector('.showcal-tag-pill').textContent, 'cost: $25');
   });
 
   it('toggles tag selection on click', () => {
@@ -74,12 +74,12 @@ describe('createTagFilter', () => {
     const events = [createTestEvent({ tags: [{ key: 'tag', value: 'outdoor' }] })];
     render(container, events);
 
-    container.querySelector('.ogcal-tag-pill').click();
+    container.querySelector('.showcal-tag-pill').click();
     assert.strictEqual(filterChanged, 1);
     assert.ok(getSelectedTags().has('outdoor'));
 
     // Click again to deselect (re-query after re-render)
-    container.querySelector('.ogcal-tag-pill').click();
+    container.querySelector('.showcal-tag-pill').click();
     assert.strictEqual(filterChanged, 2);
     assert.strictEqual(getSelectedTags().has('outdoor'), false);
   });
@@ -90,9 +90,9 @@ describe('createTagFilter', () => {
     const events = [createTestEvent({ tags: [{ key: 'tag', value: 'outdoor' }] })];
     render(container, events);
 
-    assert.strictEqual(container.querySelector('.ogcal-tag-clear'), null);
-    container.querySelector('.ogcal-tag-pill').click();
-    assert.ok(container.querySelector('.ogcal-tag-clear'));
+    assert.strictEqual(container.querySelector('.showcal-tag-clear'), null);
+    container.querySelector('.showcal-tag-pill').click();
+    assert.ok(container.querySelector('.showcal-tag-clear'));
   });
 
   it('clear button deselects all tags', () => {
@@ -105,13 +105,13 @@ describe('createTagFilter', () => {
     render(container, events);
 
     // Select first tag
-    container.querySelectorAll('.ogcal-tag-pill')[0].click();
+    container.querySelectorAll('.showcal-tag-pill')[0].click();
     assert.strictEqual(getSelectedTags().size, 1);
 
     // Clear
-    container.querySelector('.ogcal-tag-clear').click();
+    container.querySelector('.showcal-tag-clear').click();
     assert.strictEqual(getSelectedTags().size, 0);
-    assert.strictEqual(container.querySelector('.ogcal-tag-clear'), null);
+    assert.strictEqual(container.querySelector('.showcal-tag-clear'), null);
   });
 
   it('uses i18n clearFilter label when provided', () => {
@@ -119,8 +119,8 @@ describe('createTagFilter', () => {
     const container = document.createElement('div');
     const events = [createTestEvent({ tags: [{ key: 'tag', value: 'outdoor' }] })];
     render(container, events);
-    container.querySelector('.ogcal-tag-pill').click();
-    assert.strictEqual(container.querySelector('.ogcal-tag-clear').textContent, 'Reset');
+    container.querySelector('.showcal-tag-pill').click();
+    assert.strictEqual(container.querySelector('.showcal-tag-clear').textContent, 'Reset');
   });
 
   it('getFilter returns null when no tags selected', () => {
@@ -138,7 +138,7 @@ describe('createTagFilter', () => {
     render(container, events);
 
     // Select 'outdoor'
-    container.querySelectorAll('.ogcal-tag-pill')[0].click();
+    container.querySelectorAll('.showcal-tag-pill')[0].click();
     const filter = getFilter();
     assert.ok(filter);
     assert.strictEqual(filter(events[0]), true);  // has 'outdoor'
@@ -156,9 +156,9 @@ describe('createTagFilter', () => {
     render(container, events);
 
     // Select 'outdoor' then 'music'
-    container.querySelectorAll('.ogcal-tag-pill')[0].click();
+    container.querySelectorAll('.showcal-tag-pill')[0].click();
     // After re-render, select second unselected pill
-    const pills = container.querySelectorAll('.ogcal-tag-pill:not(.ogcal-tag-pill--active)');
+    const pills = container.querySelectorAll('.showcal-tag-pill:not(.showcal-tag-pill--active)');
     if (pills.length > 0) pills[0].click();
 
     const filter = getFilter();

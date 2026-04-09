@@ -115,34 +115,34 @@ describe('bindEventClick', () => {
 describe('applyEventClasses', () => {
   it('sets base class', () => {
     const el = document.createElement('div');
-    applyEventClasses(el, { start: '2099-01-01T00:00:00Z', featured: false }, 'ogcal-card');
-    assert.strictEqual(el.className, 'ogcal-card');
+    applyEventClasses(el, { start: '2099-01-01T00:00:00Z', featured: false }, 'showcal-card');
+    assert.strictEqual(el.className, 'showcal-card');
   });
 
   it('adds --past for past events', () => {
     const el = document.createElement('div');
-    applyEventClasses(el, { start: '2020-01-01T00:00:00Z', featured: false }, 'ogcal-card');
-    assert.ok(el.className.includes('ogcal-card--past'));
+    applyEventClasses(el, { start: '2020-01-01T00:00:00Z', featured: false }, 'showcal-card');
+    assert.ok(el.className.includes('showcal-card--past'));
   });
 
   it('adds --featured for featured events', () => {
     const el = document.createElement('div');
-    applyEventClasses(el, { start: '2099-01-01T00:00:00Z', featured: true }, 'ogcal-card');
-    assert.ok(el.className.includes('ogcal-card--featured'));
+    applyEventClasses(el, { start: '2099-01-01T00:00:00Z', featured: true }, 'showcal-card');
+    assert.ok(el.className.includes('showcal-card--featured'));
   });
 
   it('adds both --past and --featured', () => {
     const el = document.createElement('div');
-    applyEventClasses(el, { start: '2020-01-01T00:00:00Z', featured: true }, 'ogcal-card');
-    assert.ok(el.className.includes('ogcal-card--past'));
-    assert.ok(el.className.includes('ogcal-card--featured'));
+    applyEventClasses(el, { start: '2020-01-01T00:00:00Z', featured: true }, 'showcal-card');
+    assert.ok(el.className.includes('showcal-card--past'));
+    assert.ok(el.className.includes('showcal-card--featured'));
   });
 });
 
 describe('createEventImage', () => {
   it('creates image wrapper with img element', () => {
-    const wrapper = createEventImage({ image: 'https://example.com/img.jpg', title: 'My Event' }, 'ogcal-grid-image');
-    assert.strictEqual(wrapper.className, 'ogcal-grid-image');
+    const wrapper = createEventImage({ image: 'https://example.com/img.jpg', title: 'My Event' }, 'showcal-grid-image');
+    assert.strictEqual(wrapper.className, 'showcal-grid-image');
     const img = wrapper.querySelector('img');
     assert.ok(img);
     assert.strictEqual(img.src, 'https://example.com/img.jpg');
@@ -151,7 +151,7 @@ describe('createEventImage', () => {
   });
 
   it('hides wrapper on image error', () => {
-    const wrapper = createEventImage({ image: 'https://bad.url/x.jpg', title: 'Test' }, 'ogcal-img');
+    const wrapper = createEventImage({ image: 'https://bad.url/x.jpg', title: 'Test' }, 'showcal-img');
     const img = wrapper.querySelector('img');
     img.onerror();
     assert.strictEqual(wrapper.style.display, 'none');

@@ -25,20 +25,20 @@ describe('renderDayView', () => {
       createTestEvent({ id: '2', start: '2026-04-16T10:00:00Z' }),
     ];
     renderDayView(container, events, 'UTC', targetDate, {});
-    assert.strictEqual(container.querySelectorAll('.ogcal-day-event').length, 1);
+    assert.strictEqual(container.querySelectorAll('.showcal-day-event').length, 1);
   });
 
   it('shows empty state when no events', () => {
     const container = document.createElement('div');
     renderDayView(container, [], 'UTC', targetDate, {});
-    assert.ok(container.querySelector('.ogcal-day-empty'));
+    assert.ok(container.querySelector('.showcal-day-empty'));
   });
 
   it('displays event title safely', () => {
     const container = document.createElement('div');
     const events = [createTestEvent({ title: 'Test & <b>Bold</b>', start: '2026-04-15T10:00:00Z' })];
     renderDayView(container, events, 'UTC', targetDate, {});
-    const title = container.querySelector('.ogcal-day-event-title');
+    const title = container.querySelector('.showcal-day-event-title');
     assert.strictEqual(title.textContent, 'Test & <b>Bold</b>');
   });
 
@@ -46,15 +46,15 @@ describe('renderDayView', () => {
     const container = document.createElement('div');
     const events = [createTestEvent({ allDay: true, start: '2026-04-15' })];
     renderDayView(container, events, 'UTC', targetDate, {});
-    assert.strictEqual(container.querySelector('.ogcal-day-event-time').textContent, 'All Day');
+    assert.strictEqual(container.querySelector('.showcal-day-event-time').textContent, 'All Day');
   });
 
   it('renders navigation buttons', () => {
     const container = document.createElement('div');
     renderDayView(container, [], 'UTC', targetDate, {});
-    assert.ok(container.querySelector('.ogcal-day-prev'));
-    assert.ok(container.querySelector('.ogcal-day-next'));
-    assert.ok(container.querySelector('.ogcal-day-title'));
+    assert.ok(container.querySelector('.showcal-day-prev'));
+    assert.ok(container.querySelector('.showcal-day-next'));
+    assert.ok(container.querySelector('.showcal-day-title'));
   });
 
   it('does not render hidden events', () => {
@@ -64,14 +64,14 @@ describe('renderDayView', () => {
       createTestEvent({ id: '2', start: '2026-04-15T14:00:00Z', hidden: true }),
     ];
     renderDayView(container, events, 'UTC', targetDate, {});
-    assert.strictEqual(container.querySelectorAll('.ogcal-day-event').length, 1);
+    assert.strictEqual(container.querySelectorAll('.showcal-day-event').length, 1);
   });
 
   it('adds --featured class', () => {
     const container = document.createElement('div');
     const events = [createTestEvent({ start: '2026-04-15T10:00:00Z', featured: true })];
     renderDayView(container, events, 'UTC', targetDate, {});
-    assert.ok(container.querySelector('.ogcal-day-event--featured'));
+    assert.ok(container.querySelector('.showcal-day-event--featured'));
   });
 
   it('sorts featured events first', () => {
@@ -81,7 +81,7 @@ describe('renderDayView', () => {
       createTestEvent({ id: '2', title: 'Star', start: '2026-04-15T14:00:00Z', featured: true }),
     ];
     renderDayView(container, events, 'UTC', targetDate, {});
-    const titles = [...container.querySelectorAll('.ogcal-day-event-title')].map(t => t.textContent);
+    const titles = [...container.querySelectorAll('.showcal-day-event-title')].map(t => t.textContent);
     assert.strictEqual(titles[0], 'Star');
   });
 
@@ -89,7 +89,7 @@ describe('renderDayView', () => {
     const container = document.createElement('div');
     const events = [createTestEvent({ id: 'day-click', start: '2026-04-15T10:00:00Z' })];
     renderDayView(container, events, 'UTC', targetDate, {});
-    container.querySelector('.ogcal-day-event').click();
+    container.querySelector('.showcal-day-event').click();
     assert.strictEqual(window.location.hash, '#event/day-click');
   });
 });

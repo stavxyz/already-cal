@@ -4,7 +4,7 @@ export function renderPastToggle(container, showingPast, onToggle, config) {
   const hideLabel = i18n.hidePastEvents || 'Hide past events';
 
   const btn = document.createElement('button');
-  btn.className = 'ogcal-past-toggle';
+  btn.className = 'showcal-past-toggle';
   btn.textContent = showingPast ? hideLabel : showLabel;
   btn.addEventListener('click', onToggle);
   container.innerHTML = '';

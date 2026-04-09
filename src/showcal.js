@@ -21,7 +21,7 @@ const DEFAULTS = {
   theme: {},
   locale: null, // defaults to navigator.language || 'en-US' at runtime
   weekStartDay: 0, // 0=Sunday, 1=Monday, etc.
-  storageKeyPrefix: 'ogcal',
+  storageKeyPrefix: 'showcal',
   mobileBreakpoint: 768,
   mobileDefaultView: 'list',
   mobileHiddenViews: ['week'],
@@ -74,7 +74,7 @@ const THEME_DEFAULTS = {
   fontFamily: 'system-ui, sans-serif',
 };
 
-// Expose defaults so consumers can extend (e.g. OgCal.DEFAULTS.knownPlatforms)
+// Expose defaults so consumers can extend (e.g. ShowCal.DEFAULTS.knownPlatforms)
 export { DEFAULTS };
 
 export function init(userConfig) {
@@ -89,30 +89,30 @@ export function init(userConfig) {
   const el = typeof config.el === 'string' ? document.querySelector(config.el) : config.el;
 
   if (!el) {
-    console.error('og-cal: Element not found:', config.el);
+    console.error('showcal: Element not found:', config.el);
     return;
   }
 
   // Apply theme as CSS custom properties
   for (const [key, value] of Object.entries(theme)) {
-    const prop = `--ogcal-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+    const prop = `--showcal-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
     el.style.setProperty(prop, value);
   }
 
-  el.classList.add('ogcal');
+  el.classList.add('showcal');
 
   // Create layout
   const headerContainer = document.createElement('div');
-  headerContainer.className = 'ogcal-header-container';
+  headerContainer.className = 'showcal-header-container';
   const selectorContainer = document.createElement('div');
-  selectorContainer.className = 'ogcal-selector-container';
+  selectorContainer.className = 'showcal-selector-container';
   const tagFilterContainer = document.createElement('div');
-  tagFilterContainer.className = 'ogcal-tag-filter-container';
+  tagFilterContainer.className = 'showcal-tag-filter-container';
   const viewContainer = document.createElement('div');
-  viewContainer.className = 'ogcal-view-container';
+  viewContainer.className = 'showcal-view-container';
   viewContainer.setAttribute('aria-live', 'polite');
   const toggleContainer = document.createElement('div');
-  toggleContainer.className = 'ogcal-toggle-container';
+  toggleContainer.className = 'showcal-toggle-container';
 
   el.innerHTML = '';
   el.appendChild(headerContainer);
@@ -295,7 +295,7 @@ export function init(userConfig) {
         config.onDataLoad(data);
       }
     } catch (err) {
-      console.error('og-cal:', err);
+      console.error('showcal:', err);
       if (config.onError) {
         config.onError(err);
       }
@@ -325,7 +325,7 @@ export function init(userConfig) {
 
 // Auto-init from data attributes
 function autoInit() {
-  const elements = document.querySelectorAll('[data-og-cal]');
+  const elements = document.querySelectorAll('[data-showcal]');
   for (const el of elements) {
     const config = { el };
     const dataset = el.dataset;

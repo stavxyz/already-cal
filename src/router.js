@@ -1,7 +1,7 @@
 const VALID_VIEWS = ['month', 'week', 'day', 'grid', 'list'];
 
 function storageKey(config) {
-  const prefix = (config && config.storageKeyPrefix) || 'ogcal';
+  const prefix = (config && config.storageKeyPrefix) || 'showcal';
   return `${prefix}-view`;
 }
 

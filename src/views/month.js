@@ -27,23 +27,23 @@ export function renderMonthView(container, events, timezone, currentDate, config
     eventsByDate[key].push(event);
   }
 
-  const grid = createElement('div', 'ogcal-month');
+  const grid = createElement('div', 'showcal-month');
 
   // Navigation
-  const nav = createElement('div', 'ogcal-month-nav');
+  const nav = createElement('div', 'showcal-month-nav');
 
-  const prevBtn = createElement('button', 'ogcal-month-prev', { 'aria-label': 'Previous month' });
+  const prevBtn = createElement('button', 'showcal-month-prev', { 'aria-label': 'Previous month' });
   prevBtn.textContent = '\u2039';
   prevBtn.addEventListener('click', () => {
     renderMonthView(container, events, timezone, new Date(year, month - 1, 1), config);
   });
   nav.appendChild(prevBtn);
 
-  const title = createElement('span', 'ogcal-month-title');
+  const title = createElement('span', 'showcal-month-title');
   title.textContent = `${monthName} ${year}`;
   nav.appendChild(title);
 
-  const nextBtn = createElement('button', 'ogcal-month-next', { 'aria-label': 'Next month' });
+  const nextBtn = createElement('button', 'showcal-month-next', { 'aria-label': 'Next month' });
   nextBtn.textContent = '\u203a';
   nextBtn.addEventListener('click', () => {
     renderMonthView(container, events, timezone, new Date(year, month + 1, 1), config);
@@ -53,22 +53,22 @@ export function renderMonthView(container, events, timezone, currentDate, config
   grid.appendChild(nav);
 
   // Day headers
-  const headerRow = createElement('div', 'ogcal-month-header', { role: 'row' });
+  const headerRow = createElement('div', 'showcal-month-header', { role: 'row' });
   for (const name of dayNames) {
-    const cell = createElement('div', 'ogcal-month-dayname');
+    const cell = createElement('div', 'showcal-month-dayname');
     cell.textContent = name;
     headerRow.appendChild(cell);
   }
   grid.appendChild(headerRow);
 
   // Calendar body
-  const body = createElement('div', 'ogcal-month-body', { role: 'grid' });
+  const body = createElement('div', 'showcal-month-body', { role: 'grid' });
 
-  let row = createElement('div', 'ogcal-month-row', { role: 'row' });
+  let row = createElement('div', 'showcal-month-row', { role: 'row' });
 
   // Empty cells before first day
   for (let i = 0; i < firstDay; i++) {
-    row.appendChild(createElement('div', 'ogcal-month-cell ogcal-month-cell--empty', { role: 'gridcell' }));
+    row.appendChild(createElement('div', 'showcal-month-cell showcal-month-cell--empty', { role: 'gridcell' }));
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
@@ -78,22 +78,22 @@ export function renderMonthView(container, events, timezone, currentDate, config
     const today = isToday(cellDate);
 
     const cell = createElement('div', null, { role: 'gridcell' });
-    cell.className = 'ogcal-month-cell' + (today ? ' ogcal-month-cell--today' : '') +
-      (dayEvents.length ? ' ogcal-month-cell--has-events' : '');
+    cell.className = 'showcal-month-cell' + (today ? ' showcal-month-cell--today' : '') +
+      (dayEvents.length ? ' showcal-month-cell--has-events' : '');
 
-    const dayNum = createElement('div', 'ogcal-month-day');
+    const dayNum = createElement('div', 'showcal-month-day');
     dayNum.textContent = d;
     cell.appendChild(dayNum);
 
     for (const event of dayEvents.slice(0, maxEventsPerDay)) {
-      const chip = createElement('div', 'ogcal-month-chip' + (event.featured ? ' ogcal-month-chip--featured' : ''));
+      const chip = createElement('div', 'showcal-month-chip' + (event.featured ? ' showcal-month-chip--featured' : ''));
       chip.textContent = event.title;
       bindEventClick(chip, event, 'month', config, { stopPropagation: true });
       cell.appendChild(chip);
     }
 
     if (dayEvents.length > maxEventsPerDay) {
-      const more = createElement('div', 'ogcal-month-more');
+      const more = createElement('div', 'showcal-month-more');
       more.textContent = moreEventsTemplate.replace('{count}', dayEvents.length - maxEventsPerDay);
       cell.appendChild(more);
     }
@@ -102,7 +102,7 @@ export function renderMonthView(container, events, timezone, currentDate, config
 
     if ((firstDay + d) % 7 === 0) {
       body.appendChild(row);
-      row = createElement('div', 'ogcal-month-row', { role: 'row' });
+      row = createElement('div', 'showcal-month-row', { role: 'row' });
     }
   }
 
@@ -110,7 +110,7 @@ export function renderMonthView(container, events, timezone, currentDate, config
   const remaining = (firstDay + daysInMonth) % 7;
   if (remaining > 0) {
     for (let i = remaining; i < 7; i++) {
-      row.appendChild(createElement('div', 'ogcal-month-cell ogcal-month-cell--empty', { role: 'gridcell' }));
+      row.appendChild(createElement('div', 'showcal-month-cell showcal-month-cell--empty', { role: 'gridcell' }));
     }
     body.appendChild(row);
   }

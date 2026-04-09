@@ -4,35 +4,35 @@ const watch = process.argv.includes('--watch');
 
 async function build() {
   const ctx = await esbuild.context({
-    entryPoints: ['src/og-cal.js'],
+    entryPoints: ['src/showcal.js'],
     bundle: true,
     format: 'iife',
-    globalName: 'OgCal',
-    outfile: 'dist/og-cal.js',
+    globalName: 'ShowCal',
+    outfile: 'dist/showcal.js',
     minify: false,
     sourcemap: true,
   });
 
   const ctxMin = await esbuild.context({
-    entryPoints: ['src/og-cal.js'],
+    entryPoints: ['src/showcal.js'],
     bundle: true,
     format: 'iife',
-    globalName: 'OgCal',
-    outfile: 'dist/og-cal.min.js',
+    globalName: 'ShowCal',
+    outfile: 'dist/showcal.min.js',
     minify: true,
   });
 
   const ctxCss = await esbuild.context({
-    entryPoints: ['og-cal.css'],
+    entryPoints: ['showcal.css'],
     bundle: true,
-    outfile: 'dist/og-cal.css',
+    outfile: 'dist/showcal.css',
     minify: false,
   });
 
   const ctxCssMin = await esbuild.context({
-    entryPoints: ['og-cal.css'],
+    entryPoints: ['showcal.css'],
     bundle: true,
-    outfile: 'dist/og-cal.min.css',
+    outfile: 'dist/showcal.min.css',
     minify: true,
   });
 

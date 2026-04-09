@@ -23,14 +23,14 @@ describe('renderListView', () => {
       createTestEvent({ id: '2' }),
     ];
     renderListView(container, events, 'UTC', {});
-    assert.strictEqual(container.querySelectorAll('.ogcal-list-item').length, 2);
+    assert.strictEqual(container.querySelectorAll('.showcal-list-item').length, 2);
   });
 
   it('displays event title safely via textContent', () => {
     const container = document.createElement('div');
     const events = [createTestEvent({ title: '<img src=x onerror=alert(1)>' })];
     renderListView(container, events, 'UTC', {});
-    const title = container.querySelector('.ogcal-list-title');
+    const title = container.querySelector('.showcal-list-title');
     assert.strictEqual(title.textContent, '<img src=x onerror=alert(1)>');
     assert.ok(!title.innerHTML.includes('<img'));
   });
@@ -39,29 +39,29 @@ describe('renderListView', () => {
     const container = document.createElement('div');
     const events = [createTestEvent()];
     renderListView(container, events, 'UTC', {});
-    assert.ok(container.querySelector('.ogcal-list-date-day'));
-    assert.ok(container.querySelector('.ogcal-list-date-time'));
+    assert.ok(container.querySelector('.showcal-list-date-day'));
+    assert.ok(container.querySelector('.showcal-list-date-time'));
   });
 
   it('shows All Day label for all-day events', () => {
     const container = document.createElement('div');
     const events = [createTestEvent({ allDay: true })];
     renderListView(container, events, 'UTC', {});
-    assert.strictEqual(container.querySelector('.ogcal-list-date-time').textContent, 'All Day');
+    assert.strictEqual(container.querySelector('.showcal-list-date-time').textContent, 'All Day');
   });
 
   it('displays location when present', () => {
     const container = document.createElement('div');
     const events = [createTestEvent({ location: 'The Venue' })];
     renderListView(container, events, 'UTC', {});
-    assert.strictEqual(container.querySelector('.ogcal-list-location').textContent, 'The Venue');
+    assert.strictEqual(container.querySelector('.showcal-list-location').textContent, 'The Venue');
   });
 
   it('navigates to detail on click', () => {
     const container = document.createElement('div');
     const events = [createTestEvent({ id: 'nav-test' })];
     renderListView(container, events, 'UTC', {});
-    container.querySelector('.ogcal-list-item').click();
+    container.querySelector('.showcal-list-item').click();
     assert.strictEqual(window.location.hash, '#event/nav-test');
   });
 
@@ -72,14 +72,14 @@ describe('renderListView', () => {
       createTestEvent({ id: '2', hidden: true }),
     ];
     renderListView(container, events, 'UTC', {});
-    assert.strictEqual(container.querySelectorAll('.ogcal-list-item').length, 1);
+    assert.strictEqual(container.querySelectorAll('.showcal-list-item').length, 1);
   });
 
   it('adds --featured class', () => {
     const container = document.createElement('div');
     const events = [createTestEvent({ featured: true })];
     renderListView(container, events, 'UTC', {});
-    assert.ok(container.querySelector('.ogcal-list-item--featured'));
+    assert.ok(container.querySelector('.showcal-list-item--featured'));
   });
 
   it('sorts featured first within same date', () => {
@@ -89,7 +89,7 @@ describe('renderListView', () => {
       createTestEvent({ id: '2', title: 'Featured', start: '2026-04-15T14:00:00Z', featured: true }),
     ];
     renderListView(container, events, 'UTC', {});
-    const titles = [...container.querySelectorAll('.ogcal-list-title')].map(t => t.textContent);
+    const titles = [...container.querySelectorAll('.showcal-list-title')].map(t => t.textContent);
     assert.strictEqual(titles[0], 'Featured');
   });
 });

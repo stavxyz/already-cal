@@ -10,10 +10,10 @@ export function renderLoading(container, config) {
     return;
   }
   container.innerHTML = `
-    <div class="ogcal-loading">
-      <div class="ogcal-loading-pulse"></div>
-      <div class="ogcal-loading-pulse"></div>
-      <div class="ogcal-loading-pulse"></div>
+    <div class="showcal-loading">
+      <div class="showcal-loading-pulse"></div>
+      <div class="showcal-loading-pulse"></div>
+      <div class="showcal-loading-pulse"></div>
     </div>`;
 }
 
@@ -34,16 +34,16 @@ export function renderEmpty(container, hasPastEvents, onShowPast, config) {
   }
 
   const pastLink = hasPastEvents
-    ? `<button class="ogcal-empty-past-link" onclick="this.dispatchEvent(new CustomEvent('ogcal:show-past', { bubbles: true }))">${showPastEvents}</button>`
+    ? `<button class="showcal-empty-past-link" onclick="this.dispatchEvent(new CustomEvent('showcal:show-past', { bubbles: true }))">${showPastEvents}</button>`
     : '';
   container.innerHTML = `
-    <div class="ogcal-empty">
-      <div class="ogcal-empty-icon">📅</div>
+    <div class="showcal-empty">
+      <div class="showcal-empty-icon">📅</div>
       <p>${noUpcomingEvents}</p>
       ${pastLink}
     </div>`;
   if (hasPastEvents) {
-    container.querySelector('.ogcal-empty-past-link')?.addEventListener('click', onShowPast);
+    container.querySelector('.showcal-empty-past-link')?.addEventListener('click', onShowPast);
   }
 }
 
@@ -64,9 +64,9 @@ export function renderError(container, message, onRetry, config) {
   }
 
   container.innerHTML = `
-    <div class="ogcal-error">
+    <div class="showcal-error">
       <p>${couldNotLoad}</p>
-      <button class="ogcal-error-retry">${retry}</button>
+      <button class="showcal-error-retry">${retry}</button>
     </div>`;
-  container.querySelector('.ogcal-error-retry')?.addEventListener('click', onRetry);
+  container.querySelector('.showcal-error-retry')?.addEventListener('click', onRetry);
 }

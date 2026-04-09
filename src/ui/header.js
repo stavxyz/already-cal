@@ -30,12 +30,12 @@ export function renderHeader(container, calendarData, config) {
   }
 
   const header = document.createElement('div');
-  header.className = 'ogcal-header';
+  header.className = 'showcal-header';
 
   // Optional icon/logo
   if (config.headerIcon) {
     const icon = document.createElement('img');
-    icon.className = 'ogcal-header-icon';
+    icon.className = 'showcal-header-icon';
     icon.src = config.headerIcon;
     icon.alt = '';
     icon.loading = 'lazy';
@@ -43,23 +43,23 @@ export function renderHeader(container, calendarData, config) {
   }
 
   const textCol = document.createElement('div');
-  textCol.className = 'ogcal-header-text';
+  textCol.className = 'showcal-header-text';
 
   if (name) {
     const h = document.createElement('h2');
-    h.className = 'ogcal-header-name';
+    h.className = 'showcal-header-name';
     h.textContent = name;
     textCol.appendChild(h);
   }
 
   if (description) {
     const p = document.createElement('p');
-    p.className = 'ogcal-header-description';
+    p.className = 'showcal-header-description';
     // Link the word "Subscribe" in the description to the subscribe URL
     if (subscribeUrl && /subscribe/i.test(description)) {
       p.innerHTML = description.replace(
         /(subscribe)/i,
-        `<a href="${subscribeUrl}" target="_blank" rel="noopener" class="ogcal-header-description-link">$1</a>`
+        `<a href="${subscribeUrl}" target="_blank" rel="noopener" class="showcal-header-description-link">$1</a>`
       );
     } else {
       p.textContent = description;
@@ -71,7 +71,7 @@ export function renderHeader(container, calendarData, config) {
 
   if (subscribeUrl) {
     const btn = document.createElement('a');
-    btn.className = 'ogcal-header-subscribe';
+    btn.className = 'showcal-header-subscribe';
     btn.href = subscribeUrl;
     btn.target = '_blank';
     btn.rel = 'noopener';

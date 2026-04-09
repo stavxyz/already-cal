@@ -1257,7 +1257,8 @@
   color: var(--ogcal-primary);
 }
 
-.ogcal-tag-pill--active {
+.ogcal-tag-pill--active,
+.ogcal-tag-pill--active:hover {
   background: var(--ogcal-primary);
   color: var(--ogcal-primary-text);
   border-color: var(--ogcal-primary);

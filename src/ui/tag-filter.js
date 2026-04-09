@@ -1,7 +1,8 @@
 // src/ui/tag-filter.js
 
-export function createTagFilter(onFilterChange) {
+export function createTagFilter(onFilterChange, config) {
   const selectedTags = new Set();
+  const clearLabel = (config && config.i18n && config.i18n.clearFilter) || 'Clear';
 
   function getTagLabel(tag) {
     return tag.key === 'tag' ? tag.value : `${tag.key}: ${tag.value}`;
@@ -49,7 +50,7 @@ export function createTagFilter(onFilterChange) {
     if (selectedTags.size > 0) {
       const clear = document.createElement('button');
       clear.className = 'ogcal-tag-clear';
-      clear.textContent = 'Clear';
+      clear.textContent = clearLabel;
       clear.addEventListener('click', () => {
         selectedTags.clear();
         render(container, events);

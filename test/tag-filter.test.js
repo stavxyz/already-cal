@@ -114,6 +114,15 @@ describe('createTagFilter', () => {
     assert.strictEqual(container.querySelector('.ogcal-tag-clear'), null);
   });
 
+  it('uses i18n clearFilter label when provided', () => {
+    const { render } = createTagFilter(() => {}, { i18n: { clearFilter: 'Reset' } });
+    const container = document.createElement('div');
+    const events = [createTestEvent({ tags: [{ key: 'tag', value: 'outdoor' }] })];
+    render(container, events);
+    container.querySelector('.ogcal-tag-pill').click();
+    assert.strictEqual(container.querySelector('.ogcal-tag-clear').textContent, 'Reset');
+  });
+
   it('getFilter returns null when no tags selected', () => {
     const { getFilter } = createTagFilter(() => {});
     assert.strictEqual(getFilter(), null);

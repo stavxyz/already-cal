@@ -60,6 +60,7 @@ const I18N_DEFAULTS = {
   back: '\u2190 Back',
   moreEvents: '+{count} more',
   subscribe: 'Subscribe',
+  clearFilter: 'Clear',
 };
 
 const THEME_DEFAULTS = {
@@ -127,7 +128,7 @@ export function init(userConfig) {
   let lastViewState = null;
   const tagFilter = createTagFilter(() => {
     if (lastViewState) renderView(lastViewState);
-  });
+  }, config);
 
   const isMobile = () => window.innerWidth < config.mobileBreakpoint;
 
@@ -137,19 +138,19 @@ export function init(userConfig) {
   function captureOriginalMeta() {
     originalMeta = {};
     for (const prop of ['og:title', 'og:description', 'og:image', 'og:url']) {
-      const el = document.querySelector(`meta[property="${prop}"]`);
-      originalMeta[prop] = el ? el.getAttribute('content') : null;
+      const metaEl = document.querySelector(`meta[property="${prop}"]`);
+      originalMeta[prop] = metaEl ? metaEl.getAttribute('content') : null;
     }
   }
 
   function setMetaTag(property, content) {
-    let el = document.querySelector(`meta[property="${property}"]`);
-    if (!el) {
-      el = document.createElement('meta');
-      el.setAttribute('property', property);
-      document.head.appendChild(el);
+    let metaEl = document.querySelector(`meta[property="${property}"]`);
+    if (!metaEl) {
+      metaEl = document.createElement('meta');
+      metaEl.setAttribute('property', property);
+      document.head.appendChild(metaEl);
     }
-    el.setAttribute('content', content);
+    metaEl.setAttribute('content', content);
   }
 
   function setEventMeta(event) {
@@ -170,8 +171,8 @@ export function init(userConfig) {
     if (!originalMeta) return;
     for (const [prop, content] of Object.entries(originalMeta)) {
       if (content === null) {
-        const el = document.querySelector(`meta[property="${prop}"]`);
-        if (el) el.remove();
+        const metaEl = document.querySelector(`meta[property="${prop}"]`);
+        if (metaEl) metaEl.remove();
       } else {
         setMetaTag(prop, content);
       }

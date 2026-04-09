@@ -1,6 +1,5 @@
-import { formatDate, formatTime, isSameDay, isPast } from '../util/dates.js';
-import { escapeHtml } from '../util/sanitize.js';
-import { setEventDetail } from '../router.js';
+import { formatDate, formatTime, isSameDay } from '../util/dates.js';
+import { createElement, bindEventClick, applyEventClasses, filterHidden, sortFeatured } from './helpers.js';
 
 export function renderDayView(container, events, timezone, currentDate, config) {
   config = config || {};
@@ -9,60 +8,66 @@ export function renderDayView(container, events, timezone, currentDate, config) 
   const allDayLabel = i18n.allDay || 'All Day';
   const noEventsLabel = i18n.noEventsThisDay || 'No events this day.';
 
-  const day = document.createElement('div');
-  day.className = 'ogcal-day';
+  events = filterHidden(events);
+
+  const day = createElement('div', 'ogcal-day');
 
   // Navigation
-  const nav = document.createElement('div');
-  nav.className = 'ogcal-day-nav';
-  nav.innerHTML = `
-    <button class="ogcal-day-prev" aria-label="Previous day">‹</button>
-    <span class="ogcal-day-title">${formatDate(currentDate.toISOString(), timezone, locale)}</span>
-    <button class="ogcal-day-next" aria-label="Next day">›</button>
-  `;
+  const nav = createElement('div', 'ogcal-day-nav');
 
-  nav.querySelector('.ogcal-day-prev').addEventListener('click', () => {
+  const prevBtn = createElement('button', 'ogcal-day-prev', { 'aria-label': 'Previous day' });
+  prevBtn.textContent = '\u2039';
+  prevBtn.addEventListener('click', () => {
     const prev = new Date(currentDate);
     prev.setDate(prev.getDate() - 1);
     renderDayView(container, events, timezone, prev, config);
   });
-  nav.querySelector('.ogcal-day-next').addEventListener('click', () => {
+  nav.appendChild(prevBtn);
+
+  const title = createElement('span', 'ogcal-day-title');
+  title.textContent = formatDate(currentDate.toISOString(), timezone, locale);
+  nav.appendChild(title);
+
+  const nextBtn = createElement('button', 'ogcal-day-next', { 'aria-label': 'Next day' });
+  nextBtn.textContent = '\u203a';
+  nextBtn.addEventListener('click', () => {
     const next = new Date(currentDate);
     next.setDate(next.getDate() + 1);
     renderDayView(container, events, timezone, next, config);
   });
+  nav.appendChild(nextBtn);
 
   day.appendChild(nav);
 
-  const dayEvents = events.filter(e => isSameDay(new Date(e.start), currentDate));
+  // Parse date-only strings (e.g. '2026-04-15') as local dates to avoid UTC midnight offset issues.
+  const parseEventDate = (start) => /^\d{4}-\d{2}-\d{2}$/.test(start) ? new Date(`${start}T00:00:00`) : new Date(start);
+  let dayEvents = events.filter(e => isSameDay(parseEventDate(e.start), currentDate));
+  dayEvents = sortFeatured(dayEvents);
 
   if (dayEvents.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'ogcal-day-empty';
+    const empty = createElement('div', 'ogcal-day-empty');
     empty.textContent = noEventsLabel;
     day.appendChild(empty);
   } else {
     for (const event of dayEvents) {
-      const item = document.createElement('div');
-      item.className = 'ogcal-day-event';
-      item.addEventListener('click', () => {
-        if (config.onEventClick) {
-          const result = config.onEventClick(event, 'day');
-          if (result === false) return;
-        }
-        setEventDetail(event.id);
-      });
-      item.setAttribute('tabindex', '0');
+      const item = createElement('div');
+      applyEventClasses(item, event, 'ogcal-day-event');
+      bindEventClick(item, event, 'day', config);
 
-      const timeStr = event.allDay ? allDayLabel : formatTime(event.start, timezone, locale);
+      const timeEl = createElement('div', 'ogcal-day-event-time');
+      timeEl.textContent = event.allDay ? allDayLabel : formatTime(event.start, timezone, locale);
+      item.appendChild(timeEl);
 
-      item.innerHTML = `
-        <div class="ogcal-day-event-time">${timeStr}</div>
-        <div class="ogcal-day-event-info">
-          <div class="ogcal-day-event-title">${escapeHtml(event.title)}</div>
-          ${event.location ? `<div class="ogcal-day-event-location">${escapeHtml(event.location)}</div>` : ''}
-        </div>
-      `;
+      const info = createElement('div', 'ogcal-day-event-info');
+      const titleEl = createElement('div', 'ogcal-day-event-title');
+      titleEl.textContent = event.title;
+      info.appendChild(titleEl);
+      if (event.location) {
+        const loc = createElement('div', 'ogcal-day-event-location');
+        loc.textContent = event.location;
+        info.appendChild(loc);
+      }
+      item.appendChild(info);
 
       day.appendChild(item);
     }

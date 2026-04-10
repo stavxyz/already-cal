@@ -67,4 +67,42 @@ describe('openLightbox', () => {
     document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' }));
     assert.strictEqual(document.querySelector('.already-lightbox'), null);
   });
+
+  it('navigates to next image on next button click', () => {
+    openLightbox(['https://a.com/1.jpg', 'https://a.com/2.jpg', 'https://a.com/3.jpg'], 0, 'Alt');
+    document.querySelector('.already-lightbox-next').click();
+    assert.strictEqual(document.querySelector('.already-lightbox-img').src, 'https://a.com/2.jpg');
+    assert.strictEqual(document.querySelector('.already-lightbox-counter').textContent, '2 / 3');
+  });
+
+  it('navigates to previous image on prev button click', () => {
+    openLightbox(['https://a.com/1.jpg', 'https://a.com/2.jpg'], 1, 'Alt');
+    document.querySelector('.already-lightbox-prev').click();
+    assert.strictEqual(document.querySelector('.already-lightbox-img').src, 'https://a.com/1.jpg');
+  });
+
+  it('wraps around from last to first image', () => {
+    openLightbox(['https://a.com/1.jpg', 'https://a.com/2.jpg'], 1, 'Alt');
+    document.querySelector('.already-lightbox-next').click();
+    assert.strictEqual(document.querySelector('.already-lightbox-img').src, 'https://a.com/1.jpg');
+  });
+
+  it('navigates via ArrowRight key', () => {
+    openLightbox(['https://a.com/1.jpg', 'https://a.com/2.jpg'], 0, 'Alt');
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowRight' }));
+    assert.strictEqual(document.querySelector('.already-lightbox-img').src, 'https://a.com/2.jpg');
+  });
+
+  it('navigates via ArrowLeft key', () => {
+    openLightbox(['https://a.com/1.jpg', 'https://a.com/2.jpg'], 1, 'Alt');
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowLeft' }));
+    assert.strictEqual(document.querySelector('.already-lightbox-img').src, 'https://a.com/1.jpg');
+  });
+
+  it('hides nav controls for single image', () => {
+    openLightbox(['https://a.com/1.jpg'], 0, 'Alt');
+    assert.strictEqual(document.querySelector('.already-lightbox-prev'), null);
+    assert.strictEqual(document.querySelector('.already-lightbox-next'), null);
+    assert.strictEqual(document.querySelector('.already-lightbox-counter'), null);
+  });
 });

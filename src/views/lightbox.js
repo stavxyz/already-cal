@@ -6,6 +6,8 @@ export function openLightbox(images, startIndex, altText) {
   // Close existing lightbox (cleans up listeners properly)
   if (currentClose) currentClose();
 
+  const previousFocus = document.activeElement;
+
   let current = startIndex;
   let counterEl = null;
 
@@ -27,6 +29,7 @@ export function openLightbox(images, startIndex, altText) {
     overlay.remove();
     document.removeEventListener('keydown', onKeydown);
     currentClose = null;
+    if (previousFocus && previousFocus.focus) previousFocus.focus();
   }
 
   function goTo(idx) {
@@ -36,9 +39,19 @@ export function openLightbox(images, startIndex, altText) {
   }
 
   function onKeydown(e) {
-    if (e.key === 'Escape') { close(); e.preventDefault(); }
-    if (e.key === 'ArrowLeft') { goTo(current - 1); e.preventDefault(); }
-    if (e.key === 'ArrowRight') { goTo(current + 1); e.preventDefault(); }
+    if (e.key === 'Escape') { close(); e.preventDefault(); return; }
+    if (e.key === 'ArrowLeft') { goTo(current - 1); e.preventDefault(); return; }
+    if (e.key === 'ArrowRight') { goTo(current + 1); e.preventDefault(); return; }
+    if (e.key === 'Tab') {
+      const focusable = overlay.querySelectorAll('button');
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        last.focus(); e.preventDefault();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        first.focus(); e.preventDefault();
+      }
+    }
   }
 
   closeBtn.addEventListener('click', (e) => { e.stopPropagation(); close(); });

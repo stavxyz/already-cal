@@ -27,12 +27,12 @@ function renderGallery(images, altText) {
   };
   gallery.appendChild(imgEl);
 
-  // Magnifying glass zoom badge
+  // Visual affordance indicating the image is zoomable (purely decorative)
   const zoomBadge = createElement('div', 'already-detail-gallery-zoom', { 'aria-hidden': 'true' });
   zoomBadge.textContent = '\u2315';
   gallery.appendChild(zoomBadge);
 
-  // Click image to open lightbox
+  // Open lightbox on click — passes loadedImages so broken images are excluded
   imgEl.style.cursor = 'zoom-in';
   imgEl.addEventListener('click', () => {
     openLightbox(loadedImages, current, altText);

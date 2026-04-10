@@ -3678,6 +3678,7 @@ ${text}</tr>
   var currentClose = null;
   function openLightbox(images, startIndex, altText) {
     if (currentClose) currentClose();
+    const previousFocus = document.activeElement;
     let current = startIndex;
     let counterEl = null;
     const overlay = createElement("div", "already-lightbox", {
@@ -3695,6 +3696,7 @@ ${text}</tr>
       overlay.remove();
       document.removeEventListener("keydown", onKeydown);
       currentClose = null;
+      if (previousFocus && previousFocus.focus) previousFocus.focus();
     }
     function goTo(idx) {
       current = (idx + images.length) % images.length;
@@ -3705,14 +3707,29 @@ ${text}</tr>
       if (e.key === "Escape") {
         close();
         e.preventDefault();
+        return;
       }
       if (e.key === "ArrowLeft") {
         goTo(current - 1);
         e.preventDefault();
+        return;
       }
       if (e.key === "ArrowRight") {
         goTo(current + 1);
         e.preventDefault();
+        return;
+      }
+      if (e.key === "Tab") {
+        const focusable = overlay.querySelectorAll("button");
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          last.focus();
+          e.preventDefault();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          first.focus();
+          e.preventDefault();
+        }
       }
     }
     closeBtn.addEventListener("click", (e) => {

@@ -105,4 +105,28 @@ describe('openLightbox', () => {
     assert.strictEqual(document.querySelector('.already-lightbox-next'), null);
     assert.strictEqual(document.querySelector('.already-lightbox-counter'), null);
   });
+
+  it('restores focus to previously focused element on close', () => {
+    const btn = document.createElement('button');
+    document.body.appendChild(btn);
+    btn.focus();
+    openLightbox(['https://a.com/1.jpg'], 0, 'Alt');
+    document.querySelector('.already-lightbox-close').click();
+    assert.strictEqual(document.activeElement, btn);
+    btn.remove();
+  });
+
+  it('traps Tab focus within the lightbox', () => {
+    openLightbox(['https://a.com/1.jpg', 'https://a.com/2.jpg'], 0, 'Alt');
+    const closeBtn = document.querySelector('.already-lightbox-close');
+    const prevBtn = document.querySelector('.already-lightbox-prev');
+    const nextBtn = document.querySelector('.already-lightbox-next');
+    // Focus is on close button (first), Shift+Tab should wrap to last (next)
+    closeBtn.focus();
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Tab', shiftKey: true }));
+    assert.strictEqual(document.activeElement, nextBtn);
+    // Tab from last (next) should wrap to first (close)
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Tab', shiftKey: false }));
+    assert.strictEqual(document.activeElement, closeBtn);
+  });
 });

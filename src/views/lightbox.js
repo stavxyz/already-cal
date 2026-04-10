@@ -1,14 +1,26 @@
+// src/views/lightbox.js
 import { createElement } from './helpers.js';
 
+// Tracks the close function of any open lightbox to ensure only one exists at a time
 let currentClose = null;
 
+/**
+ * Opens a fullscreen lightbox overlay for image viewing.
+ * @param {string[]} images - Non-empty array of image URLs
+ * @param {number} startIndex - Zero-based index of the initially displayed image
+ * @param {string} altText - Shared alt text for all images (typically the event title)
+ */
 export function openLightbox(images, startIndex, altText) {
-  // Close existing lightbox (cleans up listeners properly)
+  if (!images || images.length === 0) return;
+
+  // Close any existing lightbox before opening a new one
   if (currentClose) currentClose();
 
   const previousFocus = document.activeElement;
+  const savedOverflow = document.body.style.overflow;
+  document.body.style.overflow = 'hidden';
 
-  let current = startIndex;
+  let current = ((startIndex % images.length) + images.length) % images.length;
   let counterEl = null;
 
   const overlay = createElement('div', 'already-lightbox', {
@@ -21,14 +33,26 @@ export function openLightbox(images, startIndex, altText) {
   img.className = 'already-lightbox-img';
   img.src = images[current];
   img.alt = altText;
+  img.setAttribute('tabindex', '0');
+  img.setAttribute('role', 'button');
+  img.setAttribute('aria-label', 'Close image viewer');
+
+  img.onerror = () => {
+    if (images.length > 1) {
+      goTo(current + 1);
+    } else {
+      close();
+    }
+  };
 
   const closeBtn = createElement('button', 'already-lightbox-close', { 'aria-label': 'Close' });
   closeBtn.textContent = '\u00d7';
 
   function close() {
-    overlay.remove();
     document.removeEventListener('keydown', onKeydown);
     currentClose = null;
+    document.body.style.overflow = savedOverflow;
+    overlay.remove();
     if (previousFocus && previousFocus.focus) previousFocus.focus();
   }
 
@@ -43,7 +67,7 @@ export function openLightbox(images, startIndex, altText) {
     if (e.key === 'ArrowLeft') { goTo(current - 1); e.preventDefault(); return; }
     if (e.key === 'ArrowRight') { goTo(current + 1); e.preventDefault(); return; }
     if (e.key === 'Tab') {
-      const focusable = overlay.querySelectorAll('button');
+      const focusable = overlay.querySelectorAll('button, [role="button"]');
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       if (e.shiftKey && document.activeElement === first) {

@@ -1,10 +1,13 @@
 import { createElement } from './helpers.js';
 
+let currentClose = null;
+
 export function openLightbox(images, startIndex, altText) {
-  // Prevent duplicates
-  document.querySelector('.already-lightbox')?.remove();
+  // Close existing lightbox (cleans up listeners properly)
+  if (currentClose) currentClose();
 
   let current = startIndex;
+  let counterEl = null;
 
   const overlay = createElement('div', 'already-lightbox', {
     role: 'dialog',
@@ -23,6 +26,7 @@ export function openLightbox(images, startIndex, altText) {
   function close() {
     overlay.remove();
     document.removeEventListener('keydown', onKeydown);
+    currentClose = null;
   }
 
   function goTo(idx) {
@@ -42,12 +46,10 @@ export function openLightbox(images, startIndex, altText) {
   overlay.addEventListener('click', close);
 
   document.addEventListener('keydown', onKeydown);
+  currentClose = close;
 
   overlay.appendChild(closeBtn);
   overlay.appendChild(img);
-
-  // Navigation (multi-image only)
-  let counterEl = null;
   if (images.length > 1) {
     const prevBtn = createElement('button', 'already-lightbox-prev', { 'aria-label': 'Previous image' });
     prevBtn.textContent = '\u2039';

@@ -21,6 +21,7 @@ describe('openLightbox', () => {
     assert.ok(overlay);
     assert.strictEqual(overlay.getAttribute('role'), 'dialog');
     assert.strictEqual(overlay.getAttribute('aria-modal'), 'true');
+    assert.strictEqual(overlay.getAttribute('aria-label'), 'Image viewer');
   });
 
   it('displays the image at the given start index', () => {

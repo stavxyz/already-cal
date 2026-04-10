@@ -253,7 +253,7 @@ already-cal collects images from three sources:
 3. **Dropbox links in the description** — URLs containing `/scl/fi/`, `/s/`, or on `dl.dropboxusercontent.com` are recognized and normalized to `?raw=1` for direct serving. The file must be publicly shared.
 4. **Attachments** with `image/*` MIME type — from Google Calendar or your own data (Drive and Dropbox attachment URLs are also normalized)
 
-The first image is the thumbnail (grid/list views). Multiple images show as a gallery in detail view with ← → navigation and keyboard support.
+The first image is the thumbnail (grid/list views). Multiple images show as a gallery in detail view with ← → navigation and keyboard support. Tapping any gallery image opens a fullscreen lightbox overlay for easy reading of text-heavy images like flyers — with prev/next navigation, keyboard controls, and multiple dismiss methods (close button, backdrop tap, image tap, Escape key).
 
 To add image attachments via the Google Calendar API, use `supportsAttachments: true` in your update call. Attachments can point to any public URL.
 
@@ -400,10 +400,11 @@ Already.init({ el: '#events-b', storageKeyPrefix: 'cal-b', ... });
 ## Accessibility
 
 - All interactive elements have `tabindex="0"` and `role="button"` or `role="tab"`
-- Keyboard navigation: Enter/Space to activate buttons, arrow keys in image galleries
+- Keyboard navigation: Enter/Space to activate buttons, arrow keys in image galleries and lightbox
 - ARIA attributes: `role="tablist"` on view selector, `aria-selected` on active tab, `aria-live="polite"` on the view container, `aria-label` on navigation buttons
 - `role="grid"` and `role="gridcell"` on the month view calendar
-- Focus management: back button auto-focused when entering detail view
+- `role="dialog"` with `aria-modal="true"` on the image lightbox
+- Focus management: back button auto-focused when entering detail view, focus trapped within lightbox and restored on close
 
 ## Development
 

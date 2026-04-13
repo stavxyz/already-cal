@@ -17,7 +17,7 @@ describe('paginateEvents', () => {
   );
 
   const pastEvents = Array.from({ length: 15 }, (_, i) =>
-    createTestEvent({ id: `p${i}`, title: `Past ${i}`, start: `2025-01-${String(i + 1).padStart(2, '0')}T10:00:00Z` })
+    createTestEvent({ id: `p${i}`, title: `Past ${i}`, start: `2025-01-${String(i + 1).padStart(2, '0')}T10:00:00Z`, end: `2025-01-${String(i + 1).padStart(2, '0')}T11:00:00Z` })
   );
 
   it('returns first pageSize events when showPast is false', () => {

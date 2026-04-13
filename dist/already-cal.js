@@ -3133,7 +3133,7 @@ ${text}</tr>
     svg.setAttribute("aria-hidden", "true");
     return svg;
   }
-  function el(tag2, attrs) {
+  function svgEl(tag2, attrs) {
     const e = document.createElementNS(SVG_NS, tag2);
     for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
     return e;
@@ -3141,40 +3141,40 @@ ${text}</tr>
   var VIEW_ICONS = {
     month: () => {
       const svg = createSvg();
-      svg.appendChild(el("rect", { x: "1", y: "3", width: "14", height: "12", rx: "1" }));
-      svg.appendChild(el("line", { x1: "1", y1: "7", x2: "15", y2: "7" }));
-      svg.appendChild(el("line", { x1: "5.5", y1: "7", x2: "5.5", y2: "15" }));
-      svg.appendChild(el("line", { x1: "10.5", y1: "7", x2: "10.5", y2: "15" }));
+      svg.appendChild(svgEl("rect", { x: "1", y: "3", width: "14", height: "12", rx: "1" }));
+      svg.appendChild(svgEl("line", { x1: "1", y1: "7", x2: "15", y2: "7" }));
+      svg.appendChild(svgEl("line", { x1: "5.5", y1: "7", x2: "5.5", y2: "15" }));
+      svg.appendChild(svgEl("line", { x1: "10.5", y1: "7", x2: "10.5", y2: "15" }));
       return svg;
     },
     week: () => {
       const svg = createSvg();
-      svg.appendChild(el("rect", { x: "1", y: "1", width: "3", height: "14", rx: "0.5" }));
-      svg.appendChild(el("rect", { x: "6.5", y: "1", width: "3", height: "14", rx: "0.5" }));
-      svg.appendChild(el("rect", { x: "12", y: "1", width: "3", height: "14", rx: "0.5" }));
+      svg.appendChild(svgEl("rect", { x: "1", y: "1", width: "3", height: "14", rx: "0.5" }));
+      svg.appendChild(svgEl("rect", { x: "6.5", y: "1", width: "3", height: "14", rx: "0.5" }));
+      svg.appendChild(svgEl("rect", { x: "12", y: "1", width: "3", height: "14", rx: "0.5" }));
       return svg;
     },
     day: () => {
       const svg = createSvg();
-      svg.appendChild(el("rect", { x: "3", y: "1", width: "10", height: "14", rx: "1" }));
-      svg.appendChild(el("line", { x1: "5.5", y1: "5", x2: "10.5", y2: "5" }));
-      svg.appendChild(el("line", { x1: "5.5", y1: "8", x2: "10.5", y2: "8" }));
-      svg.appendChild(el("line", { x1: "5.5", y1: "11", x2: "9", y2: "11" }));
+      svg.appendChild(svgEl("rect", { x: "3", y: "1", width: "10", height: "14", rx: "1" }));
+      svg.appendChild(svgEl("line", { x1: "5.5", y1: "5", x2: "10.5", y2: "5" }));
+      svg.appendChild(svgEl("line", { x1: "5.5", y1: "8", x2: "10.5", y2: "8" }));
+      svg.appendChild(svgEl("line", { x1: "5.5", y1: "11", x2: "9", y2: "11" }));
       return svg;
     },
     grid: () => {
       const svg = createSvg();
-      svg.appendChild(el("rect", { x: "1", y: "1", width: "6", height: "6", rx: "1" }));
-      svg.appendChild(el("rect", { x: "9", y: "1", width: "6", height: "6", rx: "1" }));
-      svg.appendChild(el("rect", { x: "1", y: "9", width: "6", height: "6", rx: "1" }));
-      svg.appendChild(el("rect", { x: "9", y: "9", width: "6", height: "6", rx: "1" }));
+      svg.appendChild(svgEl("rect", { x: "1", y: "1", width: "6", height: "6", rx: "1" }));
+      svg.appendChild(svgEl("rect", { x: "9", y: "1", width: "6", height: "6", rx: "1" }));
+      svg.appendChild(svgEl("rect", { x: "1", y: "9", width: "6", height: "6", rx: "1" }));
+      svg.appendChild(svgEl("rect", { x: "9", y: "9", width: "6", height: "6", rx: "1" }));
       return svg;
     },
     list: () => {
       const svg = createSvg();
-      svg.appendChild(el("line", { x1: "1", y1: "3", x2: "15", y2: "3" }));
-      svg.appendChild(el("line", { x1: "1", y1: "8", x2: "15", y2: "8" }));
-      svg.appendChild(el("line", { x1: "1", y1: "13", x2: "15", y2: "13" }));
+      svg.appendChild(svgEl("line", { x1: "1", y1: "3", x2: "15", y2: "3" }));
+      svg.appendChild(svgEl("line", { x1: "1", y1: "8", x2: "15", y2: "8" }));
+      svg.appendChild(svgEl("line", { x1: "1", y1: "13", x2: "15", y2: "13" }));
       return svg;
     }
   };
@@ -3378,16 +3378,16 @@ ${text}</tr>
 
   // src/views/helpers.js
   function createElement(tag2, className, attrs) {
-    const el2 = document.createElement(tag2);
-    if (className) el2.className = className;
+    const el = document.createElement(tag2);
+    if (className) el.className = className;
     if (attrs) {
       for (const [key, value] of Object.entries(attrs)) {
-        el2.setAttribute(key, value);
+        el.setAttribute(key, value);
       }
     }
-    return el2;
+    return el;
   }
-  function bindEventClick(el2, event, viewName, config, { stopPropagation = false } = {}) {
+  function bindEventClick(el, event, viewName, config, { stopPropagation = false } = {}) {
     function handleClick(e) {
       if (stopPropagation) e.stopPropagation();
       if (config.onEventClick) {
@@ -3396,22 +3396,22 @@ ${text}</tr>
       }
       setEventDetail(event.id);
     }
-    el2.addEventListener("click", handleClick);
-    el2.addEventListener("keydown", (e) => {
+    el.addEventListener("click", handleClick);
+    el.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         if (stopPropagation) e.stopPropagation();
         handleClick(e);
       }
     });
-    el2.setAttribute("tabindex", "0");
-    el2.setAttribute("role", "button");
+    el.setAttribute("tabindex", "0");
+    el.setAttribute("role", "button");
   }
-  function applyEventClasses(el2, event, baseClass) {
+  function applyEventClasses(el, event, baseClass) {
     let cls = baseClass;
     if (isPast(event.start)) cls += ` ${baseClass}--past`;
     if (event.featured) cls += ` ${baseClass}--featured`;
-    el2.className = cls;
+    el.className = cls;
   }
   function createEventImage(event, className) {
     const wrapper = createElement("div", className);
@@ -4178,12 +4178,10 @@ ${text}</tr>
         remainingPast: 0
       };
     }
-    const now = /* @__PURE__ */ new Date();
     const past = [];
     const future = [];
     for (const event of events) {
-      const endOrStart = event.end || event.start;
-      if (new Date(endOrStart) < now) {
+      if (isPast(event.end || event.start)) {
         past.push(event);
       } else {
         future.push(event);
@@ -4284,17 +4282,18 @@ ${text}</tr>
       config.i18n.viewLabels = { ...I18N_DEFAULTS.viewLabels, ...userConfig && userConfig.i18n && userConfig.i18n.viewLabels };
     }
     config.locale = config.locale || typeof navigator !== "undefined" && navigator.language || "en-US";
+    config.pageSize = Number.isFinite(config.pageSize) && config.pageSize > 0 ? config.pageSize : DEFAULTS.pageSize;
     const theme = { ...THEME_DEFAULTS, ...config.theme };
-    const el2 = typeof config.el === "string" ? document.querySelector(config.el) : config.el;
-    if (!el2) {
+    const el = typeof config.el === "string" ? document.querySelector(config.el) : config.el;
+    if (!el) {
       console.error("already-cal: Element not found:", config.el);
       return;
     }
     for (const [key, value] of Object.entries(theme)) {
       const prop = `--already-${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`;
-      el2.style.setProperty(prop, value);
+      el.style.setProperty(prop, value);
     }
-    el2.classList.add("already");
+    el.classList.add("already");
     const headerContainer = document.createElement("div");
     headerContainer.className = "already-header-container";
     const selectorContainer = document.createElement("div");
@@ -4310,14 +4309,14 @@ ${text}</tr>
     paginationTopContainer.className = "already-pagination-top";
     const paginationBottomContainer = document.createElement("div");
     paginationBottomContainer.className = "already-pagination-bottom";
-    el2.innerHTML = "";
-    el2.appendChild(headerContainer);
-    el2.appendChild(selectorContainer);
-    el2.appendChild(tagFilterContainer);
-    el2.appendChild(paginationTopContainer);
-    el2.appendChild(viewContainer);
-    el2.appendChild(paginationBottomContainer);
-    el2.appendChild(toggleContainer);
+    el.innerHTML = "";
+    el.appendChild(headerContainer);
+    el.appendChild(selectorContainer);
+    el.appendChild(tagFilterContainer);
+    el.appendChild(paginationTopContainer);
+    el.appendChild(viewContainer);
+    el.appendChild(paginationBottomContainer);
+    el.appendChild(toggleContainer);
     const stickyConfig = resolveSticky(config.sticky);
     applyStickyClasses(stickyConfig, headerContainer, selectorContainer, tagFilterContainer);
     let data = null;
@@ -4402,8 +4401,8 @@ ${text}</tr>
           paginationState = { ...paginationState, futureCount: paginationState.futureCount + cfg.pageSize };
           renderView(viewState);
           if (anchorEl && anchorOffset !== null) {
-            const newAnchor = viewContainer.querySelector(`[data-event-id="${anchorEl.dataset.eventId}"]`);
-            if (newAnchor && newAnchor.getBoundingClientRect) {
+            const newAnchor = viewContainer.querySelector(`[data-event-id="${CSS.escape(anchorEl.dataset.eventId)}"]`);
+            if (newAnchor) {
               window.scrollTo(0, window.scrollY + (newAnchor.getBoundingClientRect().top - anchorOffset));
             }
           }
@@ -4426,11 +4425,10 @@ ${text}</tr>
       if (viewState.view !== "detail") {
         restoreOriginalMeta();
       }
-      if (config.onViewChange && viewState.view !== "detail") {
-        const oldView = lastView;
-        if (oldView !== viewState.view) {
-          config.onViewChange(viewState.view, oldView);
-          paginationState = { futureCount: 0, pastCount: 0 };
+      if (viewState.view !== "detail" && lastView !== viewState.view) {
+        paginationState = { futureCount: 0, pastCount: 0 };
+        if (config.onViewChange) {
+          config.onViewChange(viewState.view, lastView);
         }
       }
       if (viewState.view !== "detail") {
@@ -4531,9 +4529,9 @@ ${text}</tr>
   }
   function autoInit() {
     const elements = document.querySelectorAll("[data-already-cal]");
-    for (const el2 of elements) {
-      const config = { el: el2 };
-      const dataset = el2.dataset;
+    for (const el of elements) {
+      const config = { el };
+      const dataset = el.dataset;
       if (dataset.calendarId || dataset.apiKey) {
         config.google = {};
         if (dataset.calendarId) config.google.calendarId = dataset.calendarId;

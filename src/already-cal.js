@@ -14,6 +14,7 @@ import { DEFAULT_PLATFORMS } from './util/links.js';
 import { renderHeader } from './ui/header.js';
 import { createTagFilter } from './ui/tag-filter.js';
 import { resolveSticky, applyStickyClasses, updateStickyOffsets } from './ui/sticky.js';
+import { paginateEvents } from './ui/pagination.js';
 
 const DEFAULTS = {
   defaultView: 'month',
@@ -48,6 +49,7 @@ const DEFAULTS = {
   i18n: {},
   initialEvent: null,
   sticky: true,
+  pageSize: 10,
 };
 
 const I18N_DEFAULTS = {
@@ -63,6 +65,8 @@ const I18N_DEFAULTS = {
   moreEvents: '+{count} more',
   subscribe: 'Subscribe',
   clearFilter: 'Clear',
+  loadMore: 'Load more',
+  showEarlier: 'Show earlier',
 };
 
 const THEME_DEFAULTS = {
@@ -115,12 +119,18 @@ export function init(userConfig) {
   viewContainer.setAttribute('aria-live', 'polite');
   const toggleContainer = document.createElement('div');
   toggleContainer.className = 'already-toggle-container';
+  const paginationTopContainer = document.createElement('div');
+  paginationTopContainer.className = 'already-pagination-top';
+  const paginationBottomContainer = document.createElement('div');
+  paginationBottomContainer.className = 'already-pagination-bottom';
 
   el.innerHTML = '';
   el.appendChild(headerContainer);
   el.appendChild(selectorContainer);
   el.appendChild(tagFilterContainer);
+  el.appendChild(paginationTopContainer);
   el.appendChild(viewContainer);
+  el.appendChild(paginationBottomContainer);
   el.appendChild(toggleContainer);
 
   const stickyConfig = resolveSticky(config.sticky);
@@ -131,7 +141,9 @@ export function init(userConfig) {
   let currentDate = new Date();
   let lastView = null;
   let lastViewState = null;
+  let paginationState = { futureCount: 0, pastCount: 0 };
   const tagFilter = createTagFilter(() => {
+    paginationState = { futureCount: 0, pastCount: 0 };
     if (lastViewState) renderView(lastViewState);
   }, config);
 
@@ -195,6 +207,42 @@ export function init(userConfig) {
     return data.events.some(e => isPast(e.end || e.start));
   }
 
+  function renderPaginationButtons(topContainer, bottomContainer, paginated, viewState, cfg) {
+    const i18n = cfg.i18n || {};
+    topContainer.innerHTML = '';
+    bottomContainer.innerHTML = '';
+
+    if (paginated.hasMorePast) {
+      const btn = document.createElement('button');
+      btn.className = 'already-show-earlier';
+      btn.textContent = `${i18n.showEarlier || 'Show earlier'} (${paginated.remainingPast} remaining)`;
+      btn.addEventListener('click', () => {
+        paginationState = { ...paginationState, pastCount: paginationState.pastCount + cfg.pageSize };
+        renderView(viewState);
+      });
+      topContainer.appendChild(btn);
+    }
+
+    if (paginated.hasMoreFuture) {
+      const btn = document.createElement('button');
+      btn.className = 'already-load-more';
+      btn.textContent = `${i18n.loadMore || 'Load more'} (${paginated.remainingFuture} remaining)`;
+      btn.addEventListener('click', () => {
+        const anchorEl = viewContainer.querySelector('.already-grid-card:last-child, .already-list-item:last-child');
+        const anchorOffset = anchorEl ? anchorEl.getBoundingClientRect().top : null;
+        paginationState = { ...paginationState, futureCount: paginationState.futureCount + cfg.pageSize };
+        renderView(viewState);
+        if (anchorEl && anchorOffset !== null) {
+          const newAnchor = viewContainer.querySelector(`[data-event-id="${anchorEl.dataset.eventId}"]`);
+          if (newAnchor && newAnchor.getBoundingClientRect) {
+            window.scrollTo(0, window.scrollY + (newAnchor.getBoundingClientRect().top - anchorOffset));
+          }
+        }
+      });
+      bottomContainer.appendChild(btn);
+    }
+  }
+
   function renderView(viewState) {
     lastViewState = viewState;
     const allEvents = getFilteredEvents();
@@ -224,6 +272,7 @@ export function init(userConfig) {
       const oldView = lastView;
       if (oldView !== viewState.view) {
         config.onViewChange(viewState.view, oldView);
+        paginationState = { futureCount: 0, pastCount: 0 };
       }
     }
 
@@ -234,6 +283,9 @@ export function init(userConfig) {
     }
 
     updateStickyOffsets(stickyConfig, headerContainer, selectorContainer, tagFilterContainer);
+
+    paginationTopContainer.innerHTML = '';
+    paginationBottomContainer.innerHTML = '';
 
     switch (viewState.view) {
       case 'month':
@@ -247,12 +299,18 @@ export function init(userConfig) {
         renderDayView(viewContainer, events, timezone, dayDate, config);
         break;
       }
-      case 'grid':
-        renderGridView(viewContainer, events, timezone, config);
+      case 'grid': {
+        const paginated = paginateEvents(events, showPast, config.pageSize, paginationState);
+        renderGridView(viewContainer, paginated.visible, timezone, config);
+        renderPaginationButtons(paginationTopContainer, paginationBottomContainer, paginated, viewState, config);
         break;
-      case 'list':
-        renderListView(viewContainer, events, timezone, config);
+      }
+      case 'list': {
+        const paginated = paginateEvents(events, showPast, config.pageSize, paginationState);
+        renderListView(viewContainer, paginated.visible, timezone, config);
+        renderPaginationButtons(paginationTopContainer, paginationBottomContainer, paginated, viewState, config);
         break;
+      }
       case 'detail': {
         const event = data?.events?.find(e => e.id === viewState.eventId);
         if (event) {
@@ -276,6 +334,7 @@ export function init(userConfig) {
     if (hasPastEvents()) {
       renderPastToggle(toggleContainer, showPast, () => {
         showPast = !showPast;
+        paginationState = { futureCount: 0, pastCount: 0 };
         renderView(viewState);
       }, config);
     } else {

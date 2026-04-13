@@ -13,6 +13,7 @@ export function renderGridView(container, events, timezone, config) {
   for (const event of events) {
     const card = createElement('div');
     applyEventClasses(card, event, 'already-grid-card');
+    card.dataset.eventId = event.id;
     bindEventClick(card, event, 'grid', config);
 
     if (event.image) {

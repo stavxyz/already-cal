@@ -15,6 +15,7 @@ export function renderListView(container, events, timezone, config) {
   for (const event of events) {
     const item = createElement('div');
     applyEventClasses(item, event, 'already-list-item');
+    item.dataset.eventId = event.id;
     bindEventClick(item, event, 'list', config);
 
     const dateCol = createElement('div', 'already-list-date');

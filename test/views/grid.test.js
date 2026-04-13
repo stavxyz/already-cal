@@ -114,6 +114,18 @@ describe('renderGridView', () => {
     assert.strictEqual(titles[1], 'Regular');
   });
 
+  it('sets data-event-id on each card', () => {
+    const container = document.createElement('div');
+    const events = [
+      createTestEvent({ id: 'abc-123' }),
+      createTestEvent({ id: 'def-456' }),
+    ];
+    renderGridView(container, events, 'UTC', {});
+    const cards = container.querySelectorAll('.already-grid-card');
+    assert.strictEqual(cards[0].dataset.eventId, 'abc-123');
+    assert.strictEqual(cards[1].dataset.eventId, 'def-456');
+  });
+
   it('does not sort featured across different dates', () => {
     const container = document.createElement('div');
     const events = [

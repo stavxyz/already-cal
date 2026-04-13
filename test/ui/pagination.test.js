@@ -12,12 +12,13 @@ before(async () => {
 });
 
 describe('paginateEvents', () => {
+  // Use far-future dates to avoid time-bomb failures
   const futureEvents = Array.from({ length: 25 }, (_, i) =>
-    createTestEvent({ id: `f${i}`, title: `Future ${i}`, start: `2026-05-${String(i + 1).padStart(2, '0')}T10:00:00Z` })
+    createTestEvent({ id: `f${i}`, title: `Future ${i}`, start: `2099-06-${String(i + 1).padStart(2, '0')}T10:00:00Z` })
   );
 
   const pastEvents = Array.from({ length: 15 }, (_, i) =>
-    createTestEvent({ id: `p${i}`, title: `Past ${i}`, start: `2025-01-${String(i + 1).padStart(2, '0')}T10:00:00Z`, end: `2025-01-${String(i + 1).padStart(2, '0')}T11:00:00Z` })
+    createTestEvent({ id: `p${i}`, title: `Past ${i}`, start: `2020-01-${String(i + 1).padStart(2, '0')}T10:00:00Z`, end: `2020-01-${String(i + 1).padStart(2, '0')}T11:00:00Z` })
   );
 
   it('returns first pageSize events when showPast is false', () => {
@@ -60,6 +61,13 @@ describe('paginateEvents', () => {
     assert.strictEqual(result.hasMorePast, false);
   });
 
+  it('handles null events', () => {
+    const result = paginateEvents(null, false, 10, { futureCount: 0, pastCount: 0 });
+    assert.strictEqual(result.visible.length, 0);
+    assert.strictEqual(result.hasMoreFuture, false);
+    assert.strictEqual(result.hasMorePast, false);
+  });
+
   it('splits past and future when showPast is true', () => {
     const mixed = [...pastEvents, ...futureEvents];
     const result = paginateEvents(mixed, true, 10, { futureCount: 0, pastCount: 0 });
@@ -77,10 +85,11 @@ describe('paginateEvents', () => {
     assert.strictEqual(result.remainingPast, 0);
   });
 
-  it('shows past events in reverse chronological order (most recent first)', () => {
+  it('selects most recent past events first', () => {
     const mixed = [...pastEvents, ...futureEvents];
     const result = paginateEvents(mixed, true, 3, { futureCount: 0, pastCount: 0 });
     const pastVisible = result.visible.filter(e => e.id.startsWith('p'));
+    // Most recent 3 past events selected, displayed chronologically
     assert.strictEqual(pastVisible[0].id, 'p12');
     assert.strictEqual(pastVisible[1].id, 'p13');
     assert.strictEqual(pastVisible[2].id, 'p14');
@@ -90,5 +99,14 @@ describe('paginateEvents', () => {
     const result = paginateEvents(futureEvents, false, 10, { futureCount: 0, pastCount: 0 });
     assert.strictEqual(result.hasMorePast, false);
     assert.strictEqual(result.remainingPast, 0);
+  });
+
+  it('returns all future events when showPast is true but no past events exist', () => {
+    const result = paginateEvents(futureEvents, true, 10, { futureCount: 0, pastCount: 0 });
+    assert.strictEqual(result.visible.length, 10);
+    assert.strictEqual(result.hasMorePast, false);
+    assert.strictEqual(result.remainingPast, 0);
+    assert.strictEqual(result.hasMoreFuture, true);
+    assert.strictEqual(result.remainingFuture, 15);
   });
 });

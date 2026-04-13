@@ -82,6 +82,18 @@ describe('renderListView', () => {
     assert.ok(container.querySelector('.already-list-item--featured'));
   });
 
+  it('sets data-event-id on each item', () => {
+    const container = document.createElement('div');
+    const events = [
+      createTestEvent({ id: 'list-1' }),
+      createTestEvent({ id: 'list-2' }),
+    ];
+    renderListView(container, events, 'UTC', {});
+    const items = container.querySelectorAll('.already-list-item');
+    assert.strictEqual(items[0].dataset.eventId, 'list-1');
+    assert.strictEqual(items[1].dataset.eventId, 'list-2');
+  });
+
   it('sorts featured first within same date', () => {
     const container = document.createElement('div');
     const events = [

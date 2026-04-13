@@ -85,7 +85,9 @@ Already.init({
 | List | `#list` | Compact chronological list |
 | Detail | `#event/<id>` or `/event/<id>` | Two-column: image gallery + event info |
 
-Visitors can switch views via the selector bar. Their preference is saved in localStorage. Detail view shows a gallery with arrow navigation when an event has multiple images.
+Visitors can switch views via the selector bar, which includes inline SVG icons for each view. Their preference is saved in localStorage. Detail view shows a gallery with arrow navigation when an event has multiple images.
+
+Grid and list views are paginated (default: 10 events per page) with "Load more" and "Show earlier" buttons. Month, week, and day views show all events for their date range.
 
 ## Configuration
 
@@ -111,6 +113,10 @@ Already.init({
   defaultView: 'month',
   views: ['month', 'week', 'day', 'grid', 'list'],
   showPastEvents: false,               // visitors can toggle this
+  pageSize: 10,                        // events per page in grid/list views
+
+  // --- Sticky header ---
+  sticky: true,                        // true | false | { header, viewSelector, tagFilter }
 
   // --- Theming ---
   theme: {
@@ -140,6 +146,8 @@ Already.init({
     moreEvents: '+{count} more',
     subscribe: 'Subscribe',
     clearFilter: 'Clear',
+    loadMore: 'Load more',
+    showEarlier: 'Show earlier',
   },
 
   // --- Responsive ---

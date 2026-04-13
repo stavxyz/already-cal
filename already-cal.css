@@ -37,7 +37,9 @@
   margin-bottom: 1rem;
 }
 
-/* ===== Sticky ===== */
+/* ===== Sticky =====
+   top values are set dynamically by updateStickyOffsets() in sticky.js
+   so sticky elements stack below each other based on measured heights. */
 .already-header-container.already-sticky {
   position: sticky;
   z-index: 10;

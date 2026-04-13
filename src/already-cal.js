@@ -229,13 +229,15 @@ export function init(userConfig) {
       btn.className = 'already-load-more';
       btn.textContent = `${i18n.loadMore || 'Load more'} (${paginated.remainingFuture} remaining)`;
       btn.addEventListener('click', () => {
+        // Scroll anchoring: remember the last visible event's viewport position,
+        // re-render with more events, then restore scroll so the user doesn't jump.
         const anchorEl = viewContainer.querySelector('.already-grid-card:last-child, .already-list-item:last-child');
         const anchorOffset = anchorEl ? anchorEl.getBoundingClientRect().top : null;
         paginationState = { ...paginationState, futureCount: paginationState.futureCount + cfg.pageSize };
         renderView(viewState);
         if (anchorEl && anchorOffset !== null) {
           const newAnchor = viewContainer.querySelector(`[data-event-id="${CSS.escape(anchorEl.dataset.eventId)}"]`);
-          if (newAnchor && newAnchor.getBoundingClientRect) {
+          if (newAnchor) {
             window.scrollTo(0, window.scrollY + (newAnchor.getBoundingClientRect().top - anchorOffset));
           }
         }

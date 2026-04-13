@@ -22,7 +22,7 @@ function createSvg() {
   return svg;
 }
 
-function el(tag, attrs) {
+function svgEl(tag, attrs) {
   const e = document.createElementNS(SVG_NS, tag);
   for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
   return e;
@@ -31,40 +31,40 @@ function el(tag, attrs) {
 const VIEW_ICONS = {
   month: () => {
     const svg = createSvg();
-    svg.appendChild(el('rect', { x: '1', y: '3', width: '14', height: '12', rx: '1' }));
-    svg.appendChild(el('line', { x1: '1', y1: '7', x2: '15', y2: '7' }));
-    svg.appendChild(el('line', { x1: '5.5', y1: '7', x2: '5.5', y2: '15' }));
-    svg.appendChild(el('line', { x1: '10.5', y1: '7', x2: '10.5', y2: '15' }));
+    svg.appendChild(svgEl('rect', { x: '1', y: '3', width: '14', height: '12', rx: '1' }));
+    svg.appendChild(svgEl('line', { x1: '1', y1: '7', x2: '15', y2: '7' }));
+    svg.appendChild(svgEl('line', { x1: '5.5', y1: '7', x2: '5.5', y2: '15' }));
+    svg.appendChild(svgEl('line', { x1: '10.5', y1: '7', x2: '10.5', y2: '15' }));
     return svg;
   },
   week: () => {
     const svg = createSvg();
-    svg.appendChild(el('rect', { x: '1', y: '1', width: '3', height: '14', rx: '0.5' }));
-    svg.appendChild(el('rect', { x: '6.5', y: '1', width: '3', height: '14', rx: '0.5' }));
-    svg.appendChild(el('rect', { x: '12', y: '1', width: '3', height: '14', rx: '0.5' }));
+    svg.appendChild(svgEl('rect', { x: '1', y: '1', width: '3', height: '14', rx: '0.5' }));
+    svg.appendChild(svgEl('rect', { x: '6.5', y: '1', width: '3', height: '14', rx: '0.5' }));
+    svg.appendChild(svgEl('rect', { x: '12', y: '1', width: '3', height: '14', rx: '0.5' }));
     return svg;
   },
   day: () => {
     const svg = createSvg();
-    svg.appendChild(el('rect', { x: '3', y: '1', width: '10', height: '14', rx: '1' }));
-    svg.appendChild(el('line', { x1: '5.5', y1: '5', x2: '10.5', y2: '5' }));
-    svg.appendChild(el('line', { x1: '5.5', y1: '8', x2: '10.5', y2: '8' }));
-    svg.appendChild(el('line', { x1: '5.5', y1: '11', x2: '9', y2: '11' }));
+    svg.appendChild(svgEl('rect', { x: '3', y: '1', width: '10', height: '14', rx: '1' }));
+    svg.appendChild(svgEl('line', { x1: '5.5', y1: '5', x2: '10.5', y2: '5' }));
+    svg.appendChild(svgEl('line', { x1: '5.5', y1: '8', x2: '10.5', y2: '8' }));
+    svg.appendChild(svgEl('line', { x1: '5.5', y1: '11', x2: '9', y2: '11' }));
     return svg;
   },
   grid: () => {
     const svg = createSvg();
-    svg.appendChild(el('rect', { x: '1', y: '1', width: '6', height: '6', rx: '1' }));
-    svg.appendChild(el('rect', { x: '9', y: '1', width: '6', height: '6', rx: '1' }));
-    svg.appendChild(el('rect', { x: '1', y: '9', width: '6', height: '6', rx: '1' }));
-    svg.appendChild(el('rect', { x: '9', y: '9', width: '6', height: '6', rx: '1' }));
+    svg.appendChild(svgEl('rect', { x: '1', y: '1', width: '6', height: '6', rx: '1' }));
+    svg.appendChild(svgEl('rect', { x: '9', y: '1', width: '6', height: '6', rx: '1' }));
+    svg.appendChild(svgEl('rect', { x: '1', y: '9', width: '6', height: '6', rx: '1' }));
+    svg.appendChild(svgEl('rect', { x: '9', y: '9', width: '6', height: '6', rx: '1' }));
     return svg;
   },
   list: () => {
     const svg = createSvg();
-    svg.appendChild(el('line', { x1: '1', y1: '3', x2: '15', y2: '3' }));
-    svg.appendChild(el('line', { x1: '1', y1: '8', x2: '15', y2: '8' }));
-    svg.appendChild(el('line', { x1: '1', y1: '13', x2: '15', y2: '13' }));
+    svg.appendChild(svgEl('line', { x1: '1', y1: '3', x2: '15', y2: '3' }));
+    svg.appendChild(svgEl('line', { x1: '1', y1: '8', x2: '15', y2: '8' }));
+    svg.appendChild(svgEl('line', { x1: '1', y1: '13', x2: '15', y2: '13' }));
     return svg;
   },
 };

@@ -37,6 +37,25 @@
   margin-bottom: 1rem;
 }
 
+/* ===== Sticky ===== */
+.already-header-container.already-sticky {
+  position: sticky;
+  z-index: 10;
+  background: var(--already-background);
+}
+
+.already-selector-container.already-sticky {
+  position: sticky;
+  z-index: 9;
+  background: var(--already-background);
+}
+
+.already-tag-filter-container.already-sticky {
+  position: sticky;
+  z-index: 8;
+  background: var(--already-background);
+}
+
 /* ===== Header ===== */
 .already-header {
   display: flex;

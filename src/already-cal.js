@@ -13,6 +13,7 @@ import { isPast, formatDate, formatDatetime } from './util/dates.js';
 import { DEFAULT_PLATFORMS } from './util/links.js';
 import { renderHeader } from './ui/header.js';
 import { createTagFilter } from './ui/tag-filter.js';
+import { resolveSticky, applyStickyClasses, updateStickyOffsets } from './ui/sticky.js';
 
 const DEFAULTS = {
   defaultView: 'month',
@@ -46,6 +47,7 @@ const DEFAULTS = {
   renderError: null,
   i18n: {},
   initialEvent: null,
+  sticky: true,
 };
 
 const I18N_DEFAULTS = {
@@ -120,6 +122,9 @@ export function init(userConfig) {
   el.appendChild(tagFilterContainer);
   el.appendChild(viewContainer);
   el.appendChild(toggleContainer);
+
+  const stickyConfig = resolveSticky(config.sticky);
+  applyStickyClasses(stickyConfig, headerContainer, selectorContainer, tagFilterContainer);
 
   let data = null;
   let showPast = config.showPastEvents;
@@ -228,6 +233,8 @@ export function init(userConfig) {
       lastView = viewState.view;
     }
 
+    updateStickyOffsets(stickyConfig, headerContainer, selectorContainer, tagFilterContainer);
+
     switch (viewState.view) {
       case 'month':
         renderMonthView(viewContainer, events, timezone, currentDate, config);
@@ -321,6 +328,10 @@ export function init(userConfig) {
   }
 
   start();
+
+  window.addEventListener('resize', () => {
+    updateStickyOffsets(stickyConfig, headerContainer, selectorContainer, tagFilterContainer);
+  });
 }
 
 // Auto-init from data attributes

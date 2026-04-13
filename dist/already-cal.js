@@ -3121,6 +3121,63 @@ ${text}</tr>
     grid: "Grid",
     list: "List"
   };
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  function createSvg() {
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("width", "16");
+    svg.setAttribute("height", "16");
+    svg.setAttribute("viewBox", "0 0 16 16");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "1.5");
+    svg.setAttribute("aria-hidden", "true");
+    return svg;
+  }
+  function el(tag2, attrs) {
+    const e = document.createElementNS(SVG_NS, tag2);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    return e;
+  }
+  var VIEW_ICONS = {
+    month: () => {
+      const svg = createSvg();
+      svg.appendChild(el("rect", { x: "1", y: "3", width: "14", height: "12", rx: "1" }));
+      svg.appendChild(el("line", { x1: "1", y1: "7", x2: "15", y2: "7" }));
+      svg.appendChild(el("line", { x1: "5.5", y1: "7", x2: "5.5", y2: "15" }));
+      svg.appendChild(el("line", { x1: "10.5", y1: "7", x2: "10.5", y2: "15" }));
+      return svg;
+    },
+    week: () => {
+      const svg = createSvg();
+      svg.appendChild(el("rect", { x: "1", y: "1", width: "3", height: "14", rx: "0.5" }));
+      svg.appendChild(el("rect", { x: "6.5", y: "1", width: "3", height: "14", rx: "0.5" }));
+      svg.appendChild(el("rect", { x: "12", y: "1", width: "3", height: "14", rx: "0.5" }));
+      return svg;
+    },
+    day: () => {
+      const svg = createSvg();
+      svg.appendChild(el("rect", { x: "3", y: "1", width: "10", height: "14", rx: "1" }));
+      svg.appendChild(el("line", { x1: "5.5", y1: "5", x2: "10.5", y2: "5" }));
+      svg.appendChild(el("line", { x1: "5.5", y1: "8", x2: "10.5", y2: "8" }));
+      svg.appendChild(el("line", { x1: "5.5", y1: "11", x2: "9", y2: "11" }));
+      return svg;
+    },
+    grid: () => {
+      const svg = createSvg();
+      svg.appendChild(el("rect", { x: "1", y: "1", width: "6", height: "6", rx: "1" }));
+      svg.appendChild(el("rect", { x: "9", y: "1", width: "6", height: "6", rx: "1" }));
+      svg.appendChild(el("rect", { x: "1", y: "9", width: "6", height: "6", rx: "1" }));
+      svg.appendChild(el("rect", { x: "9", y: "9", width: "6", height: "6", rx: "1" }));
+      return svg;
+    },
+    list: () => {
+      const svg = createSvg();
+      svg.appendChild(el("line", { x1: "1", y1: "3", x2: "15", y2: "3" }));
+      svg.appendChild(el("line", { x1: "1", y1: "8", x2: "15", y2: "8" }));
+      svg.appendChild(el("line", { x1: "1", y1: "13", x2: "15", y2: "13" }));
+      return svg;
+    }
+  };
   function renderViewSelector(container, views, activeView, isMobile, config) {
     const i18n = config && config.i18n || {};
     const viewLabels = { ...DEFAULT_VIEW_LABELS, ...i18n.viewLabels };
@@ -3132,9 +3189,11 @@ ${text}</tr>
     for (const view of filtered) {
       const tab = document.createElement("button");
       tab.className = "already-view-tab" + (view === activeView ? " already-view-tab--active" : "");
-      tab.textContent = viewLabels[view] || view;
       tab.setAttribute("role", "tab");
       tab.setAttribute("aria-selected", view === activeView ? "true" : "false");
+      const iconFn = VIEW_ICONS[view];
+      if (iconFn) tab.appendChild(iconFn());
+      tab.appendChild(document.createTextNode(viewLabels[view] || view));
       tab.addEventListener("click", () => setView(view, config));
       bar.appendChild(tab);
     }
@@ -3319,16 +3378,16 @@ ${text}</tr>
 
   // src/views/helpers.js
   function createElement(tag2, className, attrs) {
-    const el = document.createElement(tag2);
-    if (className) el.className = className;
+    const el2 = document.createElement(tag2);
+    if (className) el2.className = className;
     if (attrs) {
       for (const [key, value] of Object.entries(attrs)) {
-        el.setAttribute(key, value);
+        el2.setAttribute(key, value);
       }
     }
-    return el;
+    return el2;
   }
-  function bindEventClick(el, event, viewName, config, { stopPropagation = false } = {}) {
+  function bindEventClick(el2, event, viewName, config, { stopPropagation = false } = {}) {
     function handleClick(e) {
       if (stopPropagation) e.stopPropagation();
       if (config.onEventClick) {
@@ -3337,22 +3396,22 @@ ${text}</tr>
       }
       setEventDetail(event.id);
     }
-    el.addEventListener("click", handleClick);
-    el.addEventListener("keydown", (e) => {
+    el2.addEventListener("click", handleClick);
+    el2.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         if (stopPropagation) e.stopPropagation();
         handleClick(e);
       }
     });
-    el.setAttribute("tabindex", "0");
-    el.setAttribute("role", "button");
+    el2.setAttribute("tabindex", "0");
+    el2.setAttribute("role", "button");
   }
-  function applyEventClasses(el, event, baseClass) {
+  function applyEventClasses(el2, event, baseClass) {
     let cls = baseClass;
     if (isPast(event.start)) cls += ` ${baseClass}--past`;
     if (event.featured) cls += ` ${baseClass}--featured`;
-    el.className = cls;
+    el2.className = cls;
   }
   function createEventImage(event, className) {
     const wrapper = createElement("div", className);
@@ -3612,6 +3671,7 @@ ${text}</tr>
     for (const event of events) {
       const card = createElement("div");
       applyEventClasses(card, event, "already-grid-card");
+      card.dataset.eventId = event.id;
       bindEventClick(card, event, "grid", config);
       if (event.image) {
         card.appendChild(createEventImage(event, "already-grid-image"));
@@ -3649,6 +3709,7 @@ ${text}</tr>
     for (const event of events) {
       const item = createElement("div");
       applyEventClasses(item, event, "already-list-item");
+      item.dataset.eventId = event.id;
       bindEventClick(item, event, "list", config);
       const dateCol = createElement("div", "already-list-date");
       const dateDay = createElement("div", "already-list-date-day");
@@ -4061,6 +4122,91 @@ ${text}</tr>
     return { render, getFilter, getSelectedTags };
   }
 
+  // src/ui/sticky.js
+  var ALL_ON = { header: true, viewSelector: true, tagFilter: true };
+  var ALL_OFF = { header: false, viewSelector: false, tagFilter: false };
+  function resolveSticky(value) {
+    if (value === false) return { ...ALL_OFF };
+    if (value === true || value === void 0 || value === null || typeof value !== "object") {
+      return { ...ALL_ON };
+    }
+    return {
+      header: value.header !== false,
+      viewSelector: value.viewSelector !== false,
+      tagFilter: value.tagFilter !== false
+    };
+  }
+  function applyStickyClasses(stickyConfig, headerContainer, selectorContainer, tagFilterContainer) {
+    const containers = [
+      [stickyConfig.header, headerContainer],
+      [stickyConfig.viewSelector, selectorContainer],
+      [stickyConfig.tagFilter, tagFilterContainer]
+    ];
+    for (const [enabled, container] of containers) {
+      container.classList.toggle("already-sticky", enabled);
+    }
+  }
+  function updateStickyOffsets(stickyConfig, headerContainer, selectorContainer, tagFilterContainer) {
+    let offset = 0;
+    if (stickyConfig.header && headerContainer.classList.contains("already-sticky")) {
+      headerContainer.style.top = offset + "px";
+      offset += headerContainer.offsetHeight;
+    }
+    if (stickyConfig.viewSelector && selectorContainer.classList.contains("already-sticky")) {
+      selectorContainer.style.top = offset + "px";
+      offset += selectorContainer.offsetHeight;
+    }
+    if (stickyConfig.tagFilter && tagFilterContainer.classList.contains("already-sticky")) {
+      tagFilterContainer.style.top = offset + "px";
+    }
+  }
+
+  // src/ui/pagination.js
+  function paginateEvents(events, showPast, pageSize, paginationState) {
+    if (!events || events.length === 0) {
+      return { visible: [], hasMoreFuture: false, hasMorePast: false, remainingFuture: 0, remainingPast: 0 };
+    }
+    if (!showPast) {
+      const limit = pageSize + paginationState.futureCount;
+      const visible2 = events.slice(0, limit);
+      const remainingFuture2 = Math.max(0, events.length - limit);
+      return {
+        visible: visible2,
+        hasMoreFuture: remainingFuture2 > 0,
+        hasMorePast: false,
+        remainingFuture: remainingFuture2,
+        remainingPast: 0
+      };
+    }
+    const now = /* @__PURE__ */ new Date();
+    const past = [];
+    const future = [];
+    for (const event of events) {
+      const endOrStart = event.end || event.start;
+      if (new Date(endOrStart) < now) {
+        past.push(event);
+      } else {
+        future.push(event);
+      }
+    }
+    const pastReversed = [...past].reverse();
+    const pastLimit = pageSize + paginationState.pastCount;
+    const visiblePast = pastReversed.slice(0, pastLimit);
+    const remainingPast = Math.max(0, pastReversed.length - pastLimit);
+    const futureLimit = pageSize + paginationState.futureCount;
+    const visibleFuture = future.slice(0, futureLimit);
+    const remainingFuture = Math.max(0, future.length - futureLimit);
+    const visiblePastChronological = [...visiblePast].reverse();
+    const visible = [...visiblePastChronological, ...visibleFuture];
+    return {
+      visible,
+      hasMoreFuture: remainingFuture > 0,
+      hasMorePast: remainingPast > 0,
+      remainingFuture,
+      remainingPast
+    };
+  }
+
   // src/already-cal.js
   var DEFAULTS = {
     defaultView: "month",
@@ -4101,7 +4247,9 @@ ${text}</tr>
     renderLoading: null,
     renderError: null,
     i18n: {},
-    initialEvent: null
+    initialEvent: null,
+    sticky: true,
+    pageSize: 10
   };
   var I18N_DEFAULTS = {
     viewLabels: { month: "Month", week: "Week", day: "Day", grid: "Grid", list: "List" },
@@ -4115,7 +4263,9 @@ ${text}</tr>
     back: "\u2190 Back",
     moreEvents: "+{count} more",
     subscribe: "Subscribe",
-    clearFilter: "Clear"
+    clearFilter: "Clear",
+    loadMore: "Load more",
+    showEarlier: "Show earlier"
   };
   var THEME_DEFAULTS = {
     primary: "#8B4513",
@@ -4135,16 +4285,16 @@ ${text}</tr>
     }
     config.locale = config.locale || typeof navigator !== "undefined" && navigator.language || "en-US";
     const theme = { ...THEME_DEFAULTS, ...config.theme };
-    const el = typeof config.el === "string" ? document.querySelector(config.el) : config.el;
-    if (!el) {
+    const el2 = typeof config.el === "string" ? document.querySelector(config.el) : config.el;
+    if (!el2) {
       console.error("already-cal: Element not found:", config.el);
       return;
     }
     for (const [key, value] of Object.entries(theme)) {
       const prop = `--already-${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`;
-      el.style.setProperty(prop, value);
+      el2.style.setProperty(prop, value);
     }
-    el.classList.add("already");
+    el2.classList.add("already");
     const headerContainer = document.createElement("div");
     headerContainer.className = "already-header-container";
     const selectorContainer = document.createElement("div");
@@ -4156,18 +4306,28 @@ ${text}</tr>
     viewContainer.setAttribute("aria-live", "polite");
     const toggleContainer = document.createElement("div");
     toggleContainer.className = "already-toggle-container";
-    el.innerHTML = "";
-    el.appendChild(headerContainer);
-    el.appendChild(selectorContainer);
-    el.appendChild(tagFilterContainer);
-    el.appendChild(viewContainer);
-    el.appendChild(toggleContainer);
+    const paginationTopContainer = document.createElement("div");
+    paginationTopContainer.className = "already-pagination-top";
+    const paginationBottomContainer = document.createElement("div");
+    paginationBottomContainer.className = "already-pagination-bottom";
+    el2.innerHTML = "";
+    el2.appendChild(headerContainer);
+    el2.appendChild(selectorContainer);
+    el2.appendChild(tagFilterContainer);
+    el2.appendChild(paginationTopContainer);
+    el2.appendChild(viewContainer);
+    el2.appendChild(paginationBottomContainer);
+    el2.appendChild(toggleContainer);
+    const stickyConfig = resolveSticky(config.sticky);
+    applyStickyClasses(stickyConfig, headerContainer, selectorContainer, tagFilterContainer);
     let data = null;
     let showPast = config.showPastEvents;
     let currentDate = /* @__PURE__ */ new Date();
     let lastView = null;
     let lastViewState = null;
+    let paginationState = { futureCount: 0, pastCount: 0 };
     const tagFilter = createTagFilter(() => {
+      paginationState = { futureCount: 0, pastCount: 0 };
       if (lastViewState) renderView(lastViewState);
     }, config);
     const isMobile = () => window.innerWidth < config.mobileBreakpoint;
@@ -4218,6 +4378,39 @@ ${text}</tr>
       if (!data) return false;
       return data.events.some((e) => isPast(e.end || e.start));
     }
+    function renderPaginationButtons(topContainer, bottomContainer, paginated, viewState, cfg) {
+      const i18n = cfg.i18n || {};
+      topContainer.innerHTML = "";
+      bottomContainer.innerHTML = "";
+      if (paginated.hasMorePast) {
+        const btn = document.createElement("button");
+        btn.className = "already-show-earlier";
+        btn.textContent = `${i18n.showEarlier || "Show earlier"} (${paginated.remainingPast} remaining)`;
+        btn.addEventListener("click", () => {
+          paginationState = { ...paginationState, pastCount: paginationState.pastCount + cfg.pageSize };
+          renderView(viewState);
+        });
+        topContainer.appendChild(btn);
+      }
+      if (paginated.hasMoreFuture) {
+        const btn = document.createElement("button");
+        btn.className = "already-load-more";
+        btn.textContent = `${i18n.loadMore || "Load more"} (${paginated.remainingFuture} remaining)`;
+        btn.addEventListener("click", () => {
+          const anchorEl = viewContainer.querySelector(".already-grid-card:last-child, .already-list-item:last-child");
+          const anchorOffset = anchorEl ? anchorEl.getBoundingClientRect().top : null;
+          paginationState = { ...paginationState, futureCount: paginationState.futureCount + cfg.pageSize };
+          renderView(viewState);
+          if (anchorEl && anchorOffset !== null) {
+            const newAnchor = viewContainer.querySelector(`[data-event-id="${anchorEl.dataset.eventId}"]`);
+            if (newAnchor && newAnchor.getBoundingClientRect) {
+              window.scrollTo(0, window.scrollY + (newAnchor.getBoundingClientRect().top - anchorOffset));
+            }
+          }
+        });
+        bottomContainer.appendChild(btn);
+      }
+    }
     function renderView(viewState) {
       lastViewState = viewState;
       const allEvents = getFilteredEvents();
@@ -4237,12 +4430,16 @@ ${text}</tr>
         const oldView = lastView;
         if (oldView !== viewState.view) {
           config.onViewChange(viewState.view, oldView);
+          paginationState = { futureCount: 0, pastCount: 0 };
         }
       }
       if (viewState.view !== "detail") {
         renderViewSelector(selectorContainer, config.views, viewState.view, isMobile(), config);
         lastView = viewState.view;
       }
+      updateStickyOffsets(stickyConfig, headerContainer, selectorContainer, tagFilterContainer);
+      paginationTopContainer.innerHTML = "";
+      paginationBottomContainer.innerHTML = "";
       switch (viewState.view) {
         case "month":
           renderMonthView(viewContainer, events, timezone, currentDate, config);
@@ -4255,12 +4452,18 @@ ${text}</tr>
           renderDayView(viewContainer, events, timezone, dayDate, config);
           break;
         }
-        case "grid":
-          renderGridView(viewContainer, events, timezone, config);
+        case "grid": {
+          const paginated = paginateEvents(events, showPast, config.pageSize, paginationState);
+          renderGridView(viewContainer, paginated.visible, timezone, config);
+          renderPaginationButtons(paginationTopContainer, paginationBottomContainer, paginated, viewState, config);
           break;
-        case "list":
-          renderListView(viewContainer, events, timezone, config);
+        }
+        case "list": {
+          const paginated = paginateEvents(events, showPast, config.pageSize, paginationState);
+          renderListView(viewContainer, paginated.visible, timezone, config);
+          renderPaginationButtons(paginationTopContainer, paginationBottomContainer, paginated, viewState, config);
           break;
+        }
         case "detail": {
           const event = data?.events?.find((e) => e.id === viewState.eventId);
           if (event) {
@@ -4282,6 +4485,7 @@ ${text}</tr>
       if (hasPastEvents()) {
         renderPastToggle(toggleContainer, showPast, () => {
           showPast = !showPast;
+          paginationState = { futureCount: 0, pastCount: 0 };
           renderView(viewState);
         }, config);
       } else {
@@ -4321,12 +4525,15 @@ ${text}</tr>
       });
     }
     start();
+    window.addEventListener("resize", () => {
+      updateStickyOffsets(stickyConfig, headerContainer, selectorContainer, tagFilterContainer);
+    });
   }
   function autoInit() {
     const elements = document.querySelectorAll("[data-already-cal]");
-    for (const el of elements) {
-      const config = { el };
-      const dataset = el.dataset;
+    for (const el2 of elements) {
+      const config = { el: el2 };
+      const dataset = el2.dataset;
       if (dataset.calendarId || dataset.apiKey) {
         config.google = {};
         if (dataset.calendarId) config.google.calendarId = dataset.calendarId;

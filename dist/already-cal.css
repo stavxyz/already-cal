@@ -28,6 +28,21 @@
 .already-selector-container {
   margin-bottom: 1rem;
 }
+.already-header-container.already-sticky {
+  position: sticky;
+  z-index: 10;
+  background: var(--already-background);
+}
+.already-selector-container.already-sticky {
+  position: sticky;
+  z-index: 9;
+  background: var(--already-background);
+}
+.already-tag-filter-container.already-sticky {
+  position: sticky;
+  z-index: 8;
+  background: var(--already-background);
+}
 .already-header {
   display: flex;
   align-items: center;
@@ -110,6 +125,10 @@
 }
 .already-view-tab {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
   padding: 0.5rem 1rem;
   border: none;
   background: transparent;
@@ -119,6 +138,9 @@
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+}
+.already-view-tab svg {
+  flex-shrink: 0;
 }
 .already-view-tab:hover {
   background: rgba(0, 0, 0, 0.04);
@@ -944,6 +966,42 @@
   color: var(--already-primary);
 }
 .already-past-toggle:focus-visible {
+  outline: 2px solid var(--already-primary);
+  outline-offset: 2px;
+}
+.already-pagination-top,
+.already-pagination-bottom {
+  text-align: center;
+}
+.already-pagination-top:empty,
+.already-pagination-bottom:empty {
+  display: none;
+}
+.already-pagination-top {
+  margin-bottom: 0.75rem;
+}
+.already-pagination-bottom {
+  margin-top: 0.75rem;
+}
+.already-load-more,
+.already-show-earlier {
+  background: none;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: var(--already-text-secondary);
+  font-size: 0.8125rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--already-radius);
+  cursor: pointer;
+  font-family: var(--already-font-family);
+  transition: border-color 0.15s, color 0.15s;
+}
+.already-load-more:hover,
+.already-show-earlier:hover {
+  border-color: var(--already-primary);
+  color: var(--already-primary);
+}
+.already-load-more:focus-visible,
+.already-show-earlier:focus-visible {
   outline: 2px solid var(--already-primary);
   outline-offset: 2px;
 }

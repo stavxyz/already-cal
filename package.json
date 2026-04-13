@@ -6,7 +6,7 @@
   "scripts": {
     "build": "node build.js",
     "dev": "node build.js --watch",
-    "test": "node --test test/*.test.js test/views/*.test.js"
+    "test": "node --test test/*.test.js test/views/*.test.js test/ui/*.test.js"
   },
   "license": "AGPL-3.0-or-later",
   "dependencies": {

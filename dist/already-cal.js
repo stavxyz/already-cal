@@ -4204,6 +4204,24 @@ ${text}</tr>
       remainingPast
     };
   }
+  function renderPaginationButtons(topContainer, bottomContainer, paginated, i18n, callbacks) {
+    topContainer.innerHTML = "";
+    bottomContainer.innerHTML = "";
+    if (paginated.hasMorePast) {
+      const btn = document.createElement("button");
+      btn.className = "already-show-earlier";
+      btn.textContent = `${i18n.showEarlier || "Show earlier"} (${paginated.remainingPast} remaining)`;
+      btn.addEventListener("click", callbacks.onShowEarlier);
+      topContainer.appendChild(btn);
+    }
+    if (paginated.hasMoreFuture) {
+      const btn = document.createElement("button");
+      btn.className = "already-load-more";
+      btn.textContent = `${i18n.loadMore || "Load more"} (${paginated.remainingFuture} remaining)`;
+      btn.addEventListener("click", callbacks.onLoadMore);
+      bottomContainer.appendChild(btn);
+    }
+  }
 
   // src/already-cal.js
   var DEFAULTS = {
@@ -4377,28 +4395,16 @@ ${text}</tr>
       if (!data) return false;
       return data.events.some((e) => isPast(e.end || e.start));
     }
-    function renderPaginationButtons(topContainer, bottomContainer, paginated, viewState, cfg) {
-      const i18n = cfg.i18n || {};
-      topContainer.innerHTML = "";
-      bottomContainer.innerHTML = "";
-      if (paginated.hasMorePast) {
-        const btn = document.createElement("button");
-        btn.className = "already-show-earlier";
-        btn.textContent = `${i18n.showEarlier || "Show earlier"} (${paginated.remainingPast} remaining)`;
-        btn.addEventListener("click", () => {
-          paginationState = { ...paginationState, pastCount: paginationState.pastCount + cfg.pageSize };
+    function makePaginationCallbacks(viewState) {
+      return {
+        onShowEarlier: () => {
+          paginationState = { ...paginationState, pastCount: paginationState.pastCount + config.pageSize };
           renderView(viewState);
-        });
-        topContainer.appendChild(btn);
-      }
-      if (paginated.hasMoreFuture) {
-        const btn = document.createElement("button");
-        btn.className = "already-load-more";
-        btn.textContent = `${i18n.loadMore || "Load more"} (${paginated.remainingFuture} remaining)`;
-        btn.addEventListener("click", () => {
+        },
+        onLoadMore: () => {
           const anchorEl = viewContainer.querySelector(".already-grid-card:last-child, .already-list-item:last-child");
           const anchorOffset = anchorEl ? anchorEl.getBoundingClientRect().top : null;
-          paginationState = { ...paginationState, futureCount: paginationState.futureCount + cfg.pageSize };
+          paginationState = { ...paginationState, futureCount: paginationState.futureCount + config.pageSize };
           renderView(viewState);
           if (anchorEl && anchorOffset !== null) {
             const newAnchor = viewContainer.querySelector(`[data-event-id="${CSS.escape(anchorEl.dataset.eventId)}"]`);
@@ -4406,9 +4412,8 @@ ${text}</tr>
               window.scrollTo(0, window.scrollY + (newAnchor.getBoundingClientRect().top - anchorOffset));
             }
           }
-        });
-        bottomContainer.appendChild(btn);
-      }
+        }
+      };
     }
     function renderView(viewState) {
       lastViewState = viewState;
@@ -4453,13 +4458,13 @@ ${text}</tr>
         case "grid": {
           const paginated = paginateEvents(events, showPast, config.pageSize, paginationState);
           renderGridView(viewContainer, paginated.visible, timezone, config);
-          renderPaginationButtons(paginationTopContainer, paginationBottomContainer, paginated, viewState, config);
+          renderPaginationButtons(paginationTopContainer, paginationBottomContainer, paginated, config.i18n, makePaginationCallbacks(viewState));
           break;
         }
         case "list": {
           const paginated = paginateEvents(events, showPast, config.pageSize, paginationState);
           renderListView(viewContainer, paginated.visible, timezone, config);
-          renderPaginationButtons(paginationTopContainer, paginationBottomContainer, paginated, viewState, config);
+          renderPaginationButtons(paginationTopContainer, paginationBottomContainer, paginated, config.i18n, makePaginationCallbacks(viewState));
           break;
         }
         case "detail": {

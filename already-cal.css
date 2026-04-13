@@ -135,6 +135,10 @@
 
 .already-view-tab {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
   padding: 0.5rem 1rem;
   border: none;
   background: transparent;
@@ -144,6 +148,10 @@
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+}
+
+.already-view-tab svg {
+  flex-shrink: 0;
 }
 
 .already-view-tab:hover {

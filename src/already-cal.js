@@ -248,7 +248,7 @@ export function init(userConfig) {
         // Scroll anchoring: remember the last visible event's viewport position,
         // re-render with more events, then restore scroll so the user doesn't jump.
         const anchorEl = viewContainer.querySelector(
-          ".already-grid-card:last-child, .already-list-item:last-child",
+          ".already-card:last-child",
         );
         const anchorOffset = anchorEl
           ? anchorEl.getBoundingClientRect().top

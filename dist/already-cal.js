@@ -231,6 +231,7 @@ var Already = (() => {
       const originalUrl = match[0];
       const ext = getPathExtension(originalUrl);
       match = DROPBOX_URL_PATTERN.exec(description);
+      originalUrls.push(originalUrl);
       if (ext && NON_IMAGE_EXTENSIONS.has(ext)) continue;
       const normalized = normalizeImageUrl(originalUrl);
       const cid = imageCanonicalId(originalUrl);
@@ -245,7 +246,6 @@ var Already = (() => {
           metadata: {}
         });
       }
-      originalUrls.push(originalUrl);
     }
     let cleaned = description;
     for (const url of originalUrls) {

@@ -2840,7 +2840,7 @@ ${text}</tr>
       }
       const url = value.startsWith("http") ? normalizeImageUrl(value) : null;
       return {
-        canonicalId: `image:${value}`,
+        canonicalId: value.startsWith("http") ? imageCanonicalId(value) : `image:${value}`,
         type: "image",
         source: "directive",
         url: url || value,

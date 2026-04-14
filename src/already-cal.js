@@ -11,6 +11,7 @@ import {
 } from "./ui/sticky.js";
 import { createTagFilter } from "./ui/tag-filter.js";
 import { renderViewSelector } from "./ui/view-selector.js";
+import { resolveTheme } from "./theme.js";
 import { formatDate, formatDatetime, isPast } from "./util/dates.js";
 import { DEFAULT_PLATFORMS } from "./util/links.js";
 import { renderDayView } from "./views/day.js";
@@ -79,17 +80,6 @@ const I18N_DEFAULTS = {
   showEarlier: "Show earlier",
 };
 
-const THEME_DEFAULTS = {
-  primary: "#8B4513",
-  primaryText: "#ffffff",
-  background: "#f5f0eb",
-  surface: "#ffffff",
-  text: "#1a1a1a",
-  textSecondary: "#666",
-  radius: "8px",
-  fontFamily: "system-ui, sans-serif",
-};
-
 // Expose defaults so consumers can extend (e.g. Already.DEFAULTS.knownPlatforms)
 export { DEFAULTS };
 
@@ -112,7 +102,7 @@ export function init(userConfig) {
       ? config.pageSize
       : DEFAULTS.pageSize;
 
-  const theme = { ...THEME_DEFAULTS, ...config.theme };
+  const themeConfig = resolveTheme(config.theme);
   const el =
     typeof config.el === "string"
       ? document.querySelector(config.el)
@@ -123,13 +113,22 @@ export function init(userConfig) {
     return;
   }
 
-  // Apply theme as CSS custom properties
-  for (const [key, value] of Object.entries(theme)) {
+  // Set theme data attributes
+  el.dataset.layout = themeConfig.layout;
+  el.dataset.orientation = themeConfig.orientation;
+  el.dataset.imagePosition = themeConfig.imagePosition;
+  el.dataset.palette = themeConfig.palette;
+
+  // Apply CSS custom property overrides (from user config, not palette)
+  for (const [key, value] of Object.entries(themeConfig.overrides)) {
     const prop = `--already-${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`;
     el.style.setProperty(prop, value);
   }
 
   el.classList.add("already");
+
+  // Store resolved theme for view renderers
+  config._theme = themeConfig;
 
   // Create layout
   const headerContainer = document.createElement("div");

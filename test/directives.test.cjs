@@ -50,12 +50,23 @@ describe('extractDirectives — platform link directives', () => {
 });
 
 describe('extractDirectives — image directives', () => {
-  it('parses #already:image:url', () => {
+  it('parses #already:image:url with normalized canonical ID', () => {
     const result = extractDirectives('#already:image:https://example.com/flyer.png');
     assert.strictEqual(result.tokens.length, 1);
     assert.strictEqual(result.tokens[0].type, 'image');
     assert.strictEqual(result.tokens[0].url, 'https://example.com/flyer.png');
     assert.strictEqual(result.tokens[0].source, 'directive');
+    assert.strictEqual(result.tokens[0].canonicalId, 'image:example.com/flyer.png');
+  });
+
+  it('produces canonical IDs that match URL-extracted images', () => {
+    const directive = extractDirectives('#already:image:https://example.com/photo.jpg');
+    const { extractImageTokens } = require('../src/util/images.js');
+    const extracted = extractImageTokens(
+      'Check out https://example.com/photo.jpg',
+      { imageExtensions: ['jpg'] }
+    );
+    assert.strictEqual(directive.tokens[0].canonicalId, extracted.tokens[0].canonicalId);
   });
 
   it('parses #already:image:drive:ABC123 into a direct lh3 URL', () => {
@@ -63,6 +74,11 @@ describe('extractDirectives — image directives', () => {
     assert.strictEqual(result.tokens[0].type, 'image');
     assert.strictEqual(result.tokens[0].canonicalId, 'image:drive:ABC123');
     assert.strictEqual(result.tokens[0].url, 'https://lh3.googleusercontent.com/d/ABC123');
+  });
+
+  it('normalizes Dropbox directive images to match URL-extracted canonical IDs', () => {
+    const result = extractDirectives('#already:image:https://www.dropbox.com/scl/fi/abc123/photo.png?dl=0');
+    assert.strictEqual(result.tokens[0].canonicalId, 'image:dropbox:abc123/photo.png');
   });
 });
 

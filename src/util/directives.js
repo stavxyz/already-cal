@@ -1,5 +1,5 @@
 import { cleanupHtml, stripUrl } from './sanitize.js';
-import { normalizeImageUrl } from './images.js';
+import { normalizeImageUrl, imageCanonicalId } from './images.js';
 
 // Directive regex: #already: followed by non-whitespace, non-HTML chars.
 // Excludes < and > so the match stops before any wrapping </a> tag.
@@ -71,7 +71,7 @@ function parseDirective(body) {
     }
     const url = value.startsWith('http') ? normalizeImageUrl(value) : null;
     return {
-      canonicalId: `image:${value}`,
+      canonicalId: value.startsWith('http') ? imageCanonicalId(value) : `image:${value}`,
       type: 'image',
       source: 'directive',
       url: url || value,

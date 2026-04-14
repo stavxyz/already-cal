@@ -78,7 +78,7 @@ function buildImagePattern(extensions) {
   return new RegExp(`(https?://[^\\s<>"]+\\.(?:${ext})(?:\\?[^\\s<>"]*)?)`, 'gi');
 }
 
-export { getPathExtension, NON_IMAGE_EXTENSIONS };
+export { getPathExtension, NON_IMAGE_EXTENSIONS, imageCanonicalId };
 
 function imageCanonicalId(originalUrl) {
   // Drive URLs: use file ID

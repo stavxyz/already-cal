@@ -23,14 +23,14 @@ async function build() {
   });
 
   const ctxCss = await esbuild.context({
-    entryPoints: ["already-cal.css"],
+    entryPoints: ["src/styles/index.css"],
     bundle: true,
     outfile: "dist/already-cal.css",
     minify: false,
   });
 
   const ctxCssMin = await esbuild.context({
-    entryPoints: ["already-cal.css"],
+    entryPoints: ["src/styles/index.css"],
     bundle: true,
     outfile: "dist/already-cal.min.css",
     minify: true,

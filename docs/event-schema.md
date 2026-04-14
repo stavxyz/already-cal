@@ -51,13 +51,17 @@ Passed to view renderer
 
 The `enrichEvent()` function processes each event's description in this order:
 
-1. **Directives** — `#already:` tokens are extracted and removed from the description. Platform directives become links, image directives become images, tag directives become tags, and `featured`/`hidden` flags are set.
+All extraction stages decode `&amp;` to `&` before pattern matching, since HTML-rendered descriptions from Google Calendar may contain encoded ampersands.
+
+1. **Directives** — `#already:` tokens are extracted and removed from the description. Platform directives become links, image directives become images, tag directives become tags, and `featured`/`hidden` flags are set. See the **[directives reference](directives.md)** for the full syntax and supported types.
 
 2. **Images** — URLs ending in image extensions (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`) and Google Drive/Dropbox links are extracted from the description and removed from the rendered text. Image attachments from Google Calendar with `image/*` MIME types are also included.
 
 3. **Links** — URLs matching known platforms (Eventbrite, Instagram, Zoom, etc.) are extracted and removed from the description. Each becomes a `{ label, url }` entry in `event.links`.
 
 4. **File attachments** — URLs ending in file extensions (`.pdf`, `.doc`, `.docx`, `.xls`, `.xlsx`, `.csv`, `.ppt`, `.pptx`, `.zip`, `.txt`) are extracted and removed. Each becomes a `{ label, url, type }` entry in `event.attachments`.
+
+Pre-set values on events take priority over extraction. If an event already has a non-empty `images` array, image extraction from the description is skipped. The same applies to `links`. This allows pre-loaded data to override what would be extracted from descriptions.
 
 Tokens are deduplicated — a directive and a URL pointing to the same resource produce one entry (e.g., `#already:instagram:foo` and `https://instagram.com/foo` are merged).
 
@@ -70,6 +74,8 @@ After extraction, the cleaned description is rendered based on auto-detected for
 | HTML | Contains `<tag>` patterns | Sanitized (allowed tags/attrs only) |
 | Markdown | Contains `# headings`, `**bold**`, `[links](url)`, `- lists` | Parsed with [marked](https://github.com/markedjs/marked), then sanitized |
 | Plain text | Default | Escaped, newlines converted to `<br>` |
+
+Sanitization rules are configurable — see the [sanitization section](configuration.md#sanitization) in the configuration reference.
 
 The format is stored as `event.descriptionFormat` and can be pre-set in your data to skip auto-detection.
 

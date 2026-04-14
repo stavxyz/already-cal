@@ -31,7 +31,7 @@
     "no-framework"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "dependencies": {
     "marked": "^15.0.0"

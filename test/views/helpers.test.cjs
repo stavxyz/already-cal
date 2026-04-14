@@ -2,7 +2,7 @@ require("../setup-dom.cjs");
 const { describe, it, before, beforeEach } = require("node:test");
 const assert = require("node:assert");
 
-let createElement, bindEventClick, applyEventClasses, createEventImage;
+let createElement, bindEventClick, applyEventClasses;
 let filterHidden, sortFeatured, sortFeaturedByDate;
 
 before(async () => {
@@ -10,7 +10,6 @@ before(async () => {
   createElement = mod.createElement;
   bindEventClick = mod.bindEventClick;
   applyEventClasses = mod.applyEventClasses;
-  createEventImage = mod.createEventImage;
   filterHidden = mod.filterHidden;
   sortFeatured = mod.sortFeatured;
   sortFeaturedByDate = mod.sortFeaturedByDate;
@@ -175,30 +174,6 @@ describe("applyEventClasses", () => {
   });
 });
 
-describe("createEventImage", () => {
-  it("creates image wrapper with img element", () => {
-    const wrapper = createEventImage(
-      { image: "https://example.com/img.jpg", title: "My Event" },
-      "already-grid-image",
-    );
-    assert.strictEqual(wrapper.className, "already-grid-image");
-    const img = wrapper.querySelector("img");
-    assert.ok(img);
-    assert.strictEqual(img.src, "https://example.com/img.jpg");
-    assert.strictEqual(img.alt, "My Event");
-    assert.strictEqual(img.getAttribute("loading"), "lazy");
-  });
-
-  it("hides wrapper on image error", () => {
-    const wrapper = createEventImage(
-      { image: "https://bad.url/x.jpg", title: "Test" },
-      "already-img",
-    );
-    const img = wrapper.querySelector("img");
-    img.onerror();
-    assert.strictEqual(wrapper.style.display, "none");
-  });
-});
 
 describe("filterHidden", () => {
   it("removes hidden events", () => {

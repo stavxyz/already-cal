@@ -49,19 +49,6 @@ export function applyEventClasses(el, event, baseClass) {
   el.className = cls;
 }
 
-/** Create a lazy-loaded image wrapper for an event thumbnail. */
-export function createEventImage(event, className) {
-  const wrapper = createElement("div", className);
-  const img = document.createElement("img");
-  img.src = event.image;
-  img.alt = event.title;
-  img.setAttribute("loading", "lazy");
-  img.onerror = () => {
-    wrapper.style.display = "none";
-  };
-  wrapper.appendChild(img);
-  return wrapper;
-}
 
 /** Filter out events with the hidden flag. */
 export function filterHidden(events) {

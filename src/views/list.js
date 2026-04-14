@@ -1,53 +1,49 @@
-import { formatDate, formatTime } from "../util/dates.js";
+import { getLayout } from "../layouts/registry.js";
 import {
-  applyEventClasses,
   bindEventClick,
   createElement,
   filterHidden,
   sortFeaturedByDate,
 } from "./helpers.js";
+import { isPast } from "../util/dates.js";
 
-/** Render the compact chronological list view. */
+/** Render the list view using layout cards (horizontal by default). */
 export function renderListView(container, events, timezone, config) {
   config = config || {};
   const locale = config.locale;
-  const i18n = config.i18n || {};
-  const allDayLabel = i18n.allDay || "All Day";
+  const theme = config._theme || {
+    layout: "clean",
+    orientation: "vertical",
+    imagePosition: "left",
+  };
+
+  // List view defaults to horizontal orientation
+  const orientation =
+    theme.layout === "compact" ? "vertical" : "horizontal";
 
   events = filterHidden(events);
   events = sortFeaturedByDate(events, timezone, locale);
 
   const list = createElement("div", "already-list");
+  const renderCard = getLayout(theme.layout);
 
-  for (const event of events) {
-    const item = createElement("div");
-    applyEventClasses(item, event, "already-list-item");
-    item.dataset.eventId = event.id;
-    bindEventClick(item, event, "list", config);
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
+    const card = renderCard(event, {
+      orientation,
+      imagePosition: theme.imagePosition,
+      index: i,
+      timezone,
+      locale,
+      config,
+    });
 
-    const dateCol = createElement("div", "already-list-date");
-    const dateDay = createElement("div", "already-list-date-day");
-    dateDay.textContent = formatDate(event.start, timezone, locale);
-    dateCol.appendChild(dateDay);
-    const dateTime = createElement("div", "already-list-date-time");
-    dateTime.textContent = event.allDay
-      ? allDayLabel
-      : formatTime(event.start, timezone, locale);
-    dateCol.appendChild(dateTime);
-    item.appendChild(dateCol);
+    if (isPast(event.start)) card.classList.add("already-card--past");
+    if (event.featured) card.classList.add("already-card--featured");
+    card.dataset.eventId = event.id;
+    bindEventClick(card, event, "list", config);
 
-    const info = createElement("div", "already-list-info");
-    const title = createElement("div", "already-list-title");
-    title.textContent = event.title;
-    info.appendChild(title);
-    if (event.location) {
-      const loc = createElement("div", "already-list-location");
-      loc.textContent = event.location;
-      info.appendChild(loc);
-    }
-    item.appendChild(info);
-
-    list.appendChild(item);
+    list.appendChild(card);
   }
 
   container.innerHTML = "";

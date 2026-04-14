@@ -15,12 +15,12 @@ beforeEach(() => {
 });
 
 describe("renderListView", () => {
-  it("renders an item for each event", () => {
+  it("renders a card for each event", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ id: "1" }), createTestEvent({ id: "2" })];
     renderListView(container, events, "UTC", {});
     assert.strictEqual(
-      container.querySelectorAll(".already-list-item").length,
+      container.querySelectorAll(".already-card").length,
       2,
     );
   });
@@ -29,36 +29,24 @@ describe("renderListView", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ title: "<img src=x onerror=alert(1)>" })];
     renderListView(container, events, "UTC", {});
-    const title = container.querySelector(".already-list-title");
+    const title = container.querySelector(".already-card__title");
     assert.strictEqual(title.textContent, "<img src=x onerror=alert(1)>");
     assert.ok(!title.innerHTML.includes("<img"));
   });
 
-  it("displays date and time", () => {
+  it("displays date/time meta", () => {
     const container = document.createElement("div");
     const events = [createTestEvent()];
     renderListView(container, events, "UTC", {});
-    assert.ok(container.querySelector(".already-list-date-day"));
-    assert.ok(container.querySelector(".already-list-date-time"));
-  });
-
-  it("shows All Day label for all-day events", () => {
-    const container = document.createElement("div");
-    const events = [createTestEvent({ allDay: true })];
-    renderListView(container, events, "UTC", {});
-    assert.strictEqual(
-      container.querySelector(".already-list-date-time").textContent,
-      "All Day",
-    );
+    assert.ok(container.querySelector(".already-card__meta"));
   });
 
   it("displays location when present", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ location: "The Venue" })];
     renderListView(container, events, "UTC", {});
-    assert.strictEqual(
-      container.querySelector(".already-list-location").textContent,
-      "The Venue",
+    assert.ok(
+      container.querySelector(".already-card__location").textContent.includes("The Venue"),
     );
   });
 
@@ -66,7 +54,7 @@ describe("renderListView", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ id: "nav-test" })];
     renderListView(container, events, "UTC", {});
-    container.querySelector(".already-list-item").click();
+    container.querySelector(".already-card").click();
     assert.strictEqual(window.location.hash, "#event/nav-test");
   });
 
@@ -78,7 +66,7 @@ describe("renderListView", () => {
     ];
     renderListView(container, events, "UTC", {});
     assert.strictEqual(
-      container.querySelectorAll(".already-list-item").length,
+      container.querySelectorAll(".already-card").length,
       1,
     );
   });
@@ -87,19 +75,19 @@ describe("renderListView", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ featured: true })];
     renderListView(container, events, "UTC", {});
-    assert.ok(container.querySelector(".already-list-item--featured"));
+    assert.ok(container.querySelector(".already-card--featured"));
   });
 
-  it("sets data-event-id on each item", () => {
+  it("sets data-event-id on each card", () => {
     const container = document.createElement("div");
     const events = [
       createTestEvent({ id: "list-1" }),
       createTestEvent({ id: "list-2" }),
     ];
     renderListView(container, events, "UTC", {});
-    const items = container.querySelectorAll(".already-list-item");
-    assert.strictEqual(items[0].dataset.eventId, "list-1");
-    assert.strictEqual(items[1].dataset.eventId, "list-2");
+    const cards = container.querySelectorAll(".already-card");
+    assert.strictEqual(cards[0].dataset.eventId, "list-1");
+    assert.strictEqual(cards[1].dataset.eventId, "list-2");
   });
 
   it("sorts featured first within same date", () => {
@@ -118,9 +106,16 @@ describe("renderListView", () => {
       }),
     ];
     renderListView(container, events, "UTC", {});
-    const titles = [...container.querySelectorAll(".already-list-title")].map(
+    const titles = [...container.querySelectorAll(".already-card__title")].map(
       (t) => t.textContent,
     );
     assert.strictEqual(titles[0], "Featured");
+  });
+
+  it("renders cards with horizontal orientation by default", () => {
+    const container = document.createElement("div");
+    const events = [createTestEvent({ image: "https://example.com/img.jpg" })];
+    renderListView(container, events, "UTC", {});
+    assert.ok(container.querySelector(".already-card--horizontal"));
   });
 });

@@ -1,2 +1,3 @@
-/* Clean layout — structural overrides beyond base card primitives.
-   Populated in Task 4 when clean.js is built. */
+/* Clean layout — minimal styling, relies on base card primitives */
+
+/* No additional structural overrides needed — clean uses base card styles as-is. */

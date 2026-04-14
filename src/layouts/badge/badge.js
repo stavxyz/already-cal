@@ -1,10 +1,5 @@
-import { formatDate, formatTime, getDatePartsInTz } from "../../util/dates.js";
+import { formatDate, formatTime, getDatePartsInTz, MONTH_NAMES_SHORT } from "../../util/dates.js";
 import { createElement } from "../../views/helpers.js";
-
-const MONTH_NAMES = [
-  "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
-  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
-];
 
 /**
  * Render a badge layout card.
@@ -120,7 +115,7 @@ function buildBadge(dateParts) {
   day.textContent = dateParts.day;
   badge.appendChild(day);
   const month = createElement("div", "already-card__badge-month");
-  month.textContent = MONTH_NAMES[dateParts.month] || "";
+  month.textContent = MONTH_NAMES_SHORT[dateParts.month] || "";
   badge.appendChild(month);
   return badge;
 }

@@ -1,10 +1,5 @@
-import { formatDateShort, formatTime, getDatePartsInTz } from "../../util/dates.js";
+import { formatDateShort, formatTime, getDatePartsInTz, MONTH_NAMES_SHORT } from "../../util/dates.js";
 import { createElement } from "../../views/helpers.js";
-
-const MONTH_NAMES = [
-  "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
-  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
-];
 
 /**
  * Render a compact layout card.
@@ -16,7 +11,7 @@ export function render(event, options) {
   const card = createElement("div");
   card.className = "already-card already-card--compact";
 
-  const body = createElement("div", "already-card__body already-card__body--compact");
+  const body = createElement("div", "already-card__body");
 
   // Top row: info left, badge right
   const row = createElement("div", "already-card__compact-row");
@@ -51,7 +46,7 @@ export function render(event, options) {
   day.textContent = dateParts.day;
   badge.appendChild(day);
   const month = createElement("div", "already-card__badge-month");
-  month.textContent = MONTH_NAMES[dateParts.month] || "";
+  month.textContent = MONTH_NAMES_SHORT[dateParts.month] || "";
   badge.appendChild(month);
   row.appendChild(badge);
 

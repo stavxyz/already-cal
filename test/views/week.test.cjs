@@ -1,4 +1,3 @@
-// test/views/week.test.js
 require('../setup-dom.cjs');
 const { describe, it, before, beforeEach } = require('node:test');
 const assert = require('node:assert');

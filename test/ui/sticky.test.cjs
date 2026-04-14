@@ -1,4 +1,3 @@
-// test/ui/sticky.test.js
 require('../setup-dom.cjs');
 const { describe, it, before } = require('node:test');
 const assert = require('node:assert');

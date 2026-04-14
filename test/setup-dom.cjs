@@ -1,4 +1,3 @@
-// test/setup-dom.js
 const { JSDOM } = require('jsdom');
 
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {

@@ -1,4 +1,3 @@
-// test/featured-hidden.test.js
 const { describe, it, before } = require('node:test');
 const assert = require('node:assert');
 

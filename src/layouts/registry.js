@@ -8,7 +8,3 @@ const layouts = { clean, hero, badge, compact };
 export function getLayout(name) {
   return layouts[name] || layouts.clean;
 }
-
-export function registerLayout(name, renderFn) {
-  layouts[name] = renderFn;
-}

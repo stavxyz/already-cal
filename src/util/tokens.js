@@ -4,6 +4,7 @@ const TRACKING_PARAMS = new Set([
 ]);
 const TRACKING_PREFIX = 'utm_';
 
+/** Normalize a URL: force HTTPS, strip www prefix, remove tracking parameters. */
 export function normalizeUrl(url) {
   try {
     const u = new URL(url);
@@ -26,6 +27,7 @@ export function normalizeUrl(url) {
   }
 }
 
+/** Deduplicated set of extraction tokens, keyed by canonical ID. */
 export class TokenSet {
   constructor() {
     this._map = new Map();

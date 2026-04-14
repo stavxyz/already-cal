@@ -22,6 +22,7 @@ const EXTENSION_MAP = {
   txt:  { label: 'Download File', type: 'txt' },
 };
 
+/** Normalize an attachment URL: convert Drive/Dropbox URLs to direct-download links. */
 export function normalizeAttachmentUrl(url) {
   if (!url) return url;
 
@@ -68,6 +69,7 @@ function attachmentCanonicalId(url) {
   }
 }
 
+/** Extract file attachment tokens from description URLs. */
 export function extractAttachmentTokens(description, config) {
   if (!description) return { tokens: [], description };
   description = description.replace(/&amp;/g, '&');
@@ -104,6 +106,7 @@ export function extractAttachmentTokens(description, config) {
   return { tokens, description: cleaned };
 }
 
+/** Extract file attachments from description, returning attachment objects and cleaned description. */
 export function extractAttachments(description, config) {
   if (!description) return { attachments: [], description };
   const { tokens, description: cleaned } = extractAttachmentTokens(description, config);
@@ -115,6 +118,7 @@ export function extractAttachments(description, config) {
   return { attachments, description: cleaned };
 }
 
+/** Derive a file type string from a MIME type (e.g. "application/pdf" → "pdf"). */
 export function deriveTypeFromMimeType(mimeType) {
   if (!mimeType) return 'file';
   if (mimeType.includes('pdf')) return 'pdf';
@@ -125,6 +129,7 @@ export function deriveTypeFromMimeType(mimeType) {
   return 'file';
 }
 
+/** Return a human-readable download label for a file type (e.g. "pdf" → "Download PDF"). */
 export function labelForType(type) {
   const map = {
     pdf: 'Download PDF', doc: 'Download Document', spreadsheet: 'Download Spreadsheet',

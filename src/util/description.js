@@ -14,6 +14,7 @@ const DEFAULT_ALLOWED_ATTRS = {
 const HTML_TAG_RE = /<\/?[a-z][a-z0-9]*[\s>]/i;
 const MARKDOWN_RE = /(?:^|\n)#{1,6}\s|(?:^|\n)[-*]\s|\*\*|__|\[.+?\]\(.+?\)/;
 
+/** Auto-detect whether text is HTML, markdown, or plain text. */
 export function detectFormat(text) {
   if (!text) return 'plain';
   if (HTML_TAG_RE.test(text)) return 'html';
@@ -21,6 +22,7 @@ export function detectFormat(text) {
   return 'plain';
 }
 
+/** Sanitize HTML by removing disallowed tags and attributes. */
 export function sanitizeHtml(html, config) {
   const sanitization = config && config.sanitization;
   const allowedTags = new Set(
@@ -58,6 +60,7 @@ function sanitizeNode(node, allowedTags, allowedAttrs) {
   }
 }
 
+/** Render event description text as sanitized HTML based on auto-detected format. */
 export function renderDescription(text, config) {
   if (!text) return '';
   const format = detectFormat(text);

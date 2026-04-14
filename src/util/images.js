@@ -99,6 +99,7 @@ function imageCanonicalId(originalUrl) {
   }
 }
 
+/** Extract image tokens from description text (by extension, Drive URLs, and Dropbox URLs). */
 export function extractImageTokens(description, config) {
   if (!description) return { tokens: [], description };
   description = description.replace(/&amp;/g, '&');
@@ -157,6 +158,7 @@ export function extractImageTokens(description, config) {
   return { tokens, description: cleaned };
 }
 
+/** Extract images from description, returning image URLs and cleaned description. */
 export function extractImage(description, config) {
   if (!description) return { image: null, images: [], description };
   const { tokens, description: cleaned } = extractImageTokens(description, config);

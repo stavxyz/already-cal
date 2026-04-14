@@ -228,6 +228,7 @@ export const DEFAULT_PLATFORMS = [
   },
 ];
 
+/** Extract platform links from description, returning link objects and cleaned description. */
 export function extractLinks(description, config) {
   if (!description) return { links: [], description };
   const { tokens, description: cleaned } = extractLinkTokens(description, config);
@@ -235,6 +236,7 @@ export function extractLinks(description, config) {
   return { links, description: cleaned };
 }
 
+/** Extract platform link tokens from description for deduplication via TokenSet. */
 export function extractLinkTokens(description, config) {
   if (!description) return { tokens: [], description };
   description = description.replace(/&amp;/g, '&');

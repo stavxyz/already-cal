@@ -104,6 +104,7 @@ function parseDirective(body) {
   };
 }
 
+/** Extract #already: directives from description text, returning tokens and cleaned description. */
 export function extractDirectives(description) {
   if (!description) return { tokens: [], description, featured: false, hidden: false };
   description = description.replace(/&amp;/g, '&');

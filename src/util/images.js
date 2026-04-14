@@ -184,6 +184,7 @@ export function extractImageTokens(description, config) {
     const originalUrl = match[0];
     const ext = getPathExtension(originalUrl);
     match = DROPBOX_URL_PATTERN.exec(description);
+    originalUrls.push(originalUrl);
     if (ext && NON_IMAGE_EXTENSIONS.has(ext)) continue;
     const normalized = normalizeImageUrl(originalUrl);
     const cid = imageCanonicalId(originalUrl);
@@ -198,7 +199,6 @@ export function extractImageTokens(description, config) {
         metadata: {},
       });
     }
-    originalUrls.push(originalUrl);
   }
 
   let cleaned = description;

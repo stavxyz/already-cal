@@ -247,21 +247,31 @@ describe("extractImage — Dropbox URLs", () => {
     assert.ok(!result.description.includes("dropboxusercontent.com"));
   });
 
-  it("skips Dropbox URL with non-image extension (.pdf)", () => {
+  it("skips Dropbox URL with non-image extension (.pdf) but strips it from description", () => {
     const desc =
       "Download: https://www.dropbox.com/scl/fi/abc123/report.pdf?rlkey=xyz&dl=0";
     const result = extractImage(desc);
     assert.strictEqual(result.image, null);
     assert.deepStrictEqual(result.images, []);
-    assert.ok(result.description.includes("dropbox.com"));
+    assert.ok(!result.description.includes("dropbox.com"));
   });
 
-  it("skips Dropbox URL with .docx extension", () => {
+  it("skips Dropbox URL with .docx extension but strips it from description", () => {
     const desc =
       "Doc: https://www.dropbox.com/scl/fi/abc123/notes.docx?rlkey=xyz&dl=0";
     const result = extractImage(desc);
     assert.strictEqual(result.image, null);
     assert.deepStrictEqual(result.images, []);
+    assert.ok(!result.description.includes("dropbox.com"));
+  });
+
+  it("extracts image and strips non-image from mixed Dropbox URLs", () => {
+    const desc =
+      "https://www.dropbox.com/scl/fi/img1/photo.jpg?rlkey=r1&dl=0 and https://www.dropbox.com/scl/fi/doc1/report.pdf?rlkey=r2&dl=0";
+    const result = extractImage(desc);
+    assert.strictEqual(result.images.length, 1);
+    assert.ok(result.images[0].includes("photo.jpg"));
+    assert.ok(!result.description.includes("dropbox.com"));
   });
 
   it("extracts extensionless Dropbox URL optimistically", () => {

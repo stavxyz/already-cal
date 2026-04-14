@@ -1,54 +1,46 @@
-import { formatDateShort, formatTime } from "../util/dates.js";
+import { getLayout } from "../layouts/registry.js";
 import {
-  applyEventClasses,
   bindEventClick,
   createElement,
-  createEventImage,
   filterHidden,
   sortFeaturedByDate,
 } from "./helpers.js";
+import { isPast } from "../util/dates.js";
 
 /** Render the card grid view with thumbnails. */
 export function renderGridView(container, events, timezone, config) {
   config = config || {};
   const locale = config.locale;
+  const theme = config._theme || {
+    layout: "clean",
+    orientation: "vertical",
+    imagePosition: "left",
+  };
 
   events = filterHidden(events);
   events = sortFeaturedByDate(events, timezone, locale);
 
   const grid = createElement("div", "already-grid");
+  const renderCard = getLayout(theme.layout);
 
-  for (const event of events) {
-    const card = createElement("div");
-    applyEventClasses(card, event, "already-grid-card");
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
+    const card = renderCard(event, {
+      orientation: theme.orientation,
+      imagePosition: theme.imagePosition,
+      index: i,
+      timezone,
+      locale,
+      config,
+    });
+
+    // Add modifier classes via classList (not applyEventClasses which
+    // overwrites className and would destroy layout-specific classes)
+    if (isPast(event.start)) card.classList.add("already-card--past");
+    if (event.featured) card.classList.add("already-card--featured");
     card.dataset.eventId = event.id;
     bindEventClick(card, event, "grid", config);
 
-    if (event.image) {
-      card.appendChild(createEventImage(event, "already-grid-image"));
-    }
-
-    const body = createElement("div", "already-grid-body");
-
-    const title = createElement("div", "already-grid-title");
-    title.textContent = event.title;
-    body.appendChild(title);
-
-    const dateStr = formatDateShort(event.start, timezone, locale);
-    const timeStr = event.allDay
-      ? ""
-      : ` \u00b7 ${formatTime(event.start, timezone, locale)}`;
-    const meta = createElement("div", "already-grid-meta");
-    meta.textContent = `${dateStr}${timeStr}`;
-    body.appendChild(meta);
-
-    if (event.location) {
-      const loc = createElement("div", "already-grid-location");
-      loc.textContent = event.location;
-      body.appendChild(loc);
-    }
-
-    card.appendChild(body);
     grid.appendChild(card);
   }
 

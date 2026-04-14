@@ -22,7 +22,7 @@ describe("renderGridView", () => {
       createTestEvent({ id: "2", title: "Event B" }),
     ];
     renderGridView(container, events, "UTC", {});
-    const cards = container.querySelectorAll(".already-grid-card");
+    const cards = container.querySelectorAll(".already-card");
     assert.strictEqual(cards.length, 2);
   });
 
@@ -32,7 +32,7 @@ describe("renderGridView", () => {
       createTestEvent({ title: "Concert <script>alert(1)</script>" }),
     ];
     renderGridView(container, events, "UTC", {});
-    const title = container.querySelector(".already-grid-title");
+    const title = container.querySelector(".already-card__title");
     assert.strictEqual(title.textContent, "Concert <script>alert(1)</script>");
     assert.ok(!title.innerHTML.includes("<script>"));
   });
@@ -41,9 +41,8 @@ describe("renderGridView", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ location: "Central Park" })];
     renderGridView(container, events, "UTC", {});
-    assert.strictEqual(
-      container.querySelector(".already-grid-location").textContent,
-      "Central Park",
+    assert.ok(
+      container.querySelector(".already-card__location").textContent.includes("Central Park"),
     );
   });
 
@@ -51,14 +50,14 @@ describe("renderGridView", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ location: "" })];
     renderGridView(container, events, "UTC", {});
-    assert.strictEqual(container.querySelector(".already-grid-location"), null);
+    assert.strictEqual(container.querySelector(".already-card__location"), null);
   });
 
   it("renders image when present", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ image: "https://example.com/img.jpg" })];
     renderGridView(container, events, "UTC", {});
-    const img = container.querySelector(".already-grid-image img");
+    const img = container.querySelector(".already-card__image img");
     assert.ok(img);
     assert.strictEqual(img.getAttribute("loading"), "lazy");
   });
@@ -67,14 +66,14 @@ describe("renderGridView", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ image: null })];
     renderGridView(container, events, "UTC", {});
-    assert.strictEqual(container.querySelector(".already-grid-image"), null);
+    assert.strictEqual(container.querySelector(".already-card__image"), null);
   });
 
   it("navigates to detail on click", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ id: "click-test" })];
     renderGridView(container, events, "UTC", {});
-    container.querySelector(".already-grid-card").click();
+    container.querySelector(".already-card").click();
     assert.strictEqual(window.location.hash, "#event/click-test");
   });
 
@@ -82,7 +81,7 @@ describe("renderGridView", () => {
     const container = document.createElement("div");
     const events = [createTestEvent()];
     renderGridView(container, events, "UTC", {});
-    const card = container.querySelector(".already-grid-card");
+    const card = container.querySelector(".already-card");
     assert.strictEqual(card.getAttribute("tabindex"), "0");
     assert.strictEqual(card.getAttribute("role"), "button");
   });
@@ -94,10 +93,10 @@ describe("renderGridView", () => {
       createTestEvent({ id: "2", title: "Hidden", hidden: true }),
     ];
     renderGridView(container, events, "UTC", {});
-    const cards = container.querySelectorAll(".already-grid-card");
+    const cards = container.querySelectorAll(".already-card");
     assert.strictEqual(cards.length, 1);
     assert.strictEqual(
-      cards[0].querySelector(".already-grid-title").textContent,
+      cards[0].querySelector(".already-card__title").textContent,
       "Visible",
     );
   });
@@ -106,7 +105,7 @@ describe("renderGridView", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ featured: true })];
     renderGridView(container, events, "UTC", {});
-    assert.ok(container.querySelector(".already-grid-card--featured"));
+    assert.ok(container.querySelector(".already-card--featured"));
   });
 
   it("sorts featured events first within same date", () => {
@@ -125,7 +124,7 @@ describe("renderGridView", () => {
       }),
     ];
     renderGridView(container, events, "UTC", {});
-    const titles = [...container.querySelectorAll(".already-grid-title")].map(
+    const titles = [...container.querySelectorAll(".already-card__title")].map(
       (t) => t.textContent,
     );
     assert.strictEqual(titles[0], "Star");
@@ -139,7 +138,7 @@ describe("renderGridView", () => {
       createTestEvent({ id: "def-456" }),
     ];
     renderGridView(container, events, "UTC", {});
-    const cards = container.querySelectorAll(".already-grid-card");
+    const cards = container.querySelectorAll(".already-card");
     assert.strictEqual(cards[0].dataset.eventId, "abc-123");
     assert.strictEqual(cards[1].dataset.eventId, "def-456");
   });
@@ -160,10 +159,19 @@ describe("renderGridView", () => {
       }),
     ];
     renderGridView(container, events, "UTC", {});
-    const titles = [...container.querySelectorAll(".already-grid-title")].map(
+    const titles = [...container.querySelectorAll(".already-card__title")].map(
       (t) => t.textContent,
     );
     assert.strictEqual(titles[0], "Apr14");
     assert.strictEqual(titles[1], "Apr15-Star");
+  });
+
+  it("uses layout from config._theme", () => {
+    const container = document.createElement("div");
+    const events = [createTestEvent()];
+    renderGridView(container, events, "UTC", {
+      _theme: { layout: "compact", orientation: "vertical", imagePosition: "left" },
+    });
+    assert.ok(container.querySelector(".already-card--compact"));
   });
 });

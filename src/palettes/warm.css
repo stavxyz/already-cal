@@ -1,1 +1,20 @@
-/* Warm palette — populated in Task 8 */
+/* Warm palette — earthy, organic, inviting */
+.already[data-palette="warm"] {
+  --already-primary: #c9713c;
+  --already-primary-text: #ffffff;
+  --already-background: #faf6f0;
+  --already-surface: #fff8f0;
+  --already-text: #2c1810;
+  --already-text-secondary: #8b6f5c;
+  --already-border: rgba(139, 69, 19, 0.1);
+  --already-font-family: Georgia, "Times New Roman", serif;
+  --already-font-weight-normal: 400;
+  --already-font-weight-bold: 700;
+  --already-font-size-sm: 0.75rem;
+  --already-font-size-base: 0.9rem;
+  --already-font-size-lg: 1rem;
+  --already-radius: 12px;
+  --already-radius-sm: 8px;
+  --already-shadow: 0 2px 8px rgba(139, 69, 19, 0.08);
+  --already-spacing: 1.125rem;
+}

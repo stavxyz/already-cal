@@ -1,1 +1,20 @@
-/* Dark palette — populated in Task 8 */
+/* Dark palette — dark mode */
+.already[data-palette="dark"] {
+  --already-primary: #d4a574;
+  --already-primary-text: #1a1a1a;
+  --already-background: #1a1a1a;
+  --already-surface: #2a2a2a;
+  --already-text: #e8e8e8;
+  --already-text-secondary: #999;
+  --already-border: rgba(255, 255, 255, 0.08);
+  --already-font-family: system-ui, sans-serif;
+  --already-font-weight-normal: 400;
+  --already-font-weight-bold: 600;
+  --already-font-size-sm: 0.75rem;
+  --already-font-size-base: 0.875rem;
+  --already-font-size-lg: 0.9375rem;
+  --already-radius: 8px;
+  --already-radius-sm: 6px;
+  --already-shadow: none;
+  --already-spacing: 1rem;
+}

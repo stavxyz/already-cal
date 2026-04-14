@@ -1,1 +1,20 @@
-/* Cool palette — populated in Task 8 */
+/* Cool palette — modern, minimal, professional */
+.already[data-palette="cool"] {
+  --already-primary: #4a6cf7;
+  --already-primary-text: #ffffff;
+  --already-background: #f8f9fb;
+  --already-surface: #ffffff;
+  --already-text: #1a1f36;
+  --already-text-secondary: #6b7280;
+  --already-border: rgba(0, 0, 0, 0.06);
+  --already-font-family: Inter, system-ui, sans-serif;
+  --already-font-weight-normal: 400;
+  --already-font-weight-bold: 600;
+  --already-font-size-sm: 0.6875rem;
+  --already-font-size-base: 0.8125rem;
+  --already-font-size-lg: 0.875rem;
+  --already-radius: 4px;
+  --already-radius-sm: 3px;
+  --already-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --already-spacing: 0.875rem;
+}

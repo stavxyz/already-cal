@@ -1,1 +1,20 @@
-/* Light palette — default. Populated in Task 8. */
+/* Light palette — clean default */
+.already[data-palette="light"] {
+  --already-primary: #8b4513;
+  --already-primary-text: #ffffff;
+  --already-background: #f5f0eb;
+  --already-surface: #ffffff;
+  --already-text: #1a1a1a;
+  --already-text-secondary: #666;
+  --already-border: rgba(0, 0, 0, 0.06);
+  --already-font-family: system-ui, sans-serif;
+  --already-font-weight-normal: 400;
+  --already-font-weight-bold: 700;
+  --already-font-size-sm: 0.75rem;
+  --already-font-size-base: 0.875rem;
+  --already-font-size-lg: 0.9375rem;
+  --already-radius: 8px;
+  --already-radius-sm: 6px;
+  --already-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --already-spacing: 1rem;
+}

@@ -69,9 +69,10 @@ function parseDirective(body) {
         metadata: {},
       };
     }
-    const url = value.startsWith('http') ? normalizeImageUrl(value) : null;
+    const isUrl = value.startsWith('http://') || value.startsWith('https://');
+    const url = isUrl ? normalizeImageUrl(value) : null;
     return {
-      canonicalId: value.startsWith('http') ? imageCanonicalId(value) : `image:${value}`,
+      canonicalId: isUrl ? imageCanonicalId(value) : `image:${value}`,
       type: 'image',
       source: 'directive',
       url: url || value,

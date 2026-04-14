@@ -2,10 +2,13 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert');
 
 let extractDirectives;
+let extractImageTokens;
 
 before(async () => {
   const mod = await import('../src/util/directives.js');
   extractDirectives = mod.extractDirectives;
+  const imgMod = await import('../src/util/images.js');
+  extractImageTokens = imgMod.extractImageTokens;
 });
 
 describe('extractDirectives — platform link directives', () => {
@@ -61,7 +64,6 @@ describe('extractDirectives — image directives', () => {
 
   it('produces canonical IDs that match URL-extracted images', () => {
     const directive = extractDirectives('#already:image:https://example.com/photo.jpg');
-    const { extractImageTokens } = require('../src/util/images.js');
     const extracted = extractImageTokens(
       'Check out https://example.com/photo.jpg',
       { imageExtensions: ['jpg'] }
@@ -76,9 +78,25 @@ describe('extractDirectives — image directives', () => {
     assert.strictEqual(result.tokens[0].url, 'https://lh3.googleusercontent.com/d/ABC123');
   });
 
+  it('deduplicates full Drive URL directive with URL-extracted Drive image', () => {
+    const directive = extractDirectives('#already:image:https://drive.google.com/file/d/XYZ789/view');
+    const extracted = extractImageTokens(
+      'See https://drive.google.com/file/d/XYZ789/view',
+      { imageExtensions: ['png'] }
+    );
+    assert.strictEqual(directive.tokens[0].canonicalId, 'image:drive:XYZ789');
+    assert.strictEqual(directive.tokens[0].canonicalId, extracted.tokens[0].canonicalId);
+  });
+
   it('normalizes Dropbox directive images to match URL-extracted canonical IDs', () => {
     const result = extractDirectives('#already:image:https://www.dropbox.com/scl/fi/abc123/photo.png?dl=0');
     assert.strictEqual(result.tokens[0].canonicalId, 'image:dropbox:abc123/photo.png');
+  });
+
+  it('uses raw value as canonical ID for non-URL image directives', () => {
+    const result = extractDirectives('#already:image:flyer.png');
+    assert.strictEqual(result.tokens[0].canonicalId, 'image:flyer.png');
+    assert.strictEqual(result.tokens[0].url, 'flyer.png');
   });
 });
 

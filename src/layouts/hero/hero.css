@@ -1,1 +1,33 @@
-/* Hero layout — populated in Task 5 */
+/* Hero layout — bold uppercase title, description preview, footer */
+
+.already-card--hero .already-card__title {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.already-card--hero .already-card__image {
+  aspect-ratio: 16 / 9;
+}
+
+.already-card--hero.already-card--horizontal .already-card__image {
+  aspect-ratio: auto;
+  min-height: 160px;
+  width: 200px;
+}
+
+.already-card--hero .already-card__footer {
+  font-size: 0.6875rem;
+  color: var(--already-text-secondary);
+}
+
+.already-card--hero .already-card__footer .already-card__location {
+  white-space: normal;
+  overflow: visible;
+  font-size: inherit;
+}
+
+.already-card--hero .already-card__footer .already-card__meta {
+  font-size: inherit;
+  font-weight: 400;
+}

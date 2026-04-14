@@ -1,7 +1,7 @@
 import { render as clean } from "./clean/clean.js";
+import { render as hero } from "./hero/hero.js";
 import { createElement } from "../views/helpers.js";
 
-// Placeholder render functions — replaced in Tasks 5-7
 function placeholderRender(event, options) {
   const card = createElement("div", "already-card");
   card.textContent = event.title;
@@ -10,7 +10,7 @@ function placeholderRender(event, options) {
 
 const layouts = {
   clean,
-  hero: placeholderRender,
+  hero,
   badge: placeholderRender,
   compact: placeholderRender,
 };

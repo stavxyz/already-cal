@@ -87,7 +87,7 @@ Already.init({
 
 Visitors can switch views via the selector bar, which includes inline SVG icons for each view. Their preference is saved in localStorage. Detail view shows a gallery with arrow navigation when an event has multiple images.
 
-Grid and list views are paginated (default: 10 events per page) with "Load more" and "Show earlier" buttons. Month, week, and day views show all events for their date range.
+Grid and list views are paginated (default: 10 events per page, configurable via `pageSize`) with "Load more" and "Show earlier" buttons. Month, week, and day views show all events for their date range.
 
 ## Configuration
 
@@ -201,7 +201,7 @@ Already.init({
 
 For detailed descriptions of every option, callback signatures, custom renderer examples, and data hook behavior, see the **[full configuration reference](docs/configuration.md)**.
 
-All options also work as HTML `data-` attributes for zero-JS setup. See the [data attributes table](#data-attributes) below.
+The most common options are also available as HTML `data-` attributes for zero-JS setup. See the [data attributes table](#data-attributes) below. Some options (callbacks, custom renderers, sticky, pageSize, and others) require JavaScript initialization — see the [full data attributes reference](docs/configuration.md#data-attributes) for details.
 
 ### Data attributes
 
@@ -279,62 +279,21 @@ Attachments are rendered as a list of download links in the detail view, below t
 
 ## Directives
 
-Directives let you control already-cal behavior directly from event descriptions using a hashtag syntax. This is useful when you don't have access to code — you can add platform links, images, and metadata tags right inside a Google Calendar event description.
-
-### Syntax
-
-```
-#already:<type>:<value>
-```
-
-The `#already:` prefix is case-insensitive. Directives are stripped from the rendered description.
-
-### Platform link directives
-
-Add a platform button without pasting the full URL:
+Directives let you control already-cal behavior directly from event descriptions using a `#already:<type>:<value>` syntax. The `#already:` prefix is case-insensitive. Directives are stripped from the rendered description.
 
 ```
 #already:instagram:savebigbend     → "Follow @savebigbend on Instagram"
-#already:zoom:123456789            → "Join Zoom" (links to zoom.us/j/123456789)
-#already:discord:AbCdEf            → "Join Discord" (links to discord.gg/AbCdEf)
-#already:eventbrite:12345          → "RSVP on Eventbrite"
+#already:image:https://example.com/flyer.png  → adds image to gallery
+#already:image:drive:FILE_ID       → Google Drive image by file ID
+#already:tag:fundraiser            → filterable tag badge
+#already:cost:$25                  → key-value tag badge "cost: $25"
+#already:featured                  → pins event to top, adds star badge
+#already:hidden                    → hides from views (still accessible via direct link)
 ```
 
-All 18 built-in platforms are supported. Aliases: `twitter` → X, `meet` → Google Meet, `forms` → Google Forms, `maps` → Google Maps.
+All 18 built-in platforms are supported as directives, plus aliases (`twitter` → X, `meet` → Google Meet, `forms` → Google Forms, `maps` → Google Maps). Directives and URLs are deduplicated — `#already:instagram:foo` and `https://instagram.com/foo` produce one button, not two.
 
-Directives and URLs are deduplicated: `#already:instagram:foo` and `https://instagram.com/foo` produce the same canonical ID, so only one button renders.
-
-### Image directives
-
-```
-#already:image:https://example.com/flyer.png    → adds image to gallery
-#already:image:drive:ABC123                    → Google Drive image by file ID
-```
-
-### Featured and hidden directives
-
-Control event visibility and prominence:
-
-```
-#already:featured    → pins event to top of its date group, adds star badge
-#already:hidden      → hides event from all views (still accessible via direct link)
-```
-
-Featured events sort first within their date in all views. Hidden events are filtered out before rendering. Both flags are available on the event object as `event.featured` and `event.hidden` booleans.
-
-### Tag directives
-
-Tags are rendered as badge pills in the detail view and as filterable pills in the tag filter bar:
-
-```
-#already:tag:fundraiser        → scalar tag badge "fundraiser"
-#already:tag:outdoor           → scalar tag badge "outdoor"
-#already:cost:$25              → key-value badge "cost: $25"
-#already:capacity:50           → key-value badge "capacity: 50"
-#already:rsvp:https://form.com → rendered as a link button "Rsvp"
-```
-
-Key-value tags where the value is a URL are rendered as link buttons alongside platform links.
+For the complete reference including all platforms, URL construction, tag types, and deduplication rules, see the **[directives reference](docs/directives.md)**.
 
 ## Tag Filtering
 

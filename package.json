@@ -9,6 +9,7 @@
     "check": "biome ci .",
     "dev": "node build.cjs --watch",
     "format": "biome check --write .",
+    "lint": "biome ci .",
     "test": "node --test test/*.test.cjs test/views/*.test.cjs test/ui/*.test.cjs",
     "test:coverage": "c8 node --test test/*.test.cjs test/views/*.test.cjs test/ui/*.test.cjs"
   },

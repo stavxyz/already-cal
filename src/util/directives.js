@@ -5,7 +5,6 @@ import { normalizeImageUrl } from './images.js';
 // Excludes < and > so the match stops before any wrapping </a> tag.
 const DIRECTIVE_PATTERN = /#already:([^\s<>]+)/gi;
 
-// Map directive platform names to their labels and canonical prefix.
 // Map directive platform names to their labels, canonical prefix, and URL builder.
 // The url function constructs a real link from the directive value so that
 // directive-sourced tokens can be rendered as clickable buttons.

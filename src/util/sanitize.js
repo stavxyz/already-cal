@@ -22,10 +22,7 @@ export function stripUrl(html, url) {
   return html;
 }
 
-/** Clean up HTML after URL extraction: collapse orphaned <br> runs and normalize whitespace. */
-// Clean up description HTML after extracting URLs.
-// Collapses orphaned <br> runs, removes leading/trailing <br>,
-// and normalizes excessive newlines.
+/** Clean up HTML after URL extraction: collapse orphaned <br> runs, remove leading/trailing <br>, and normalize whitespace. */
 export function cleanupHtml(str) {
   if (!str) return '';
   return str

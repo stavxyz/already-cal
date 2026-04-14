@@ -20,6 +20,7 @@ function pathSegments(url) {
   } catch { return []; }
 }
 
+/** Extract a social-media handle or community name from a profile URL, or null for non-profile URLs. */
 export function handleAt(url) {
   try {
     const segments = pathSegments(url);

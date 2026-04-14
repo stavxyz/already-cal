@@ -1,0 +1,57 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  filter-paths:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      changed: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          base: main
+          filters: |
+            code:
+              - 'src/**'
+              - 'test/**'
+              - 'build.cjs'
+              - 'package.json'
+              - 'package-lock.json'
+
+  test:
+    needs: filter-paths
+    if: needs.filter-paths.outputs.changed == 'true'
+    name: Test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - name: Run tests with coverage
+        if: matrix.node-version == 22
+        run: npm run test:coverage
+      - name: Run tests
+        if: matrix.node-version != 22
+        run: npm test
+      - name: Verify build
+        run: npm run build

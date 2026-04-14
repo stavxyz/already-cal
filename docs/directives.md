@@ -140,7 +140,7 @@ Each directive type generates canonical IDs as follows:
 | Type | Canonical ID format | Example |
 |------|-------------------|---------|
 | Platform link | `<canonicalPrefix>:<value>` | `instagram:savebigbend` |
-| Image (URL) | `image:<hostname><path>` | `image:example.com/flyer.png` |
+| Image (URL) | `image:<raw-value>` | `image:https://example.com/flyer.png` |
 | Image (Drive) | `image:drive:<fileId>` | `image:drive:ABC123` |
 | Scalar tag | `tag:<value>` | `tag:fundraiser` |
 | Key-value tag | `tag:<key>:<value>` | `tag:cost:$25` |
@@ -148,6 +148,8 @@ Each directive type generates canonical IDs as follows:
 Platform aliases share the same `canonicalPrefix` — `twitter` and `x` both use `x`, so `#already:twitter:foo` and `#already:x:foo` deduplicate.
 
 URL-extracted links use platform-specific `canonicalize()` functions that produce IDs in the same format. For example, `https://instagram.com/savebigbend` canonicalizes to `instagram:savebigbend`, matching the directive `#already:instagram:savebigbend`.
+
+> **Note:** Image directive canonical IDs use the raw directive value (e.g., `image:https://example.com/pic.png`), while URL-extracted images use a normalized `image:<hostname><path>` format. This means directive images and URL-extracted images currently do not deduplicate with each other. Drive images (`image:drive:<id>`) deduplicate correctly across both sources.
 
 ## Extraction Order
 

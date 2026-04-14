@@ -291,7 +291,7 @@ renderError: ({ message }) => `<div class="my-error">${message}</div>`,
 
 ## Data Attributes
 
-The most common options are available as HTML `data-` attributes for zero-JS setup. Options not listed here (callbacks, data hooks, custom renderers, `sticky`, `pageSize`, `initialEvent`, header options, sanitization, and `imageExtensions`) require JavaScript initialization.
+The most common options are available as HTML `data-` attributes for zero-JS setup. Options not listed here — including `showHeader`, `headerTitle`, `headerDescription`, `headerIcon`, `subscribeUrl`, `pageSize`, `sticky`, `initialEvent`, `imageExtensions`, `knownPlatforms`, `sanitization`, `i18n`, `data`, callbacks, data hooks, and custom renderers — require JavaScript initialization.
 
 | Attribute | Maps to | Type |
 |-----------|---------|------|

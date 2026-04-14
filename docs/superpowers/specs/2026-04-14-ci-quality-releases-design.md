@@ -23,7 +23,7 @@ Add `@biomejs/biome` as a devDependency.
 
 ```json
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.11/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -56,6 +56,7 @@ Add `@biomejs/biome` as a devDependency.
 | Script | Command | Purpose |
 |--------|---------|---------|
 | `check` | `biome ci .` | Lint + format check (CI, fails on violations) |
+| `lint` | `biome ci .` | Alias for `check` (discoverability) |
 | `format` | `biome check --write .` | Auto-fix lint and formatting |
 
 ### Initial Formatting Pass
@@ -117,159 +118,27 @@ No new tests in this PR. Coverage tooling only. Filling coverage gaps is a separ
 
 ## Section 3: CI Workflows — GitHub Actions
 
-Three separate workflow files with path filtering, following the `already.events` pattern.
+Three separate workflow files with path filtering, following the `already.events` pattern. All actions are pinned to commit SHAs for supply-chain security. Concurrency groups cancel superseded runs.
 
 ### `.github/workflows/quality.yml` — Biome
 
-```yaml
-name: Quality
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  filter-paths:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
-    outputs:
-      changed: ${{ steps.filter.outputs.code }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          base: main
-          filters: |
-            code:
-              - '**/*.js'
-              - '**/*.cjs'
-              - '**/*.css'
-              - '**/*.json'
-              - 'biome.json'
-
-  biome:
-    needs: filter-paths
-    if: needs.filter-paths.outputs.changed == 'true'
-    name: Biome
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: biomejs/setup-biome@v2
-        with:
-          version: latest
-      - run: biome ci .
-```
+- Path-filtered: only triggers when JS/CSS/JSON files change
+- Uses `biomejs/setup-biome` (no npm install needed)
+- Biome version pinned to match `devDependency` (2.4.12)
 
 ### `.github/workflows/tests.yml` — Tests + Coverage + Build
 
-```yaml
-name: Tests
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  filter-paths:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
-    outputs:
-      changed: ${{ steps.filter.outputs.code }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          base: main
-          filters: |
-            code:
-              - 'src/**'
-              - 'test/**'
-              - 'build.cjs'
-              - 'package.json'
-              - 'package-lock.json'
-
-  test:
-    needs: filter-paths
-    if: needs.filter-paths.outputs.changed == 'true'
-    name: Test (Node ${{ matrix.node-version }})
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    strategy:
-      matrix:
-        node-version: [18, 20, 22]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: npm
-      - run: npm ci
-      - name: Run tests with coverage
-        if: matrix.node-version == 22
-        run: npm run test:coverage
-      - name: Run tests
-        if: matrix.node-version != 22
-        run: npm test
-      - name: Verify build
-        run: npm run build
-```
+- Path-filtered: only triggers when src/test/build files change
+- Node 20/22 matrix with `fail-fast: false` (each leg completes independently)
+- Coverage (`c8`) runs only on Node 22
+- Build verification runs only on Node 22 (esbuild output is deterministic)
 
 ### `.github/workflows/release.yml` — Tag-Triggered Release
 
-```yaml
-name: Release
-
-on:
-  push:
-    tags:
-      - 'v*'
-
-permissions:
-  contents: write
-
-jobs:
-  release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm test
-      - run: npm run build
-      - name: Create GitHub Release
-        run: |
-          gh release create "${{ github.ref_name }}" \
-            dist/already-cal.js \
-            dist/already-cal.min.js \
-            dist/already-cal.css \
-            dist/already-cal.min.css \
-            dist/already-cal.js.map \
-            --generate-notes \
-            --title "${{ github.ref_name }}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
+- Triggers on tags matching `v[0-9]*` (rejects non-semver junk tags)
+- Permissions scoped to the release job (not workflow-level)
+- Verifies dist is clean (`git diff --exit-code dist/`) before creating release
+- Uploads 5 dist assets via `gh release create --generate-notes`
 
 ---
 
@@ -296,12 +165,12 @@ Manual, intentional versioning. No automated version bumps.
 
 ### CDN Access
 
-jsdelivr and unpkg serve from GitHub Releases:
+jsdelivr and unpkg serve from the git repository at a tagged version:
 ```
 https://cdn.jsdelivr.net/gh/stavxyz/already-cal@v0.2.0/dist/already-cal.min.js
 ```
 
-No npm publish required.
+This references the dist files committed at the tag, not the Release assets. No npm publish required.
 
 ---
 

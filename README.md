@@ -377,17 +377,37 @@ Already.init({ el: '#events-b', storageKeyPrefix: 'cal-b', ... });
 
 ```bash
 npm install
-npm run build     # build to dist/
-npm run dev       # watch mode
-npm test          # run tests
-open dev.html     # local preview with mock data
+npm run build           # build to dist/
+npm run dev             # watch mode
+npm test                # run tests
+npm run test:coverage   # tests with c8 coverage report
+npm run lint            # check formatting and lint rules
+npm run format          # auto-fix formatting and lint
+open dev.html           # local preview with mock data
 ```
+
+## CI/CD
+
+Three GitHub Actions workflows run automatically:
+
+- **Quality** — Biome lint + format check on PRs and pushes to main (path-filtered)
+- **Tests** — Node 20/22 matrix with c8 coverage on Node 22, build verification (path-filtered)
+- **Release** — Tag-triggered (`v[0-9]*`): tests, builds, creates GitHub Release with dist assets
+
+### Creating a release
+
+1. Bump `version` in `package.json`, commit
+2. `git tag v<version>`
+3. `git push origin v<version>`
+4. The release workflow builds, tests, and creates a GitHub Release with dist assets
 
 ## Built with
 
 - Vanilla JavaScript (no framework)
 - [esbuild](https://esbuild.github.io/) for bundling (IIFE format, `Already` global)
 - [marked](https://github.com/markedjs/marked) for markdown (bundled)
+- [Biome](https://biomejs.dev/) for linting and formatting
+- [c8](https://github.com/bcoe/c8) for test coverage reporting
 - CSS custom properties for theming
 - `Intl.DateTimeFormat` for locale-aware formatting
 

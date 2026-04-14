@@ -1,5 +1,6 @@
 import { render as clean } from "./clean/clean.js";
 import { render as hero } from "./hero/hero.js";
+import { render as badge } from "./badge/badge.js";
 import { createElement } from "../views/helpers.js";
 
 function placeholderRender(event, options) {
@@ -11,7 +12,7 @@ function placeholderRender(event, options) {
 const layouts = {
   clean,
   hero,
-  badge: placeholderRender,
+  badge,
   compact: placeholderRender,
 };
 

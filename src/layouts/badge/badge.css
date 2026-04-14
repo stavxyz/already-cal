@@ -1,1 +1,42 @@
-/* Badge layout — populated in Task 6 */
+/* Badge layout — date badge overlay, tag pills, action footer */
+
+.already-card--badge .already-card__image--badged {
+  position: relative;
+}
+
+.already-card--badge .already-card__badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: var(--already-primary);
+  color: var(--already-primary-text);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+}
+
+.already-card--badge .already-card__badge--inline {
+  position: static;
+  display: inline-block;
+  margin-bottom: 0.5rem;
+}
+
+.already-card--badge .already-card__image {
+  aspect-ratio: 16 / 9;
+}
+
+.already-card--badge.already-card--horizontal .already-card__image {
+  aspect-ratio: auto;
+  min-height: 160px;
+  width: 180px;
+}
+
+.already-card--badge .already-card__meta {
+  font-size: 0.6875rem;
+  color: var(--already-text-secondary);
+  font-weight: 400;
+}
+
+.already-card--badge .already-card__location {
+  font-size: 0.6875rem;
+  white-space: normal;
+}

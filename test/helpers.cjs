@@ -1,4 +1,3 @@
-// test/helpers.js
 function createTestEvent(overrides = {}) {
   return {
     id: overrides.id || `event-${Math.random().toString(36).slice(2, 8)}`,

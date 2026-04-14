@@ -1,4 +1,3 @@
-// test/views/lightbox.test.js
 require('../setup-dom.cjs');
 const { describe, it, before, afterEach } = require('node:test');
 const assert = require('node:assert');

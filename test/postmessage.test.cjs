@@ -1,13 +1,22 @@
 require("./setup-dom.cjs");
-const { describe, it, before } = require("node:test");
+const { describe, it, before, afterEach } = require("node:test");
 const assert = require("node:assert");
 const { createTestEvent } = require("./helpers.cjs");
 
 let init;
+const instances = [];
 
 before(async () => {
   const mod = await import("../src/already-cal.js");
   init = mod.init;
+});
+
+afterEach(() => {
+  for (const inst of instances) {
+    inst.instance.destroy();
+    inst.container.remove();
+  }
+  instances.length = 0;
 });
 
 function createInitedInstance() {
@@ -21,6 +30,7 @@ function createInitedInstance() {
     },
     defaultView: "grid",
   });
+  instances.push({ instance, container });
   return { instance, container };
 }
 

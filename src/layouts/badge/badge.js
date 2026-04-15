@@ -1,5 +1,6 @@
-import { formatDate, formatTime, getDatePartsInTz, MONTH_NAMES_SHORT } from "../../util/dates.js";
+import { formatDate, formatTime } from "../../util/dates.js";
 import { createElement } from "../../views/helpers.js";
+import { buildCardClasses, createCardImage, buildBadge } from "../helpers.js";
 
 /**
  * Render a badge layout card.
@@ -10,34 +11,15 @@ export function render(event, options) {
   const { orientation, imagePosition, index, timezone, locale } = options;
 
   const card = createElement("div");
-  let cls = "already-card already-card--badge";
-  cls += ` already-card--${orientation}`;
-  if (
-    orientation === "horizontal" &&
-    (imagePosition === "right" ||
-      (imagePosition === "alternating" && index % 2 === 1))
-  ) {
-    cls += " already-card--image-right";
-  }
-  card.className = cls;
-
-  const dateParts = getDatePartsInTz(event.start, timezone, locale);
+  card.className = buildCardClasses("badge", orientation, imagePosition, index);
 
   // Image wrapper with badge overlay
-  if (event.image) {
-    const imageWrap = createElement("div", "already-card__image already-card__image--badged");
-    const img = document.createElement("img");
-    img.src = event.image;
-    img.alt = event.title;
-    img.setAttribute("loading", "lazy");
-    img.onerror = () => {
-      imageWrap.style.display = "none";
-    };
-    imageWrap.appendChild(img);
-
-    const badge = buildBadge(dateParts);
-    imageWrap.appendChild(badge);
-    card.appendChild(imageWrap);
+  const imageEl = createCardImage(event);
+  if (imageEl) {
+    imageEl.classList.add("already-card__image--badged");
+    const badge = buildBadge(event.start, timezone, locale);
+    imageEl.appendChild(badge);
+    card.appendChild(imageEl);
   }
 
   // Body
@@ -45,7 +27,7 @@ export function render(event, options) {
 
   // Badge inline if no image
   if (!event.image) {
-    const badge = buildBadge(dateParts);
+    const badge = buildBadge(event.start, timezone, locale);
     badge.classList.add("already-card__badge--inline");
     body.appendChild(badge);
   }
@@ -109,13 +91,3 @@ export function render(event, options) {
   return card;
 }
 
-function buildBadge(dateParts) {
-  const badge = createElement("div", "already-card__badge");
-  const day = createElement("div", "already-card__badge-day");
-  day.textContent = dateParts.day;
-  badge.appendChild(day);
-  const month = createElement("div", "already-card__badge-month");
-  month.textContent = MONTH_NAMES_SHORT[dateParts.month] || "";
-  badge.appendChild(month);
-  return badge;
-}

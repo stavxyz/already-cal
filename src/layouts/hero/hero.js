@@ -1,32 +1,16 @@
 import { formatDateShort, formatTime } from "../../util/dates.js";
 import { createElement } from "../../views/helpers.js";
+import { buildCardClasses, createCardImage } from "../helpers.js";
 
 export function render(event, options) {
   const { orientation, imagePosition, index, timezone, locale } = options;
 
   const card = createElement("div");
-  let cls = "already-card already-card--hero";
-  cls += ` already-card--${orientation}`;
-  if (
-    orientation === "horizontal" &&
-    (imagePosition === "right" ||
-      (imagePosition === "alternating" && index % 2 === 1))
-  ) {
-    cls += " already-card--image-right";
-  }
-  card.className = cls;
+  card.className = buildCardClasses("hero", orientation, imagePosition, index);
 
   // Image
-  if (event.image) {
-    const wrapper = createElement("div", "already-card__image");
-    const img = document.createElement("img");
-    img.src = event.image;
-    img.alt = event.title;
-    img.setAttribute("loading", "lazy");
-    img.onerror = () => { wrapper.style.display = "none"; };
-    wrapper.appendChild(img);
-    card.appendChild(wrapper);
-  }
+  const imageEl = createCardImage(event);
+  if (imageEl) card.appendChild(imageEl);
 
   // Body
   const body = createElement("div", "already-card__body");

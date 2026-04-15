@@ -1,5 +1,6 @@
-import { formatDateShort, formatTime, getDatePartsInTz, MONTH_NAMES_SHORT } from "../../util/dates.js";
+import { formatDateShort, formatTime } from "../../util/dates.js";
 import { createElement } from "../../views/helpers.js";
+import { buildBadge } from "../helpers.js";
 
 /**
  * Render a compact layout card.
@@ -40,14 +41,8 @@ export function render(event, options) {
   row.appendChild(info);
 
   // Date badge (inline, right side)
-  const dateParts = getDatePartsInTz(event.start, timezone, locale);
-  const badge = createElement("div", "already-card__badge already-card__badge--inline");
-  const day = createElement("div", "already-card__badge-day");
-  day.textContent = dateParts.day;
-  badge.appendChild(day);
-  const month = createElement("div", "already-card__badge-month");
-  month.textContent = MONTH_NAMES_SHORT[dateParts.month] || "";
-  badge.appendChild(month);
+  const badge = buildBadge(event.start, timezone, locale);
+  badge.classList.add("already-card__badge--inline");
   row.appendChild(badge);
 
   body.appendChild(row);

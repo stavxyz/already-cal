@@ -38,13 +38,13 @@ export function render(event, options) {
   const dateStr = formatDateShort(event.start, timezone, locale);
   const timeStr = event.allDay
     ? ""
-    : ` ${formatTime(event.start, timezone, locale)}`;
+    : ` \u00b7 ${formatTime(event.start, timezone, locale)}`;
   const endTimeStr =
     !event.allDay && event.end
       ? ` \u2013 ${formatTime(event.end, timezone, locale)}`
       : "";
   const meta = createElement("span", "already-card__meta");
-  meta.textContent = `${dateStr} \u00b7 ${timeStr}${endTimeStr}`.trim();
+  meta.textContent = `${dateStr}${timeStr}${endTimeStr}`;
   footer.appendChild(meta);
 
   body.appendChild(footer);

@@ -417,6 +417,36 @@ Already.init({ el: '#events-a', storageKeyPrefix: 'cal-a', ... });
 Already.init({ el: '#events-b', storageKeyPrefix: 'cal-b', ... });
 ```
 
+## Runtime Updates
+
+Update an already-cal instance's config without reinitializing:
+
+```js
+const cal = Already.init({ el: '#cal', ... });
+
+// Switch theme at runtime
+cal.setConfig({ theme: { layout: 'hero', palette: 'dark' } });
+
+// Or use the global convenience method (single-instance)
+Already.setConfig({ theme: { palette: 'warm' } });
+```
+
+Palette and CSS override changes are instant (CSS-only, no DOM rebuild). Layout and orientation changes trigger a view re-render.
+
+### Cross-Origin Updates (iframe)
+
+When already-cal runs inside an iframe, use `postMessage`:
+
+```js
+const iframe = document.querySelector('iframe');
+iframe.contentWindow.postMessage({
+  type: 'already:config',
+  config: { theme: { layout: 'badge', palette: 'cool' } }
+}, '*');
+```
+
+Messages must have `type: "already:config"` and a `config` object. Other messages are silently ignored.
+
 ## Accessibility
 
 - All interactive elements have `tabindex="0"` and `role="button"` or `role="tab"`

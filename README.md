@@ -119,8 +119,9 @@ Already.init({
   sticky: true,                        // true | false | { header, viewSelector, tagFilter }
 
   // --- Theming ---
-  theme: 'hero',                         // shorthand: layout name with defaults
-  // or full control:
+  // Shorthand (layout name only):
+  // theme: 'hero',
+  // Full control:
   theme: {
     layout: 'clean',                     // clean | hero | badge | compact
     palette: 'light',                    // light | dark | warm | cool
@@ -275,7 +276,7 @@ Grid view uses the theme's orientation (default: vertical). List view always ren
 
 Palettes set these properties. Override any of them in the theme config:
 
-`primary`, `primaryText`, `background`, `surface`, `text`, `textSecondary`, `border`, `fontFamily`, `fontWeightNormal`, `fontWeightBold`, `fontSizeSm`, `fontSizeBase`, `fontSizeLg`, `radius`, `radiusSm`, `shadow`, `spacing`
+`primary`, `primaryText`, `background`, `surface`, `text`, `textSecondary`, `border`, `fontFamily`, `fontWeightNormal`, `fontWeightBold`, `fontSizeSm`, `fontSizeBase`, `fontSizeLg`, `radius`, `radiusSm`, `shadow`, `shadowHover`, `highlight`, `spacing`
 
 ## Link Extraction
 

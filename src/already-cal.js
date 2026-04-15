@@ -86,6 +86,11 @@ export { DEFAULTS };
 /** The most recently created instance. In multi-instance setups, only the last init()'d instance is stored here. */
 export let _instance = null;
 
+/** Convenience method — delegates to the last-created instance's setConfig. */
+export function setConfig(config) {
+  if (_instance) _instance.setConfig(config);
+}
+
 /** Initialize an already-cal instance with the given configuration. */
 export function init(userConfig) {
   const config = { ...DEFAULTS, ...userConfig };

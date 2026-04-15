@@ -170,3 +170,27 @@ describe("Already._instance", () => {
     assert.strictEqual(mod._instance, instance);
   });
 });
+
+describe("global setConfig export", () => {
+  it("is exported as a function", async () => {
+    const mod = await import("../src/already-cal.js");
+    assert.strictEqual(typeof mod.setConfig, "function");
+  });
+
+  it("delegates to _instance.setConfig", async () => {
+    const mod = await import("../src/already-cal.js");
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    mod.init({
+      el: container,
+      data: {
+        events: [createTestEvent()],
+        calendar: { name: "Test", description: "", timezone: "UTC" },
+      },
+    });
+    await new Promise((r) => setTimeout(r, 10));
+
+    mod.setConfig({ theme: { palette: "dark" } });
+    assert.strictEqual(container.dataset.palette, "dark");
+  });
+});

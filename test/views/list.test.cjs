@@ -118,4 +118,18 @@ describe("renderListView", () => {
     renderListView(container, events, "UTC", {});
     assert.ok(container.querySelector(".already-card--horizontal"));
   });
+
+  it("renders compact layout cards as vertical in list view", () => {
+    const container = document.createElement("div");
+    const events = [createTestEvent()];
+    renderListView(container, events, "UTC", {
+      _theme: { layout: "compact", orientation: "vertical", imagePosition: "left" },
+    });
+    const card = container.querySelector(".already-card--compact");
+    assert.ok(card, "should render compact card");
+    assert.ok(
+      !card.classList.contains("already-card--horizontal"),
+      "compact in list should not have horizontal class",
+    );
+  });
 });

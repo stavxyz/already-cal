@@ -14,6 +14,7 @@ function createTestEvent(overrides = {}) {
     tags: [],
     featured: false,
     hidden: false,
+    htmlLink: "",
     ...overrides,
   };
 }

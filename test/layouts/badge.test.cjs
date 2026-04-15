@@ -94,6 +94,30 @@ describe("badge layout", () => {
     assert.strictEqual(el.querySelector(".already-card__footer"), null);
   });
 
+  it("shows only date (no middot or time) for allDay events", () => {
+    const el = render(
+      createTestEvent({ start: "2026-04-15T00:00:00Z", allDay: true }),
+      baseOptions,
+    );
+    const meta = el.querySelector(".already-card__meta");
+    assert.ok(meta);
+    assert.ok(!meta.textContent.includes("\u00b7"), "allDay should not contain middot");
+  });
+
+  it("includes end time range when end is present", () => {
+    const el = render(
+      createTestEvent({
+        start: "2026-04-15T14:00:00Z",
+        end: "2026-04-15T16:00:00Z",
+        allDay: false,
+      }),
+      baseOptions,
+    );
+    const meta = el.querySelector(".already-card__meta");
+    assert.ok(meta);
+    assert.ok(meta.textContent.includes("\u2013"), "should contain en-dash for time range");
+  });
+
   it("applies horizontal orientation class", () => {
     const el = render(createTestEvent(), {
       ...baseOptions,

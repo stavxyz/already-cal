@@ -156,6 +156,18 @@ describe("clean layout", () => {
     );
   });
 
+  it("shows only date (no middot or time) for allDay events", () => {
+    const event = createTestEvent({
+      start: "2026-04-15T00:00:00Z",
+      allDay: true,
+    });
+    const el = render(event, baseOptions);
+    const meta = el.querySelector(".already-card__meta");
+    assert.ok(meta);
+    assert.ok(!meta.textContent.includes("\u00b7"), "allDay should not contain middot");
+    assert.ok(meta.textContent.includes("Apr"), "allDay should still show date");
+  });
+
   it("escapes title via textContent (XSS protection)", () => {
     const event = createTestEvent({
       title: '<script>alert("xss")</script>',

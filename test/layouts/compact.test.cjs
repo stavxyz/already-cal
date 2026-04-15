@@ -86,6 +86,16 @@ describe("compact layout", () => {
     assert.strictEqual(el.querySelector(".already-card__description"), null);
   });
 
+  it("shows only date (no middot or time) for allDay events", () => {
+    const el = render(
+      createTestEvent({ start: "2026-04-15T00:00:00Z", allDay: true }),
+      baseOptions,
+    );
+    const meta = el.querySelector(".already-card__meta");
+    assert.ok(meta);
+    assert.ok(!meta.textContent.includes("\u00b7"), "allDay should not contain middot");
+  });
+
   it("ignores orientation — always renders without orientation class modifiers", () => {
     const el = render(createTestEvent(), {
       ...baseOptions,

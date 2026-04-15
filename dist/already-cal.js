@@ -21,7 +21,9 @@ var Already = (() => {
   var already_cal_exports = {};
   __export(already_cal_exports, {
     DEFAULTS: () => DEFAULTS,
-    init: () => init
+    _instance: () => _instance,
+    init: () => init,
+    setConfig: () => setConfig
   });
 
   // src/util/sanitize.js
@@ -3304,6 +3306,23 @@ ${text}</tr>
     }
     return { layout, orientation, imagePosition, palette, overrides };
   }
+  function applyTheme(el, themeInput, previousOverrideKeys) {
+    const theme = resolveTheme(themeInput);
+    el.dataset.layout = theme.layout;
+    el.dataset.orientation = theme.orientation;
+    el.dataset.imagePosition = theme.imagePosition;
+    el.dataset.palette = theme.palette;
+    for (const prop of previousOverrideKeys) {
+      el.style.removeProperty(prop);
+    }
+    const overrideKeys = [];
+    for (const [key, value] of Object.entries(theme.overrides)) {
+      const prop = `--already-${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`;
+      el.style.setProperty(prop, value);
+      overrideKeys.push(prop);
+    }
+    return { ...theme, overrideKeys };
+  }
 
   // src/ui/header.js
   function renderHeader(container, calendarData, config) {
@@ -4785,6 +4804,10 @@ ${text}</tr>
     loadMore: "Load more",
     showEarlier: "Show earlier"
   };
+  var _instance = null;
+  function setConfig(config) {
+    if (_instance) _instance.setConfig(config);
+  }
   function init(userConfig) {
     const config = { ...DEFAULTS, ...userConfig };
     config.i18n = { ...I18N_DEFAULTS, ...config.i18n };
@@ -4796,22 +4819,14 @@ ${text}</tr>
     }
     config.locale = config.locale || typeof navigator !== "undefined" && navigator.language || "en-US";
     config.pageSize = Number.isFinite(config.pageSize) && config.pageSize > 0 ? config.pageSize : DEFAULTS.pageSize;
-    const themeConfig = resolveTheme(config.theme);
     const el = typeof config.el === "string" ? document.querySelector(config.el) : config.el;
     if (!el) {
       console.error("already-cal: Element not found:", config.el);
       return;
     }
-    el.dataset.layout = themeConfig.layout;
-    el.dataset.orientation = themeConfig.orientation;
-    el.dataset.imagePosition = themeConfig.imagePosition;
-    el.dataset.palette = themeConfig.palette;
-    for (const [key, value] of Object.entries(themeConfig.overrides)) {
-      const prop = `--already-${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`;
-      el.style.setProperty(prop, value);
-    }
+    let themeResult = applyTheme(el, config.theme, []);
+    config._theme = themeResult;
     el.classList.add("already");
-    config._theme = themeConfig;
     const headerContainer = document.createElement("div");
     headerContainer.className = "already-header-container";
     const selectorContainer = document.createElement("div");
@@ -5099,6 +5114,28 @@ ${text}</tr>
         renderView(viewState);
       });
     }
+    function setConfig2(newConfig) {
+      if (!newConfig || typeof newConfig !== "object") return;
+      if (newConfig.theme !== void 0) {
+        themeResult = applyTheme(el, newConfig.theme, themeResult.overrideKeys);
+        config._theme = themeResult;
+      }
+      if (newConfig.views !== void 0) config.views = newConfig.views;
+      if (newConfig.showPastEvents !== void 0) {
+        showPast = newConfig.showPastEvents;
+        config.showPastEvents = newConfig.showPastEvents;
+      }
+      if (newConfig.pageSize !== void 0) {
+        config.pageSize = Number.isFinite(newConfig.pageSize) && newConfig.pageSize > 0 ? newConfig.pageSize : config.pageSize;
+      }
+      if (newConfig.defaultView !== void 0)
+        config.defaultView = newConfig.defaultView;
+      if (data && lastViewState) {
+        paginationState = { futureCount: 0, pastCount: 0 };
+        renderView(lastViewState);
+      }
+    }
+    const instance = { setConfig: setConfig2 };
     start();
     window.addEventListener("resize", () => {
       updateStickyOffsets(
@@ -5108,6 +5145,14 @@ ${text}</tr>
         tagFilterContainer
       );
     });
+    function handleMessage(event) {
+      if (event.data && typeof event.data === "object" && !Array.isArray(event.data) && event.data.type === "already:config" && event.data.config && typeof event.data.config === "object" && !Array.isArray(event.data.config)) {
+        instance.setConfig(event.data.config);
+      }
+    }
+    window.addEventListener("message", handleMessage);
+    _instance = instance;
+    return instance;
   }
   function autoInit() {
     const elements = document.querySelectorAll("[data-already-cal]");

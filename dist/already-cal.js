@@ -4264,28 +4264,47 @@ ${text}</tr>
     backBtn.focus();
   }
 
-  // src/layouts/clean/clean.js
-  function render(event, options2) {
-    const { orientation, imagePosition, index, timezone, locale } = options2;
-    const card = createElement("div");
-    let cls = "already-card already-card--clean";
+  // src/layouts/helpers.js
+  function buildCardClasses(layoutName, orientation, imagePosition, index) {
+    let cls = `already-card already-card--${layoutName}`;
     cls += ` already-card--${orientation}`;
     if (orientation === "horizontal" && (imagePosition === "right" || imagePosition === "alternating" && index % 2 === 1)) {
       cls += " already-card--image-right";
     }
-    card.className = cls;
-    if (event.image) {
-      const wrapper = createElement("div", "already-card__image");
-      const img = document.createElement("img");
-      img.src = event.image;
-      img.alt = event.title;
-      img.setAttribute("loading", "lazy");
-      img.onerror = () => {
-        wrapper.style.display = "none";
-      };
-      wrapper.appendChild(img);
-      card.appendChild(wrapper);
-    }
+    return cls;
+  }
+  function createCardImage(event) {
+    if (!event.image) return null;
+    const wrapper = createElement("div", "already-card__image");
+    const img = document.createElement("img");
+    img.src = event.image;
+    img.alt = event.title;
+    img.setAttribute("loading", "lazy");
+    img.onerror = () => {
+      wrapper.style.display = "none";
+    };
+    wrapper.appendChild(img);
+    return wrapper;
+  }
+  function buildBadge(isoString, timezone, locale) {
+    const dateParts = getDatePartsInTz(isoString, timezone, locale);
+    const badge = createElement("div", "already-card__badge");
+    const day = createElement("div", "already-card__badge-day");
+    day.textContent = dateParts.day;
+    badge.appendChild(day);
+    const month = createElement("div", "already-card__badge-month");
+    month.textContent = MONTH_NAMES_SHORT[dateParts.month] || "";
+    badge.appendChild(month);
+    return badge;
+  }
+
+  // src/layouts/clean/clean.js
+  function render(event, options2) {
+    const { orientation, imagePosition, index, timezone, locale } = options2;
+    const card = createElement("div");
+    card.className = buildCardClasses("clean", orientation, imagePosition, index);
+    const imageEl = createCardImage(event);
+    if (imageEl) card.appendChild(imageEl);
     const body = createElement("div", "already-card__body");
     const title = createElement("div", "already-card__title");
     title.textContent = event.title;
@@ -4308,24 +4327,9 @@ ${text}</tr>
   function render2(event, options2) {
     const { orientation, imagePosition, index, timezone, locale } = options2;
     const card = createElement("div");
-    let cls = "already-card already-card--hero";
-    cls += ` already-card--${orientation}`;
-    if (orientation === "horizontal" && (imagePosition === "right" || imagePosition === "alternating" && index % 2 === 1)) {
-      cls += " already-card--image-right";
-    }
-    card.className = cls;
-    if (event.image) {
-      const wrapper = createElement("div", "already-card__image");
-      const img = document.createElement("img");
-      img.src = event.image;
-      img.alt = event.title;
-      img.setAttribute("loading", "lazy");
-      img.onerror = () => {
-        wrapper.style.display = "none";
-      };
-      wrapper.appendChild(img);
-      card.appendChild(wrapper);
-    }
+    card.className = buildCardClasses("hero", orientation, imagePosition, index);
+    const imageEl = createCardImage(event);
+    if (imageEl) card.appendChild(imageEl);
     const body = createElement("div", "already-card__body");
     const title = createElement("div", "already-card__title");
     title.textContent = event.title;
@@ -4342,10 +4346,10 @@ ${text}</tr>
       footer.appendChild(loc);
     }
     const dateStr = formatDateShort(event.start, timezone, locale);
-    const timeStr = event.allDay ? "" : ` ${formatTime(event.start, timezone, locale)}`;
+    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
     const endTimeStr = !event.allDay && event.end ? ` \u2013 ${formatTime(event.end, timezone, locale)}` : "";
     const meta = createElement("span", "already-card__meta");
-    meta.textContent = `${dateStr} \xB7 ${timeStr}${endTimeStr}`.trim();
+    meta.textContent = `${dateStr}${timeStr}${endTimeStr}`;
     footer.appendChild(meta);
     body.appendChild(footer);
     card.appendChild(body);
@@ -4356,30 +4360,17 @@ ${text}</tr>
   function render3(event, options2) {
     const { orientation, imagePosition, index, timezone, locale } = options2;
     const card = createElement("div");
-    let cls = "already-card already-card--badge";
-    cls += ` already-card--${orientation}`;
-    if (orientation === "horizontal" && (imagePosition === "right" || imagePosition === "alternating" && index % 2 === 1)) {
-      cls += " already-card--image-right";
-    }
-    card.className = cls;
-    const dateParts = getDatePartsInTz(event.start, timezone, locale);
-    if (event.image) {
-      const imageWrap = createElement("div", "already-card__image already-card__image--badged");
-      const img = document.createElement("img");
-      img.src = event.image;
-      img.alt = event.title;
-      img.setAttribute("loading", "lazy");
-      img.onerror = () => {
-        imageWrap.style.display = "none";
-      };
-      imageWrap.appendChild(img);
-      const badge = buildBadge(dateParts);
-      imageWrap.appendChild(badge);
-      card.appendChild(imageWrap);
+    card.className = buildCardClasses("badge", orientation, imagePosition, index);
+    const imageEl = createCardImage(event);
+    if (imageEl) {
+      imageEl.classList.add("already-card__image--badged");
+      const badge = buildBadge(event.start, timezone, locale);
+      imageEl.appendChild(badge);
+      card.appendChild(imageEl);
     }
     const body = createElement("div", "already-card__body");
     if (!event.image) {
-      const badge = buildBadge(dateParts);
+      const badge = buildBadge(event.start, timezone, locale);
       badge.classList.add("already-card__badge--inline");
       body.appendChild(badge);
     }
@@ -4425,16 +4416,6 @@ ${text}</tr>
     card.appendChild(body);
     return card;
   }
-  function buildBadge(dateParts) {
-    const badge = createElement("div", "already-card__badge");
-    const day = createElement("div", "already-card__badge-day");
-    day.textContent = dateParts.day;
-    badge.appendChild(day);
-    const month = createElement("div", "already-card__badge-month");
-    month.textContent = MONTH_NAMES_SHORT[dateParts.month] || "";
-    badge.appendChild(month);
-    return badge;
-  }
 
   // src/layouts/compact/compact.js
   function render4(event, options2) {
@@ -4458,14 +4439,8 @@ ${text}</tr>
       info.appendChild(loc);
     }
     row.appendChild(info);
-    const dateParts = getDatePartsInTz(event.start, timezone, locale);
-    const badge = createElement("div", "already-card__badge already-card__badge--inline");
-    const day = createElement("div", "already-card__badge-day");
-    day.textContent = dateParts.day;
-    badge.appendChild(day);
-    const month = createElement("div", "already-card__badge-month");
-    month.textContent = MONTH_NAMES_SHORT[dateParts.month] || "";
-    badge.appendChild(month);
+    const badge = buildBadge(event.start, timezone, locale);
+    badge.classList.add("already-card__badge--inline");
     row.appendChild(badge);
     body.appendChild(row);
     if (event.tags && event.tags.length > 0) {
@@ -4491,11 +4466,7 @@ ${text}</tr>
   function renderGridView(container, events, timezone, config) {
     config = config || {};
     const locale = config.locale;
-    const theme = config._theme || {
-      layout: "clean",
-      orientation: "vertical",
-      imagePosition: "left"
-    };
+    const theme = config._theme || THEME_DEFAULTS;
     events = filterHidden(events);
     events = sortFeaturedByDate(events, timezone, locale);
     const grid = createElement("div", "already-grid");
@@ -4524,11 +4495,7 @@ ${text}</tr>
   function renderListView(container, events, timezone, config) {
     config = config || {};
     const locale = config.locale;
-    const theme = config._theme || {
-      layout: "clean",
-      orientation: "vertical",
-      imagePosition: "left"
-    };
+    const theme = config._theme || THEME_DEFAULTS;
     const orientation = theme.layout === "compact" ? "vertical" : "horizontal";
     events = filterHidden(events);
     events = sortFeaturedByDate(events, timezone, locale);

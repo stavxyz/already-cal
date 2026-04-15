@@ -300,6 +300,48 @@ renderEmpty: ({ hasPastEvents }) => {
 renderError: ({ message }) => `<div class="my-error">${message}</div>`,
 ```
 
+## Runtime Updates
+
+### `instance.setConfig(config)`
+
+Update config on a live instance without reinitializing. Accepts a partial config object — only provided keys are updated.
+
+```js
+const cal = Already.init({ el: '#cal', ... });
+cal.setConfig({ theme: { palette: 'dark' } });
+```
+
+| Config key | Update behavior |
+|-----------|----------------|
+| `theme.palette` | Instant — updates CSS `data-palette` attribute |
+| `theme.layout` | Re-renders current view with new card layout |
+| `theme.orientation` | Re-renders current view |
+| `theme.imagePosition` | Re-renders current view |
+| CSS overrides (e.g. `theme.primary`) | Instant — sets CSS custom property |
+| `views` | Re-renders view selector |
+| `showPastEvents` | Re-renders with updated filter |
+| `pageSize` | Re-renders with new pagination |
+| `defaultView` | Updates stored default |
+
+Previous CSS overrides are automatically cleared when a new theme is applied.
+
+### `Already.setConfig(config)`
+
+Global convenience method — delegates to the last-created instance. Useful when you don't capture the return value of `init()`.
+
+### Cross-origin updates via `postMessage`
+
+When already-cal is embedded in an iframe, the parent page can update config via `postMessage`:
+
+```js
+iframe.contentWindow.postMessage({
+  type: 'already:config',
+  config: { theme: { palette: 'dark' } }
+}, '*');
+```
+
+The `"already:config"` type prefix is required. Messages without it are silently ignored. The `config` object has the same shape as the `setConfig()` argument.
+
 ## Data Attributes
 
 The most common options are available as HTML `data-` attributes for zero-JS setup. Options not listed here — including `showHeader`, `headerTitle`, `headerDescription`, `headerIcon`, `subscribeUrl`, `pageSize`, `sticky`, `initialEvent`, `imageExtensions`, `knownPlatforms`, `sanitization`, `i18n`, `data`, callbacks, data hooks, and custom renderers — require JavaScript initialization.

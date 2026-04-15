@@ -5118,7 +5118,6 @@ ${text}</tr>
       if (!newConfig || typeof newConfig !== "object") return;
       if (newConfig.theme !== void 0) {
         themeResult = applyTheme(el, newConfig.theme, themeResult.overrideKeys);
-        config._theme = themeResult;
       }
       if (newConfig.views !== void 0) config.views = newConfig.views;
       if (newConfig.showPastEvents !== void 0) {
@@ -5128,9 +5127,24 @@ ${text}</tr>
       if (newConfig.pageSize !== void 0) {
         config.pageSize = Number.isFinite(newConfig.pageSize) && newConfig.pageSize > 0 ? newConfig.pageSize : config.pageSize;
       }
-      if (newConfig.defaultView !== void 0)
+      if (newConfig.defaultView !== void 0) {
         config.defaultView = newConfig.defaultView;
-      if (data && lastViewState) {
+        if (lastViewState && lastViewState.view !== "detail") {
+          lastViewState = { ...lastViewState, view: newConfig.defaultView };
+        }
+      }
+      let needsRerender = false;
+      if (newConfig.theme !== void 0) {
+        const prev = config._theme;
+        if (themeResult.layout !== prev.layout || themeResult.orientation !== prev.orientation || themeResult.imagePosition !== prev.imagePosition) {
+          needsRerender = true;
+        }
+        config._theme = themeResult;
+      }
+      if (newConfig.views !== void 0 || newConfig.showPastEvents !== void 0 || newConfig.pageSize !== void 0 || newConfig.defaultView !== void 0) {
+        needsRerender = true;
+      }
+      if (needsRerender && data && lastViewState) {
         paginationState = { futureCount: 0, pastCount: 0 };
         renderView(lastViewState);
       }

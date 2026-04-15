@@ -116,6 +116,12 @@ already-cal also accepts **raw Google Calendar API JSON** (the response from `ca
 
 ## Attachment Types
 
+Attachments come from two sources, each producing slightly different `type` values.
+
+### URL-extracted attachments
+
+URLs in event descriptions ending in recognized file extensions are extracted as attachments. The `type` value preserves the specific extension:
+
 | Extension(s) | `type` value | Default label |
 |-------------|-------------|---------------|
 | `.pdf` | `'pdf'` | Download PDF |
@@ -125,5 +131,20 @@ already-cal also accepts **raw Google Calendar API JSON** (the response from `ca
 | `.ppt`, `.pptx` | `'ppt'` / `'pptx'` | Download Presentation |
 | `.zip` | `'zip'` | Download Archive |
 | `.txt` | `'txt'` | Download File |
+
+### Google Calendar API attachments
+
+Non-image attachments from the Google Calendar API are classified by MIME type. The `type` value is a generic category rather than a specific extension. Checks are evaluated in the order shown — the first match wins. This matters because Office XML MIME types like `application/vnd.openxmlformats-officedocument.presentationml.presentation` contain both "document" and "presentation" substrings; checking `presentation` first produces the correct result.
+
+| MIME type pattern | `type` value | Default label |
+|-------------------|-------------|---------------|
+| Contains `pdf` | `'pdf'` | Download PDF |
+| Contains `presentation` or `powerpoint` | `'presentation'` | Download Presentation |
+| Contains `sheet`, `excel`, or `csv` | `'spreadsheet'` | Download Spreadsheet |
+| Contains `word` or `document` | `'doc'` | Download Document |
+| Contains `zip`, `archive`, or `compressed` | `'archive'` | Download Archive |
+| Anything else | `'file'` | Download File |
+
+When consuming `event.attachments`, handle both kinds of type values — specific extensions (`'docx'`, `'xlsx'`) from URL-extracted attachments and generic categories (`'doc'`, `'spreadsheet'`) from API attachments — if you need to branch on type.
 
 Google Drive and Dropbox URLs in attachments are normalized to direct-download links.

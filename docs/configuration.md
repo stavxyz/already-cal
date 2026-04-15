@@ -50,18 +50,29 @@ The subscribe button appears when a URL is available. If the calendar descriptio
 |--------|------|---------|-------------|
 | `theme` | `object` | `{}` | Custom theme values merged with defaults |
 
-Theme properties are applied as CSS custom properties on the `.already` element:
+Theme properties are applied as CSS custom properties on the `.already` element. Defaults shown below are for the `light` palette — other palettes override these values.
 
-| Theme Key | CSS Custom Property | Default | Description |
+| Theme Key | CSS Custom Property | Default (light) | Description |
 |-----------|-------------------|---------|-------------|
-| `primary` | `--already-primary` | `'#8B4513'` | Brand/accent color |
+| `primary` | `--already-primary` | `'#8b4513'` | Brand/accent color |
 | `primaryText` | `--already-primary-text` | `'#ffffff'` | Text color on primary backgrounds |
 | `background` | `--already-background` | `'#f5f0eb'` | Page/container background |
 | `surface` | `--already-surface` | `'#ffffff'` | Card and surface background |
 | `text` | `--already-text` | `'#1a1a1a'` | Primary text color |
 | `textSecondary` | `--already-text-secondary` | `'#666'` | Secondary/meta text color |
-| `radius` | `--already-radius` | `'8px'` | Border radius for all elements |
+| `border` | `--already-border` | `'rgba(0, 0, 0, 0.06)'` | Border color |
 | `fontFamily` | `--already-font-family` | `'system-ui, sans-serif'` | Font stack |
+| `fontWeightNormal` | `--already-font-weight-normal` | `'400'` | Normal font weight |
+| `fontWeightBold` | `--already-font-weight-bold` | `'700'` | Bold font weight |
+| `fontSizeSm` | `--already-font-size-sm` | `'0.75rem'` | Small text size |
+| `fontSizeBase` | `--already-font-size-base` | `'0.875rem'` | Base text size |
+| `fontSizeLg` | `--already-font-size-lg` | `'0.9375rem'` | Large text size |
+| `radius` | `--already-radius` | `'8px'` | Border radius |
+| `radiusSm` | `--already-radius-sm` | `'6px'` | Small border radius (tags, badges) |
+| `shadow` | `--already-shadow` | `'0 1px 3px rgba(0, 0, 0, 0.1)'` | Card shadow |
+| `shadowHover` | `--already-shadow-hover` | `'0 4px 12px rgba(0, 0, 0, 0.12)'` | Card hover shadow |
+| `highlight` | `--already-highlight` | `'rgba(139, 69, 19, 0.06)'` | Subtle highlight for today cells, hover states |
+| `spacing` | `--already-spacing` | `'1rem'` | Base spacing unit |
 
 You can also override these directly in CSS:
 

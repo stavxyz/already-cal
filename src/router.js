@@ -65,10 +65,12 @@ export function setEventDetail(eventId) {
   window.location.hash = `event/${eventId}`;
 }
 
-/** Register a callback for hash change events. */
+/** Register a callback for hash change events. Returns an unsubscribe function. */
 export function onHashChange(callback) {
-  window.addEventListener("hashchange", () => {
+  const handler = () => {
     const parsed = parseHash();
     if (parsed) callback(parsed);
-  });
+  };
+  window.addEventListener("hashchange", handler);
+  return () => window.removeEventListener("hashchange", handler);
 }

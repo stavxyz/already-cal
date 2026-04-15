@@ -86,9 +86,15 @@ export { DEFAULTS };
 /** The most recently created instance. In multi-instance setups, only the last init()'d instance is stored here. */
 export let _instance = null;
 
-/** Convenience method — delegates to the last-created instance's setConfig. */
+/** Convenience method — delegates to the last-created instance's setConfig. Single-instance only. */
 export function setConfig(config) {
-  if (_instance) _instance.setConfig(config);
+  if (!_instance) {
+    console.warn(
+      "already-cal: setConfig() called but no instance exists. Call init() first.",
+    );
+    return;
+  }
+  _instance.setConfig(config);
 }
 
 /** Initialize an already-cal instance with the given configuration. */
@@ -159,6 +165,7 @@ export function init(userConfig) {
     tagFilterContainer,
   );
 
+  let destroyed = false;
   let data = null;
   let showPast = config.showPastEvents;
   const currentDate = new Date();
@@ -432,16 +439,20 @@ export function init(userConfig) {
   }
 
   // Load and render
+  let removeHashListener = null;
+
   async function start() {
     captureOriginalMeta();
     renderLoading(viewContainer, config);
 
     try {
       data = await loadData(config);
+      if (destroyed) return;
       if (config.onDataLoad) {
         config.onDataLoad(data);
       }
     } catch (err) {
+      if (destroyed) return;
       console.error("already-cal:", err);
       if (config.onError) {
         config.onError(err);
@@ -462,45 +473,28 @@ export function init(userConfig) {
 
     renderView(initial);
 
-    onHashChange((viewState) => {
+    removeHashListener = onHashChange((viewState) => {
       renderView(viewState);
     });
   }
 
   function setConfig(newConfig) {
-    if (!newConfig || typeof newConfig !== "object") return;
-    // Theme update
-    if (newConfig.theme !== undefined) {
-      themeResult = applyTheme(el, newConfig.theme, themeResult.overrideKeys);
+    if (destroyed) return;
+    if (!newConfig || typeof newConfig !== "object") {
+      console.warn(
+        "already-cal: setConfig() expects a plain object, got:",
+        typeof newConfig,
+      );
+      return;
     }
 
-    // Merge non-theme config keys
-    if (newConfig.views !== undefined) config.views = newConfig.views;
-    if (newConfig.showPastEvents !== undefined) {
-      showPast = newConfig.showPastEvents;
-      config.showPastEvents = newConfig.showPastEvents;
-    }
-    if (newConfig.pageSize !== undefined) {
-      config.pageSize =
-        Number.isFinite(newConfig.pageSize) && newConfig.pageSize > 0
-          ? newConfig.pageSize
-          : config.pageSize;
-    }
-    if (newConfig.defaultView !== undefined) {
-      config.defaultView = newConfig.defaultView;
-      if (lastViewState && lastViewState.view !== "detail") {
-        lastViewState = { ...lastViewState, view: newConfig.defaultView };
-      }
-    }
-
-    // Determine if a re-render is needed. Palette and CSS override changes
-    // are handled purely by CSS (data attributes + custom properties) and
-    // don't need a DOM rebuild. Layout/orientation/imagePosition changes
-    // require re-rendering the card structure.
     let needsRerender = false;
 
+    // Theme update — palette and CSS override changes are CSS-only (instant).
+    // Layout/orientation/imagePosition changes require re-rendering the card structure.
     if (newConfig.theme !== undefined) {
       const prev = config._theme;
+      themeResult = applyTheme(el, newConfig.theme, themeResult.overrideKeys);
       if (
         themeResult.layout !== prev.layout ||
         themeResult.orientation !== prev.orientation ||
@@ -511,13 +505,48 @@ export function init(userConfig) {
       config._theme = themeResult;
     }
 
-    if (
-      newConfig.views !== undefined ||
-      newConfig.showPastEvents !== undefined ||
-      newConfig.pageSize !== undefined ||
-      newConfig.defaultView !== undefined
-    ) {
+    if (newConfig.views !== undefined) {
+      if (Array.isArray(newConfig.views) && newConfig.views.length > 0) {
+        config.views = newConfig.views;
+        needsRerender = true;
+      } else {
+        console.warn(
+          "already-cal: views must be a non-empty array, got:",
+          newConfig.views,
+        );
+      }
+    }
+
+    if (newConfig.showPastEvents !== undefined) {
+      showPast = newConfig.showPastEvents;
       needsRerender = true;
+    }
+
+    if (newConfig.pageSize !== undefined) {
+      if (Number.isFinite(newConfig.pageSize) && newConfig.pageSize > 0) {
+        config.pageSize = newConfig.pageSize;
+        needsRerender = true;
+      } else {
+        console.warn(
+          "already-cal: invalid pageSize ignored:",
+          newConfig.pageSize,
+        );
+      }
+    }
+
+    if (newConfig.defaultView !== undefined) {
+      if (config.views.includes(newConfig.defaultView)) {
+        config.defaultView = newConfig.defaultView;
+        if (lastViewState && lastViewState.view !== "detail") {
+          lastViewState = { ...lastViewState, view: newConfig.defaultView };
+        }
+        needsRerender = true;
+      } else {
+        console.warn(
+          "already-cal: invalid defaultView ignored:",
+          newConfig.defaultView,
+        );
+      }
     }
 
     if (needsRerender && data && lastViewState) {
@@ -536,8 +565,9 @@ export function init(userConfig) {
   }
 
   // postMessage listener for cross-origin config updates (e.g. iframe embeds).
-  // Origin is not checked — this widget accepts config from any embedder.
-  // setConfig() only modifies theme/view settings, not data or callbacks.
+  // Origin is not checked — the accepted config keys (theme, views, showPastEvents,
+  // pageSize, defaultView) are purely presentational, so accepting them from any
+  // origin poses no security risk.
   function handleMessage(event) {
     if (
       event.data &&
@@ -553,9 +583,19 @@ export function init(userConfig) {
   }
 
   function destroy() {
+    if (destroyed) return;
+    destroyed = true;
     window.removeEventListener("resize", handleResize);
     window.removeEventListener("message", handleMessage);
+    if (removeHashListener) removeHashListener();
     el.innerHTML = "";
+    el.classList.remove("already");
+    for (const attr of ["layout", "orientation", "imagePosition", "palette"]) {
+      delete el.dataset[attr];
+    }
+    for (const prop of themeResult.overrideKeys) {
+      el.style.removeProperty(prop);
+    }
     if (_instance === instance) {
       _instance = null;
     }

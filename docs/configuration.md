@@ -313,21 +313,21 @@ cal.setConfig({ theme: { palette: 'dark' } });
 
 | Config key | Update behavior |
 |-----------|----------------|
-| `theme.palette` | Instant — updates CSS `data-palette` attribute |
+| `theme.palette` | Instant — updates the `data-palette` HTML attribute (CSS palette rules activate immediately) |
 | `theme.layout` | Re-renders current view with new card layout |
 | `theme.orientation` | Re-renders current view |
 | `theme.imagePosition` | Re-renders current view |
 | CSS overrides (e.g. `theme.primary`) | Instant — sets CSS custom property |
-| `views` | Re-renders view selector |
+| `views` | Re-renders view selector. Must be a non-empty array. |
 | `showPastEvents` | Re-renders with updated filter |
-| `pageSize` | Re-renders with new pagination |
-| `defaultView` | Updates stored default |
+| `pageSize` | Re-renders with new pagination. Must be a positive finite number. |
+| `defaultView` | Switches to the specified view and re-renders. Must be in the `views` array. |
 
-Previous CSS overrides are automatically cleared when a new theme is applied.
+Previous CSS overrides are automatically cleared when a new theme is applied. Invalid values are logged via `console.warn` and ignored.
 
 ### `Already.setConfig(config)`
 
-Global convenience method — delegates to the last-created instance. Useful when you don't capture the return value of `init()`.
+Global convenience method — delegates to the last-created instance. Designed for single-instance use; in multi-instance setups, only the most recently created instance is affected. Logs a warning if no instance exists.
 
 ### Cross-origin updates via `postMessage`
 
@@ -340,11 +340,11 @@ iframe.contentWindow.postMessage({
 }, '*');
 ```
 
-The `"already:config"` type prefix is required. Messages without it are silently ignored. The `config` object has the same shape as the `setConfig()` argument.
+The `"already:config"` type prefix is required. Messages without it are silently ignored. The `config` object has the same shape as the `setConfig()` argument. The accepted config keys are purely presentational, so no origin check is performed.
 
 ### `instance.destroy()`
 
-Removes event listeners (`resize`, `postMessage`) and clears the mount element. If the instance is the current `_instance`, it is set to `null`.
+Removes all event listeners (`resize`, `postMessage`, `hashchange`), clears the mount element's innerHTML, removes the `already` CSS class, data attributes, and CSS custom property overrides. If the instance is the current `_instance`, it is set to `null`. Calling `setConfig()` after `destroy()` is a safe no-op.
 
 ```js
 cal.destroy();

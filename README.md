@@ -431,7 +431,7 @@ cal.setConfig({ theme: { layout: 'hero', palette: 'dark' } });
 Already.setConfig({ theme: { palette: 'warm' } });
 ```
 
-Palette and CSS override changes are instant (CSS-only, no DOM rebuild). Layout and orientation changes trigger a view re-render.
+Palette and CSS override changes are instant (CSS-only, no DOM rebuild). Layout, orientation, and imagePosition changes trigger a view re-render. Invalid values are logged via `console.warn` and ignored.
 
 ### Cross-Origin Updates (iframe)
 
@@ -449,7 +449,7 @@ Messages must have `type: "already:config"` and a `config` object. Other message
 
 ### Cleanup
 
-Call `destroy()` to remove event listeners and clear the mount element:
+Call `destroy()` to remove all event listeners, clear the mount element, and clean up CSS class/attributes:
 
 ```js
 cal.destroy();

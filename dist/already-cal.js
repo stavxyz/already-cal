@@ -3266,10 +3266,12 @@ ${text}</tr>
     window.location.hash = `event/${eventId}`;
   }
   function onHashChange(callback) {
-    window.addEventListener("hashchange", () => {
+    const handler = () => {
       const parsed = parseHash();
       if (parsed) callback(parsed);
-    });
+    };
+    window.addEventListener("hashchange", handler);
+    return () => window.removeEventListener("hashchange", handler);
   }
 
   // src/theme.js
@@ -4806,7 +4808,13 @@ ${text}</tr>
   };
   var _instance = null;
   function setConfig(config) {
-    if (_instance) _instance.setConfig(config);
+    if (!_instance) {
+      console.warn(
+        "already-cal: setConfig() called but no instance exists. Call init() first."
+      );
+      return;
+    }
+    _instance.setConfig(config);
   }
   function init(userConfig) {
     const config = { ...DEFAULTS, ...userConfig };
@@ -4857,6 +4865,7 @@ ${text}</tr>
       selectorContainer,
       tagFilterContainer
     );
+    let destroyed = false;
     let data = null;
     let showPast = config.showPastEvents;
     const currentDate = /* @__PURE__ */ new Date();
@@ -5088,15 +5097,18 @@ ${text}</tr>
         );
       }
     }
+    let removeHashListener = null;
     async function start() {
       captureOriginalMeta();
       renderLoading(viewContainer, config);
       try {
         data = await loadData(config);
+        if (destroyed) return;
         if (config.onDataLoad) {
           config.onDataLoad(data);
         }
       } catch (err) {
+        if (destroyed) return;
         console.error("already-cal:", err);
         if (config.onError) {
           config.onError(err);
@@ -5110,39 +5122,67 @@ ${text}</tr>
         initial.view = config.mobileDefaultView;
       }
       renderView(initial);
-      onHashChange((viewState) => {
+      removeHashListener = onHashChange((viewState) => {
         renderView(viewState);
       });
     }
     function setConfig2(newConfig) {
-      if (!newConfig || typeof newConfig !== "object") return;
-      if (newConfig.theme !== void 0) {
-        themeResult = applyTheme(el, newConfig.theme, themeResult.overrideKeys);
-      }
-      if (newConfig.views !== void 0) config.views = newConfig.views;
-      if (newConfig.showPastEvents !== void 0) {
-        showPast = newConfig.showPastEvents;
-        config.showPastEvents = newConfig.showPastEvents;
-      }
-      if (newConfig.pageSize !== void 0) {
-        config.pageSize = Number.isFinite(newConfig.pageSize) && newConfig.pageSize > 0 ? newConfig.pageSize : config.pageSize;
-      }
-      if (newConfig.defaultView !== void 0) {
-        config.defaultView = newConfig.defaultView;
-        if (lastViewState && lastViewState.view !== "detail") {
-          lastViewState = { ...lastViewState, view: newConfig.defaultView };
-        }
+      if (destroyed) return;
+      if (!newConfig || typeof newConfig !== "object") {
+        console.warn(
+          "already-cal: setConfig() expects a plain object, got:",
+          typeof newConfig
+        );
+        return;
       }
       let needsRerender = false;
       if (newConfig.theme !== void 0) {
         const prev = config._theme;
+        themeResult = applyTheme(el, newConfig.theme, themeResult.overrideKeys);
         if (themeResult.layout !== prev.layout || themeResult.orientation !== prev.orientation || themeResult.imagePosition !== prev.imagePosition) {
           needsRerender = true;
         }
         config._theme = themeResult;
       }
-      if (newConfig.views !== void 0 || newConfig.showPastEvents !== void 0 || newConfig.pageSize !== void 0 || newConfig.defaultView !== void 0) {
+      if (newConfig.views !== void 0) {
+        if (Array.isArray(newConfig.views) && newConfig.views.length > 0) {
+          config.views = newConfig.views;
+          needsRerender = true;
+        } else {
+          console.warn(
+            "already-cal: views must be a non-empty array, got:",
+            newConfig.views
+          );
+        }
+      }
+      if (newConfig.showPastEvents !== void 0) {
+        showPast = newConfig.showPastEvents;
         needsRerender = true;
+      }
+      if (newConfig.pageSize !== void 0) {
+        if (Number.isFinite(newConfig.pageSize) && newConfig.pageSize > 0) {
+          config.pageSize = newConfig.pageSize;
+          needsRerender = true;
+        } else {
+          console.warn(
+            "already-cal: invalid pageSize ignored:",
+            newConfig.pageSize
+          );
+        }
+      }
+      if (newConfig.defaultView !== void 0) {
+        if (config.views.includes(newConfig.defaultView)) {
+          config.defaultView = newConfig.defaultView;
+          if (lastViewState && lastViewState.view !== "detail") {
+            lastViewState = { ...lastViewState, view: newConfig.defaultView };
+          }
+          needsRerender = true;
+        } else {
+          console.warn(
+            "already-cal: invalid defaultView ignored:",
+            newConfig.defaultView
+          );
+        }
       }
       if (needsRerender && data && lastViewState) {
         paginationState = { futureCount: 0, pastCount: 0 };
@@ -5163,9 +5203,19 @@ ${text}</tr>
       }
     }
     function destroy() {
+      if (destroyed) return;
+      destroyed = true;
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("message", handleMessage);
+      if (removeHashListener) removeHashListener();
       el.innerHTML = "";
+      el.classList.remove("already");
+      for (const attr of ["layout", "orientation", "imagePosition", "palette"]) {
+        delete el.dataset[attr];
+      }
+      for (const prop of themeResult.overrideKeys) {
+        el.style.removeProperty(prop);
+      }
       if (_instance === instance) {
         _instance = null;
       }

@@ -472,7 +472,6 @@ export function init(userConfig) {
     // Theme update
     if (newConfig.theme !== undefined) {
       themeResult = applyTheme(el, newConfig.theme, themeResult.overrideKeys);
-      config._theme = themeResult;
     }
 
     // Merge non-theme config keys
@@ -487,11 +486,41 @@ export function init(userConfig) {
           ? newConfig.pageSize
           : config.pageSize;
     }
-    if (newConfig.defaultView !== undefined)
+    if (newConfig.defaultView !== undefined) {
       config.defaultView = newConfig.defaultView;
+      if (lastViewState && lastViewState.view !== "detail") {
+        lastViewState = { ...lastViewState, view: newConfig.defaultView };
+      }
+    }
 
-    // Re-render current view if data is loaded and we have a view state
-    if (data && lastViewState) {
+    // Determine if a re-render is needed. Palette and CSS override changes
+    // are handled purely by CSS (data attributes + custom properties) and
+    // don't need a DOM rebuild. Layout/orientation/imagePosition changes
+    // require re-rendering the card structure.
+    let needsRerender = false;
+
+    if (newConfig.theme !== undefined) {
+      const prev = config._theme;
+      if (
+        themeResult.layout !== prev.layout ||
+        themeResult.orientation !== prev.orientation ||
+        themeResult.imagePosition !== prev.imagePosition
+      ) {
+        needsRerender = true;
+      }
+      config._theme = themeResult;
+    }
+
+    if (
+      newConfig.views !== undefined ||
+      newConfig.showPastEvents !== undefined ||
+      newConfig.pageSize !== undefined ||
+      newConfig.defaultView !== undefined
+    ) {
+      needsRerender = true;
+    }
+
+    if (needsRerender && data && lastViewState) {
       paginationState = { futureCount: 0, pastCount: 0 };
       renderView(lastViewState);
     }
@@ -501,6 +530,7 @@ export function init(userConfig) {
 
   start();
 
+  // TODO(#30): remove listener in destroy()
   window.addEventListener("resize", () => {
     updateStickyOffsets(
       stickyConfig,
@@ -527,6 +557,7 @@ export function init(userConfig) {
     }
   }
 
+  // TODO(#30): remove listener in destroy()
   window.addEventListener("message", handleMessage);
 
   _instance = instance;

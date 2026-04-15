@@ -16,5 +16,7 @@
   --already-radius: 12px;
   --already-radius-sm: 8px;
   --already-shadow: 0 2px 8px rgba(139, 69, 19, 0.08);
+  --already-shadow-hover: 0 4px 16px rgba(139, 69, 19, 0.15);
+  --already-highlight: rgba(201, 113, 60, 0.06);
   --already-spacing: 1.125rem;
 }

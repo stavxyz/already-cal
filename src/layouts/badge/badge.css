@@ -10,7 +10,7 @@
   left: 0.5rem;
   background: var(--already-primary);
   color: var(--already-primary-text);
-  border-radius: 6px;
+  border-radius: var(--already-radius-sm);
   padding: 0.25rem 0.5rem;
 }
 

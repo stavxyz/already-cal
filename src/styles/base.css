@@ -19,6 +19,8 @@
   --already-radius: 8px;
   --already-radius-sm: 6px;
   --already-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --already-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --already-highlight: rgba(139, 69, 19, 0.06);
   --already-spacing: 1rem;
 }
 
@@ -161,7 +163,7 @@
   background: var(--already-surface);
   border-radius: var(--already-radius);
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--already-border);
 }
 
 .already-view-tab {
@@ -188,7 +190,7 @@
 }
 
 .already-view-tab:hover {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--already-highlight);
   color: var(--already-text);
 }
 
@@ -304,7 +306,7 @@
 }
 
 .already-month-cell--today {
-  background: rgba(139, 69, 19, 0.06);
+  background: var(--already-highlight);
   border-color: var(--already-primary);
 }
 
@@ -422,7 +424,7 @@
 }
 
 .already-week-col--today {
-  background: rgba(139, 69, 19, 0.06);
+  background: var(--already-highlight);
 }
 
 .already-week-col-header {
@@ -540,7 +542,7 @@
 }
 
 .already-day-event:hover {
-  background: rgba(0, 0, 0, 0.02);
+  background: var(--already-highlight);
 }
 
 .already-day-event:focus-visible {
@@ -828,7 +830,7 @@
 .already-detail-location a {
   color: var(--already-text-secondary);
   text-decoration: underline;
-  text-decoration-color: rgba(0, 0, 0, 0.2);
+  text-decoration-color: var(--already-border);
   text-underline-offset: 2px;
   transition: color 0.15s;
 }
@@ -1025,7 +1027,7 @@
 /* ===== Past Toggle ===== */
 .already-past-toggle {
   background: none;
-  border: 1px solid rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--already-border);
   color: var(--already-text-secondary);
   font-size: 0.8125rem;
   padding: 0.375rem 0.75rem;
@@ -1069,7 +1071,7 @@
 .already-load-more,
 .already-show-earlier {
   background: none;
-  border: 1px solid rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--already-border);
   color: var(--already-text-secondary);
   font-size: 0.8125rem;
   padding: 0.375rem 0.75rem;

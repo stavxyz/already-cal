@@ -93,7 +93,10 @@ describe("compact layout", () => {
     );
     const meta = el.querySelector(".already-card__meta");
     assert.ok(meta);
-    assert.ok(!meta.textContent.includes("\u00b7"), "allDay should not contain middot");
+    assert.ok(
+      !meta.textContent.includes("\u00b7"),
+      "allDay should not contain middot",
+    );
   });
 
   it("ignores orientation — always renders without orientation class modifiers", () => {

@@ -5,7 +5,12 @@ import { createElement } from "../views/helpers.js";
  * Build the className string for a layout card element.
  * Handles orientation and image-position modifiers.
  */
-export function buildCardClasses(layoutName, orientation, imagePosition, index) {
+export function buildCardClasses(
+  layoutName,
+  orientation,
+  imagePosition,
+  index,
+) {
   let cls = `already-card already-card--${layoutName}`;
   cls += ` already-card--${orientation}`;
   if (

@@ -95,8 +95,18 @@ export function getDatePartsInTz(isoString, timezone, locale) {
 }
 
 export const MONTH_NAMES_SHORT = [
-  "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
-  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
+  "JAN",
+  "FEB",
+  "MAR",
+  "APR",
+  "MAY",
+  "JUN",
+  "JUL",
+  "AUG",
+  "SEP",
+  "OCT",
+  "NOV",
+  "DEC",
 ];
 
 /** Return an array of 7 Date objects representing the week containing the given date. */

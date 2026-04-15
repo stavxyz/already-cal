@@ -1,12 +1,12 @@
 import { getLayout } from "../layouts/registry.js";
 import { THEME_DEFAULTS } from "../theme.js";
+import { isPast } from "../util/dates.js";
 import {
   bindEventClick,
   createElement,
   filterHidden,
   sortFeaturedByDate,
 } from "./helpers.js";
-import { isPast } from "../util/dates.js";
 
 /** Render the card grid view with thumbnails. */
 export function renderGridView(container, events, timezone, config) {

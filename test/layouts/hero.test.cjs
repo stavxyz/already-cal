@@ -39,7 +39,9 @@ describe("hero layout", () => {
   });
 
   it("includes description preview when present", () => {
-    const event = createTestEvent({ description: "A detailed description here" });
+    const event = createTestEvent({
+      description: "A detailed description here",
+    });
     const el = render(event, baseOptions);
     const descEl = el.querySelector(".already-card__description");
     assert.ok(descEl, "missing .already-card__description");
@@ -50,7 +52,11 @@ describe("hero layout", () => {
     const event = createTestEvent({ description: "" });
     const el = render(event, baseOptions);
     const descEl = el.querySelector(".already-card__description");
-    assert.strictEqual(descEl, null, "should not render description when empty");
+    assert.strictEqual(
+      descEl,
+      null,
+      "should not render description when empty",
+    );
   });
 
   it("includes footer with location and date", () => {
@@ -89,7 +95,11 @@ describe("hero layout", () => {
     const event = createTestEvent({ image: null });
     const el = render(event, baseOptions);
     const imgWrapper = el.querySelector(".already-card__image");
-    assert.strictEqual(imgWrapper, null, "should not render image wrapper when no image");
+    assert.strictEqual(
+      imgWrapper,
+      null,
+      "should not render image wrapper when no image",
+    );
   });
 
   it("shows only date (no middot or time) for allDay events", () => {
@@ -100,8 +110,14 @@ describe("hero layout", () => {
     const el = render(event, baseOptions);
     const meta = el.querySelector(".already-card__meta");
     assert.ok(meta);
-    assert.ok(!meta.textContent.includes("\u00b7"), "allDay should not contain middot");
-    assert.ok(meta.textContent.includes("Apr"), "allDay should still show date");
+    assert.ok(
+      !meta.textContent.includes("\u00b7"),
+      "allDay should not contain middot",
+    );
+    assert.ok(
+      meta.textContent.includes("Apr"),
+      "allDay should still show date",
+    );
   });
 
   it("includes end time range when end is present", () => {
@@ -114,7 +130,10 @@ describe("hero layout", () => {
     const meta = el.querySelector(".already-card__meta");
     assert.ok(meta);
     // en-dash separates start and end time
-    assert.ok(meta.textContent.includes("\u2013"), "should contain en-dash for time range");
+    assert.ok(
+      meta.textContent.includes("\u2013"),
+      "should contain en-dash for time range",
+    );
   });
 
   it("applies horizontal orientation class", () => {

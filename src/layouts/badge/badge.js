@@ -1,6 +1,6 @@
 import { formatDate, formatTime } from "../../util/dates.js";
 import { createElement } from "../../views/helpers.js";
-import { buildCardClasses, createCardImage, buildBadge } from "../helpers.js";
+import { buildBadge, buildCardClasses, createCardImage } from "../helpers.js";
 
 /**
  * Render a badge layout card.
@@ -90,4 +90,3 @@ export function render(event, options) {
   card.appendChild(body);
   return card;
 }
-

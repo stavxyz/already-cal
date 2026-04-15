@@ -42,7 +42,9 @@ describe("renderGridView", () => {
     const events = [createTestEvent({ location: "Central Park" })];
     renderGridView(container, events, "UTC", {});
     assert.ok(
-      container.querySelector(".already-card__location").textContent.includes("Central Park"),
+      container
+        .querySelector(".already-card__location")
+        .textContent.includes("Central Park"),
     );
   });
 
@@ -50,7 +52,10 @@ describe("renderGridView", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ location: "" })];
     renderGridView(container, events, "UTC", {});
-    assert.strictEqual(container.querySelector(".already-card__location"), null);
+    assert.strictEqual(
+      container.querySelector(".already-card__location"),
+      null,
+    );
   });
 
   it("renders image when present", () => {
@@ -170,7 +175,11 @@ describe("renderGridView", () => {
     const container = document.createElement("div");
     const events = [createTestEvent()];
     renderGridView(container, events, "UTC", {
-      _theme: { layout: "compact", orientation: "vertical", imagePosition: "left" },
+      _theme: {
+        layout: "compact",
+        orientation: "vertical",
+        imagePosition: "left",
+      },
     });
     assert.ok(container.querySelector(".already-card--compact"));
   });

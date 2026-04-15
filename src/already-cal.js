@@ -1,5 +1,6 @@
 import { loadData } from "./data.js";
 import { getInitialView, onHashChange, parseHash, setView } from "./router.js";
+import { resolveTheme } from "./theme.js";
 import { renderHeader } from "./ui/header.js";
 import { paginateEvents, renderPaginationButtons } from "./ui/pagination.js";
 import { renderPastToggle } from "./ui/past-toggle.js";
@@ -11,7 +12,6 @@ import {
 } from "./ui/sticky.js";
 import { createTagFilter } from "./ui/tag-filter.js";
 import { renderViewSelector } from "./ui/view-selector.js";
-import { resolveTheme } from "./theme.js";
 import { formatDate, formatDatetime, isPast } from "./util/dates.js";
 import { DEFAULT_PLATFORMS } from "./util/links.js";
 import { renderDayView } from "./views/day.js";

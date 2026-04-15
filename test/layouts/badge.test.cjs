@@ -47,10 +47,7 @@ describe("badge layout", () => {
   });
 
   it("includes location with icon prefix", () => {
-    const el = render(
-      createTestEvent({ location: "The Venue" }),
-      baseOptions,
-    );
+    const el = render(createTestEvent({ location: "The Venue" }), baseOptions);
     const loc = el.querySelector(".already-card__location");
     assert.ok(loc);
     assert.ok(loc.textContent.includes("The Venue"));
@@ -101,7 +98,10 @@ describe("badge layout", () => {
     );
     const meta = el.querySelector(".already-card__meta");
     assert.ok(meta);
-    assert.ok(!meta.textContent.includes("\u00b7"), "allDay should not contain middot");
+    assert.ok(
+      !meta.textContent.includes("\u00b7"),
+      "allDay should not contain middot",
+    );
   });
 
   it("includes end time range when end is present", () => {
@@ -115,7 +115,10 @@ describe("badge layout", () => {
     );
     const meta = el.querySelector(".already-card__meta");
     assert.ok(meta);
-    assert.ok(meta.textContent.includes("\u2013"), "should contain en-dash for time range");
+    assert.ok(
+      meta.textContent.includes("\u2013"),
+      "should contain en-dash for time range",
+    );
   });
 
   it("applies horizontal orientation class", () => {

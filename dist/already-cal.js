@@ -3270,6 +3270,41 @@ ${text}</tr>
     });
   }
 
+  // src/theme.js
+  var VALID_LAYOUTS = /* @__PURE__ */ new Set(["clean", "hero", "badge", "compact"]);
+  var VALID_PALETTES = /* @__PURE__ */ new Set(["light", "dark", "warm", "cool"]);
+  var VALID_ORIENTATIONS = /* @__PURE__ */ new Set(["vertical", "horizontal"]);
+  var VALID_IMAGE_POSITIONS = /* @__PURE__ */ new Set(["left", "right", "alternating"]);
+  var THEME_KEYS = /* @__PURE__ */ new Set([
+    "layout",
+    "orientation",
+    "imagePosition",
+    "palette"
+  ]);
+  var THEME_DEFAULTS = {
+    layout: "clean",
+    orientation: "vertical",
+    imagePosition: "left",
+    palette: "light"
+  };
+  function resolveTheme(theme) {
+    if (typeof theme === "string") {
+      theme = { layout: theme };
+    }
+    const input = theme || {};
+    const layout = VALID_LAYOUTS.has(input.layout) ? input.layout : THEME_DEFAULTS.layout;
+    const palette = VALID_PALETTES.has(input.palette) ? input.palette : THEME_DEFAULTS.palette;
+    const orientation = layout === "compact" ? "vertical" : VALID_ORIENTATIONS.has(input.orientation) ? input.orientation : THEME_DEFAULTS.orientation;
+    const imagePosition = orientation === "horizontal" && VALID_IMAGE_POSITIONS.has(input.imagePosition) ? input.imagePosition : THEME_DEFAULTS.imagePosition;
+    const overrides = {};
+    for (const [key, value] of Object.entries(input)) {
+      if (!THEME_KEYS.has(key)) {
+        overrides[key] = value;
+      }
+    }
+    return { layout, orientation, imagePosition, palette, overrides };
+  }
+
   // src/ui/header.js
   function renderHeader(container, calendarData, config) {
     if (!config.showHeader) {
@@ -3814,41 +3849,6 @@ ${text}</tr>
     container.appendChild(bar);
   }
 
-  // src/theme.js
-  var VALID_LAYOUTS = /* @__PURE__ */ new Set(["clean", "hero", "badge", "compact"]);
-  var VALID_PALETTES = /* @__PURE__ */ new Set(["light", "dark", "warm", "cool"]);
-  var VALID_ORIENTATIONS = /* @__PURE__ */ new Set(["vertical", "horizontal"]);
-  var VALID_IMAGE_POSITIONS = /* @__PURE__ */ new Set(["left", "right", "alternating"]);
-  var THEME_KEYS = /* @__PURE__ */ new Set([
-    "layout",
-    "orientation",
-    "imagePosition",
-    "palette"
-  ]);
-  var THEME_DEFAULTS = {
-    layout: "clean",
-    orientation: "vertical",
-    imagePosition: "left",
-    palette: "light"
-  };
-  function resolveTheme(theme) {
-    if (typeof theme === "string") {
-      theme = { layout: theme };
-    }
-    const input = theme || {};
-    const layout = VALID_LAYOUTS.has(input.layout) ? input.layout : THEME_DEFAULTS.layout;
-    const palette = VALID_PALETTES.has(input.palette) ? input.palette : THEME_DEFAULTS.palette;
-    const orientation = layout === "compact" ? "vertical" : VALID_ORIENTATIONS.has(input.orientation) ? input.orientation : THEME_DEFAULTS.orientation;
-    const imagePosition = orientation === "horizontal" && VALID_IMAGE_POSITIONS.has(input.imagePosition) ? input.imagePosition : THEME_DEFAULTS.imagePosition;
-    const overrides = {};
-    for (const [key, value] of Object.entries(input)) {
-      if (!THEME_KEYS.has(key)) {
-        overrides[key] = value;
-      }
-    }
-    return { layout, orientation, imagePosition, palette, overrides };
-  }
-
   // src/views/helpers.js
   function createElement(tag2, className, attrs) {
     const el = document.createElement(tag2);
@@ -4298,66 +4298,8 @@ ${text}</tr>
     return badge;
   }
 
-  // src/layouts/clean/clean.js
-  function render(event, options2) {
-    const { orientation, imagePosition, index, timezone, locale } = options2;
-    const card = createElement("div");
-    card.className = buildCardClasses("clean", orientation, imagePosition, index);
-    const imageEl = createCardImage(event);
-    if (imageEl) card.appendChild(imageEl);
-    const body = createElement("div", "already-card__body");
-    const title = createElement("div", "already-card__title");
-    title.textContent = event.title;
-    body.appendChild(title);
-    const dateStr = formatDateShort(event.start, timezone, locale);
-    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
-    const meta = createElement("div", "already-card__meta");
-    meta.textContent = `${dateStr}${timeStr}`;
-    body.appendChild(meta);
-    if (event.location) {
-      const loc = createElement("div", "already-card__location");
-      loc.textContent = event.location;
-      body.appendChild(loc);
-    }
-    card.appendChild(body);
-    return card;
-  }
-
-  // src/layouts/hero/hero.js
-  function render2(event, options2) {
-    const { orientation, imagePosition, index, timezone, locale } = options2;
-    const card = createElement("div");
-    card.className = buildCardClasses("hero", orientation, imagePosition, index);
-    const imageEl = createCardImage(event);
-    if (imageEl) card.appendChild(imageEl);
-    const body = createElement("div", "already-card__body");
-    const title = createElement("div", "already-card__title");
-    title.textContent = event.title;
-    body.appendChild(title);
-    if (event.description) {
-      const desc = createElement("div", "already-card__description");
-      desc.textContent = event.description;
-      body.appendChild(desc);
-    }
-    const footer = createElement("div", "already-card__footer");
-    if (event.location) {
-      const loc = createElement("span", "already-card__location");
-      loc.textContent = event.location;
-      footer.appendChild(loc);
-    }
-    const dateStr = formatDateShort(event.start, timezone, locale);
-    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
-    const endTimeStr = !event.allDay && event.end ? ` \u2013 ${formatTime(event.end, timezone, locale)}` : "";
-    const meta = createElement("span", "already-card__meta");
-    meta.textContent = `${dateStr}${timeStr}${endTimeStr}`;
-    footer.appendChild(meta);
-    body.appendChild(footer);
-    card.appendChild(body);
-    return card;
-  }
-
   // src/layouts/badge/badge.js
-  function render3(event, options2) {
+  function render(event, options2) {
     const { orientation, imagePosition, index, timezone, locale } = options2;
     const card = createElement("div");
     card.className = buildCardClasses("badge", orientation, imagePosition, index);
@@ -4417,8 +4359,33 @@ ${text}</tr>
     return card;
   }
 
+  // src/layouts/clean/clean.js
+  function render2(event, options2) {
+    const { orientation, imagePosition, index, timezone, locale } = options2;
+    const card = createElement("div");
+    card.className = buildCardClasses("clean", orientation, imagePosition, index);
+    const imageEl = createCardImage(event);
+    if (imageEl) card.appendChild(imageEl);
+    const body = createElement("div", "already-card__body");
+    const title = createElement("div", "already-card__title");
+    title.textContent = event.title;
+    body.appendChild(title);
+    const dateStr = formatDateShort(event.start, timezone, locale);
+    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
+    const meta = createElement("div", "already-card__meta");
+    meta.textContent = `${dateStr}${timeStr}`;
+    body.appendChild(meta);
+    if (event.location) {
+      const loc = createElement("div", "already-card__location");
+      loc.textContent = event.location;
+      body.appendChild(loc);
+    }
+    card.appendChild(body);
+    return card;
+  }
+
   // src/layouts/compact/compact.js
-  function render4(event, options2) {
+  function render3(event, options2) {
     const { timezone, locale } = options2;
     const card = createElement("div");
     card.className = "already-card already-card--compact";
@@ -4456,8 +4423,41 @@ ${text}</tr>
     return card;
   }
 
+  // src/layouts/hero/hero.js
+  function render4(event, options2) {
+    const { orientation, imagePosition, index, timezone, locale } = options2;
+    const card = createElement("div");
+    card.className = buildCardClasses("hero", orientation, imagePosition, index);
+    const imageEl = createCardImage(event);
+    if (imageEl) card.appendChild(imageEl);
+    const body = createElement("div", "already-card__body");
+    const title = createElement("div", "already-card__title");
+    title.textContent = event.title;
+    body.appendChild(title);
+    if (event.description) {
+      const desc = createElement("div", "already-card__description");
+      desc.textContent = event.description;
+      body.appendChild(desc);
+    }
+    const footer = createElement("div", "already-card__footer");
+    if (event.location) {
+      const loc = createElement("span", "already-card__location");
+      loc.textContent = event.location;
+      footer.appendChild(loc);
+    }
+    const dateStr = formatDateShort(event.start, timezone, locale);
+    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
+    const endTimeStr = !event.allDay && event.end ? ` \u2013 ${formatTime(event.end, timezone, locale)}` : "";
+    const meta = createElement("span", "already-card__meta");
+    meta.textContent = `${dateStr}${timeStr}${endTimeStr}`;
+    footer.appendChild(meta);
+    body.appendChild(footer);
+    card.appendChild(body);
+    return card;
+  }
+
   // src/layouts/registry.js
-  var layouts = { clean: render, hero: render2, badge: render3, compact: render4 };
+  var layouts = { clean: render2, hero: render4, badge: render, compact: render3 };
   function getLayout(name) {
     return layouts[name] || layouts.clean;
   }

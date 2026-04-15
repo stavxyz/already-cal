@@ -84,11 +84,17 @@ describe("clean layout", () => {
     const event = createTestEvent({ image: null });
     const el = render(event, baseOptions);
     const imgWrapper = el.querySelector(".already-card__image");
-    assert.strictEqual(imgWrapper, null, "should not render image wrapper when no image");
+    assert.strictEqual(
+      imgWrapper,
+      null,
+      "should not render image wrapper when no image",
+    );
   });
 
   it("does NOT include description (clean layout omits it)", () => {
-    const event = createTestEvent({ description: "Some long description here" });
+    const event = createTestEvent({
+      description: "Some long description here",
+    });
     const el = render(event, baseOptions);
     // No description element should exist
     const descEl = el.querySelector(".already-card__description");
@@ -164,8 +170,14 @@ describe("clean layout", () => {
     const el = render(event, baseOptions);
     const meta = el.querySelector(".already-card__meta");
     assert.ok(meta);
-    assert.ok(!meta.textContent.includes("\u00b7"), "allDay should not contain middot");
-    assert.ok(meta.textContent.includes("Apr"), "allDay should still show date");
+    assert.ok(
+      !meta.textContent.includes("\u00b7"),
+      "allDay should not contain middot",
+    );
+    assert.ok(
+      meta.textContent.includes("Apr"),
+      "allDay should still show date",
+    );
   });
 
   it("escapes title via textContent (XSS protection)", () => {
@@ -176,10 +188,7 @@ describe("clean layout", () => {
     const titleEl = el.querySelector(".already-card__title");
     assert.ok(titleEl, "missing .already-card__title");
     // textContent assignment escapes HTML — the raw string is stored, not parsed
-    assert.strictEqual(
-      titleEl.textContent,
-      '<script>alert("xss")</script>',
-    );
+    assert.strictEqual(titleEl.textContent, '<script>alert("xss")</script>');
     // No actual script element should be injected
     assert.strictEqual(
       el.querySelectorAll("script").length,

@@ -1137,16 +1137,16 @@
   display: flex;
   flex-direction: row;
 }
+.already-card__image {
+  overflow: hidden;
+  background: var(--already-background);
+}
 .already-card--horizontal .already-card__image {
   width: 180px;
   flex-shrink: 0;
 }
 .already-card--horizontal.already-card--image-right {
   flex-direction: row-reverse;
-}
-.already-card__image {
-  overflow: hidden;
-  background: var(--already-background);
 }
 .already-card--vertical .already-card__image {
   width: 100%;

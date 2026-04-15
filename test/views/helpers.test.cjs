@@ -174,7 +174,6 @@ describe("applyEventClasses", () => {
   });
 });
 
-
 describe("filterHidden", () => {
   it("removes hidden events", () => {
     const events = [

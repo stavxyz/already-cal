@@ -19,10 +19,7 @@ describe("renderListView", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ id: "1" }), createTestEvent({ id: "2" })];
     renderListView(container, events, "UTC", {});
-    assert.strictEqual(
-      container.querySelectorAll(".already-card").length,
-      2,
-    );
+    assert.strictEqual(container.querySelectorAll(".already-card").length, 2);
   });
 
   it("displays event title safely via textContent", () => {
@@ -46,7 +43,9 @@ describe("renderListView", () => {
     const events = [createTestEvent({ location: "The Venue" })];
     renderListView(container, events, "UTC", {});
     assert.ok(
-      container.querySelector(".already-card__location").textContent.includes("The Venue"),
+      container
+        .querySelector(".already-card__location")
+        .textContent.includes("The Venue"),
     );
   });
 
@@ -65,10 +64,7 @@ describe("renderListView", () => {
       createTestEvent({ id: "2", hidden: true }),
     ];
     renderListView(container, events, "UTC", {});
-    assert.strictEqual(
-      container.querySelectorAll(".already-card").length,
-      1,
-    );
+    assert.strictEqual(container.querySelectorAll(".already-card").length, 1);
   });
 
   it("adds --featured class", () => {
@@ -123,7 +119,11 @@ describe("renderListView", () => {
     const container = document.createElement("div");
     const events = [createTestEvent()];
     renderListView(container, events, "UTC", {
-      _theme: { layout: "compact", orientation: "vertical", imagePosition: "left" },
+      _theme: {
+        layout: "compact",
+        orientation: "vertical",
+        imagePosition: "left",
+      },
     });
     const card = container.querySelector(".already-card--compact");
     assert.ok(card, "should render compact card");

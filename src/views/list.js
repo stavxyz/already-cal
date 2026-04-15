@@ -1,12 +1,12 @@
 import { getLayout } from "../layouts/registry.js";
 import { THEME_DEFAULTS } from "../theme.js";
+import { isPast } from "../util/dates.js";
 import {
   bindEventClick,
   createElement,
   filterHidden,
   sortFeaturedByDate,
 } from "./helpers.js";
-import { isPast } from "../util/dates.js";
 
 /** Render the list view using layout cards (horizontal by default). */
 export function renderListView(container, events, timezone, config) {
@@ -15,8 +15,7 @@ export function renderListView(container, events, timezone, config) {
   const theme = config._theme || THEME_DEFAULTS;
 
   // List view defaults to horizontal orientation
-  const orientation =
-    theme.layout === "compact" ? "vertical" : "horizontal";
+  const orientation = theme.layout === "compact" ? "vertical" : "horizontal";
 
   events = filterHidden(events);
   events = sortFeaturedByDate(events, timezone, locale);

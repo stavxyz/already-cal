@@ -85,7 +85,7 @@ Already.init({
 | List | `#list` | Compact chronological list |
 | Detail | `#event/<id>` or `/event/<id>` | Two-column: image gallery + event info |
 
-Visitors can switch views via the selector bar, which includes inline SVG icons for each view. Their preference is saved in localStorage. Detail view shows a gallery with arrow navigation when an event has multiple images.
+Visitors can switch views via the selector bar, which includes inline SVG icons for each view. Their preference is saved in localStorage. Detail view shows an image gallery when an event has multiple images — tapping any image opens a fullscreen lightbox overlay (see [Event Images](#event-images) below).
 
 Grid and list views are paginated (default: 10 events per page, configurable via `pageSize`) with "Load more" and "Show earlier" buttons. Month, week, and day views show all events for their date range.
 
@@ -116,7 +116,7 @@ Already.init({
   pageSize: 10,                        // events per page in grid/list views
 
   // --- Sticky header ---
-  sticky: true,                        // true | false | { header, viewSelector, tagFilter }
+  sticky: true,                        // true | false | object (see configuration.md)
 
   // --- Theming ---
   // Shorthand (layout name only):
@@ -278,6 +278,40 @@ Palettes set these properties. Override any of them in the theme config:
 
 `primary`, `primaryText`, `background`, `surface`, `text`, `textSecondary`, `border`, `fontFamily`, `fontWeightNormal`, `fontWeightBold`, `fontSizeSm`, `fontSizeBase`, `fontSizeLg`, `radius`, `radiusSm`, `shadow`, `shadowHover`, `highlight`, `spacing`
 
+### Customizing Beyond Built-in Palettes
+
+The four built-in palettes cover common styles, but you can override any CSS custom property directly in the theme config. Any key beyond the fixed theme keys (`layout`, `palette`, `orientation`, `imagePosition`) is converted from camelCase to a CSS custom property (`--already-kebab-case`) and applied to the mount element:
+
+```js
+Already.init({
+  el: '#cal',
+  theme: {
+    layout: 'clean',
+    palette: 'light',
+    // These become CSS custom properties, applied on top of the palette:
+    primary: '#2563eb',           // --already-primary
+    fontFamily: 'Georgia, serif', // --already-font-family
+    radius: '0px',                // --already-radius
+    shadow: 'none',               // --already-shadow
+  },
+});
+```
+
+This is equivalent to:
+
+```css
+.already {
+  --already-primary: #2563eb;
+  --already-font-family: Georgia, serif;
+  --already-radius: 0px;
+  --already-shadow: none;
+}
+```
+
+The JS approach is useful for runtime changes via `setConfig()`. The CSS approach works for static overrides.
+
+Layouts are a fixed set of 4 built-in options (`clean`, `hero`, `badge`, `compact`). Custom layout renderers are not currently supported — see [#32](https://github.com/stavxyz/already-cal/issues/32) for future plans.
+
 ## Link Extraction
 
 URLs in event descriptions matching known platforms are extracted and rendered as action buttons. The URL is removed from the description text.
@@ -314,7 +348,12 @@ already-cal collects images from three sources:
 3. **Dropbox links in the description** — URLs containing `/scl/fi/`, `/s/`, or on `dl.dropboxusercontent.com` are recognized and normalized to `?raw=1` for direct serving. The file must be publicly shared.
 4. **Attachments** with `image/*` MIME type — from Google Calendar or your own data (Drive and Dropbox attachment URLs are also normalized)
 
-The first image is the thumbnail (grid/list views). Multiple images show as a gallery in detail view with ← → navigation and keyboard support. Tapping any gallery image opens a fullscreen lightbox overlay for easy reading of text-heavy images like flyers — with prev/next navigation, keyboard controls, and multiple dismiss methods (close button, backdrop tap, image tap, Escape key).
+The first image is the thumbnail (grid/list views). Multiple images show as a gallery in detail view. Tapping any gallery image opens a fullscreen lightbox overlay:
+
+- **Navigation:** Left/Right arrow keys, or on-screen prev/next buttons
+- **Dismiss:** Close button, backdrop click, image click, or Escape key
+- **Accessibility:** `role="dialog"` with `aria-modal="true"`, focus trapped within the overlay and restored to the gallery image on close
+- **Display:** Image counter shows position (e.g. "2 / 5")
 
 To add image attachments via the Google Calendar API, use `supportsAttachments: true` in your update call. Attachments can point to any public URL.
 
@@ -393,6 +432,8 @@ Extracted URLs (images, platform links, file attachments, directives) are remove
 ## Past Events
 
 A toggle button appears when past events exist. Visitors can show/hide past events, and the labels are configurable via `i18n.showPastEvents` and `i18n.hidePastEvents`. The initial state is controlled by `showPastEvents` config.
+
+Toggle state is in-memory only — it resets on page reload. When past events are visible in grid/list views, they are paginated in reverse-chronological order (most recent first) with a separate "Show earlier" button.
 
 ## Event Object
 
@@ -476,6 +517,17 @@ npm run lint            # check formatting and lint rules
 npm run format          # auto-fix formatting and lint
 open dev.html           # local preview with mock data
 ```
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Configuration Reference](docs/configuration.md) | Every config option with types, defaults, and descriptions |
+| [Event Schema](docs/event-schema.md) | Event object fields and data pipeline |
+| [Directives Reference](docs/directives.md) | `#already:` directive syntax for all platforms, images, and tags |
+| [Architecture](docs/architecture.md) | Technical deep-dive: data pipeline, rendering flow, theme system, lifecycle |
+| [Development Guide](docs/development.md) | Project structure, build system, testing, linting, CI |
+| [Contributing](CONTRIBUTING.md) | How to contribute: workflow, code style, commit conventions |
 
 ## CI/CD
 

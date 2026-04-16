@@ -34,7 +34,7 @@ For architecture and module internals, see the **[Architecture Guide](docs/archi
 - Tests are required for new features and bug fixes
 - Use the Node.js built-in test runner (`node:test`)
 - Test files mirror the `src/` directory structure under `test/`
-- Coverage thresholds are enforced in CI (86% statements, 80% branches, 72% functions, 86% lines)
+- Coverage thresholds are enforced in CI — see the [Development Guide](docs/development.md#coverage-thresholds) for details
 - Run `npm run test:coverage` to check coverage locally
 
 ## Commit Conventions

@@ -23,7 +23,8 @@ src/
 ├── theme.js                # Theme resolution, CSS custom property application
 ├── layouts/
 │   ├── registry.js         # Layout registry — getLayout(name) with clean fallback
-│   ├── helpers.js           # Shared layout rendering utilities
+│   ├── helpers.js          # Shared layout rendering utilities
+│   ├── base.css            # Shared card CSS primitives
 │   ├── badge/              # Badge layout: date overlay, tags, RSVP footer
 │   ├── clean/              # Clean layout: minimal image + title + date + location
 │   ├── compact/            # Compact layout: no image, inline date badge, dense
@@ -54,10 +55,10 @@ src/
 │   ├── description.js      # Description format detection and rendering
 │   ├── sanitize.js         # HTML sanitization
 │   └── dates.js            # Date formatting and comparison utilities
+├── palettes/               # light.css, dark.css, warm.css, cool.css
 └── styles/
     ├── index.css           # CSS entry point (imports all stylesheets)
-    ├── base.css            # Core layout, grid, responsive breakpoints
-    └── palettes/           # light.css, dark.css, warm.css, cool.css
+    └── base.css            # Core layout, grid, responsive breakpoints
 
 test/
 ├── setup-dom.cjs           # JSDOM initialization — exposes document, window, etc.
@@ -154,8 +155,8 @@ Three GitHub Actions workflows in `.github/workflows/`:
 - **Triggers:** Push to main, PRs targeting main
 - **Path filter:** Only runs when `src/`, `test/`, `build.cjs`, or `package*.json` files change
 - **Matrix:** Node 20 and Node 22
-- **Node 22 only:** Runs coverage report and verifies build output matches committed dist files
-- **Node 20:** Runs tests only (no coverage, no build check)
+- **Node 22 only:** Runs coverage report and verifies build succeeds
+- **Node 20:** Runs tests only (no coverage, no build step)
 
 ### Release (`release.yml`)
 

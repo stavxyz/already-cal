@@ -23,7 +23,7 @@ After enrichment, each event has these fields:
 | `tags` | `object[]` | Tags from directives: `[{ key, value }]` |
 | `featured` | `boolean` | `true` if `#already:featured` directive is present |
 | `hidden` | `boolean` | `true` if `#already:hidden` directive is present |
-| `htmlLink` | `string` | Google Calendar web link for the event (empty string if not from Google Calendar) |
+| `htmlLink` | `string` | Google Calendar web link — only present if provided in pre-loaded data (the Google Calendar API transform does not currently map this field; see [#34](https://github.com/stavxyz/already-cal/issues/34)) |
 
 ## Data Pipeline
 

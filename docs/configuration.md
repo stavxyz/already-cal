@@ -182,16 +182,9 @@ knownPlatforms: [
 
 ### `Already.DEFAULTS`
 
-The full default config object is exported as `Already.DEFAULTS`. Use it to extend arrays like `knownPlatforms` without replacing the built-in entries:
+The full default config object is exported as `Already.DEFAULTS`. The example above shows the typical usage pattern — spread the defaults into a new array to extend without replacing built-in entries.
 
-```js
-knownPlatforms: [
-  ...Already.DEFAULTS.knownPlatforms,
-  { pattern: /your-site\.com/i, label: 'Visit Our Site' },
-],
-```
-
-`Already.DEFAULTS` is read-only at runtime — mutating it does not affect existing instances.
+`Already.DEFAULTS` should be treated as read-only. Mutating it directly (e.g. `Already.DEFAULTS.knownPlatforms.push(...)`) may affect future `init()` calls — always spread into a new array rather than modifying in place.
 
 ## Sanitization
 

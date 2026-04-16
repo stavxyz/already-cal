@@ -122,7 +122,7 @@ Grid and list views use `getLayout(theme.layout)` from `src/layouts/registry.js`
 4. Applies new overrides: converts camelCase keys to `--already-kebab-case` and sets them as inline styles
 5. Returns the resolved theme object plus the new `overrideKeys` array for future cleanup
 
-Palette CSS files (`src/styles/palettes/*.css`) define styles via `[data-palette="name"]` attribute selectors. Setting `data-palette` on the mount element activates the corresponding palette — no JavaScript re-render needed.
+Palette CSS files (`src/palettes/*.css`) define styles via `.already[data-palette="name"]` attribute selectors. The `.already` class scopes palette styles to the mount element. Setting `data-palette` activates the corresponding palette — no JavaScript re-render needed.
 
 ## Layout Registry
 
@@ -130,7 +130,7 @@ Palette CSS files (`src/styles/palettes/*.css`) define styles via `[data-palette
 
 - Maps layout names to render functions from `src/layouts/{name}/{name}.js`
 - Returns `layouts.clean` as fallback for unknown names
-- Each layout module exports a render function: `(event, config) => HTMLElement`
+- Each layout module exports a render function: `(event, options) => HTMLElement` where `options` includes `orientation`, `imagePosition`, `index`, `timezone`, `locale`, and `config`
 - The set is fixed: `clean`, `hero`, `badge`, `compact`. See [#32](https://github.com/stavxyz/already-cal/issues/32) for future custom layout support.
 
 ## Extraction Pipeline
@@ -209,8 +209,8 @@ Key import relationships (simplified):
 
 - **`already-cal.js`** imports: `data.js`, `router.js`, `theme.js`, all `views/*`, all `ui/*`
 - **`data.js`** imports: `util/directives.js`, `util/images.js`, `util/links.js`, `util/attachments.js`, `util/description.js`, `util/tokens.js`
-- **`theme.js`** imports: `layouts/registry.js`
+- **`theme.js`** — no imports (self-contained)
 - **`views/grid.js`** and **`views/list.js`** import: `layouts/registry.js`
 - **`views/detail.js`** imports: `views/lightbox.js`
-- **`util/directives.js`** imports: `util/links.js` (for platform URL construction and canonical IDs)
+- **`util/directives.js`** imports: `util/images.js` (for `normalizeImageUrl`, `imageCanonicalId`), `util/sanitize.js` (for `cleanupHtml`, `stripUrl`)
 - **`ui/*` modules** are leaf nodes — they don't import from each other

@@ -57,6 +57,15 @@ describe("registry — registerBuiltIn", () => {
       /non-empty string/i,
     );
   });
+
+  it("throws on duplicate built-in name", () => {
+    defineType("widget", () => {});
+    registerBuiltIn("widget", "core", () => {});
+    assert.throws(
+      () => registerBuiltIn("widget", "core", () => {}),
+      /already registered/i,
+    );
+  });
 });
 
 describe("registry — register", () => {

@@ -126,11 +126,147 @@ describe("custom layout — list view", () => {
   });
 });
 
+describe("custom layout — error card behavior", () => {
+  it("error card does not receive modifier classes or click handler", () => {
+    const container = document.createElement("div");
+    register("layout", "err-mods", () => {
+      throw new Error("fail");
+    });
+    const events = [
+      createTestEvent({
+        title: "Past Featured",
+        start: "2020-01-01T10:00:00Z",
+        featured: true,
+      }),
+    ];
+    renderGridView(container, events, "UTC", {
+      _theme: {
+        layout: "err-mods",
+        orientation: "vertical",
+        imagePosition: "left",
+      },
+    });
+    const errorCard = container.querySelector(".already-card--error");
+    assert.ok(errorCard, "error card should be rendered");
+    assert.ok(
+      !errorCard.classList.contains("already-card--past"),
+      "error card should not have --past class",
+    );
+    assert.ok(
+      !errorCard.classList.contains("already-card--featured"),
+      "error card should not have --featured class",
+    );
+    assert.strictEqual(
+      errorCard.dataset.eventId,
+      undefined,
+      "error card should not have data-event-id",
+    );
+    assert.strictEqual(
+      errorCard.getAttribute("role"),
+      null,
+      "error card should not have role=button",
+    );
+  });
+
+  it("shows 'Unknown Event' when event title is missing", () => {
+    const container = document.createElement("div");
+    register("layout", "err-no-title", () => {
+      throw new Error("fail");
+    });
+    const events = [createTestEvent({ title: "" })];
+    renderGridView(container, events, "UTC", {
+      _theme: {
+        layout: "err-no-title",
+        orientation: "vertical",
+        imagePosition: "left",
+      },
+    });
+    const errorCard = container.querySelector(".already-card--error");
+    assert.ok(
+      errorCard.textContent.includes("Unknown Event"),
+      "should fall back to 'Unknown Event'",
+    );
+  });
+
+  it("renders error card when layout returns a DocumentFragment", () => {
+    const container = document.createElement("div");
+    register("layout", "frag-return", () => {
+      const frag = document.createDocumentFragment();
+      frag.appendChild(document.createElement("div"));
+      return frag;
+    });
+    const events = [createTestEvent({ title: "Fragment Event" })];
+    renderGridView(container, events, "UTC", {
+      _theme: {
+        layout: "frag-return",
+        orientation: "vertical",
+        imagePosition: "left",
+      },
+    });
+    assert.ok(
+      container.querySelector(".already-card--error"),
+      "DocumentFragment return should produce error card",
+    );
+  });
+});
+
+describe("custom layout — registerLayout public API", () => {
+  let registerLayout;
+  before(async () => {
+    const mod = await import("../../src/already-cal.js");
+    registerLayout = mod.registerLayout;
+  });
+
+  it("registers a layout via the public API", () => {
+    const container = document.createElement("div");
+    registerLayout("public-api-test", (event) => {
+      const card = document.createElement("div");
+      card.className = "already-card already-card--public-api";
+      card.textContent = event.title;
+      return card;
+    });
+    const events = [createTestEvent({ title: "Public API" })];
+    renderGridView(container, events, "UTC", {
+      _theme: {
+        layout: "public-api-test",
+        orientation: "vertical",
+        imagePosition: "left",
+      },
+    });
+    assert.ok(container.querySelector(".already-card--public-api"));
+  });
+});
+
 describe("custom layout — resolveTheme integration", () => {
-  it("accepts a registered custom layout name", async () => {
-    const { resolveTheme } = await import("../../src/theme.js");
+  let resolveTheme;
+  before(async () => {
+    const mod = await import("../../src/theme.js");
+    resolveTheme = mod.resolveTheme;
+  });
+
+  it("accepts a registered custom layout name", () => {
     register("layout", "theme-test", () => document.createElement("div"));
     const result = resolveTheme({ layout: "theme-test" });
     assert.strictEqual(result.layout, "theme-test");
+  });
+
+  it("accepts string shorthand for a registered custom layout", () => {
+    register("layout", "shorthand-test", () => document.createElement("div"));
+    const result = resolveTheme("shorthand-test");
+    assert.strictEqual(result.layout, "shorthand-test");
+  });
+});
+
+describe("custom layout — getLayout integration", () => {
+  let getLayout;
+  before(async () => {
+    const mod = await import("../../src/layouts/registry.js");
+    getLayout = mod.getLayout;
+  });
+
+  it("returns registered custom layout function", () => {
+    const fn = () => document.createElement("div");
+    register("layout", "direct-lookup", fn);
+    assert.strictEqual(getLayout("direct-lookup"), fn);
   });
 });

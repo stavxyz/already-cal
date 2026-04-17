@@ -10,8 +10,8 @@
     "dev": "node build.cjs --watch",
     "format": "biome check --write .",
     "lint": "biome ci .",
-    "test": "node --test test/*.test.cjs test/views/*.test.cjs test/ui/*.test.cjs test/layouts/*.test.cjs",
-    "test:coverage": "c8 node --test test/*.test.cjs test/views/*.test.cjs test/ui/*.test.cjs test/layouts/*.test.cjs"
+    "test": "node --test test/*.test.cjs test/views/*.test.cjs test/ui/*.test.cjs test/layouts/*.test.cjs test/themes/*.test.cjs",
+    "test:coverage": "c8 node --test test/*.test.cjs test/views/*.test.cjs test/ui/*.test.cjs test/layouts/*.test.cjs test/themes/*.test.cjs"
   },
   "repository": {
     "type": "git",

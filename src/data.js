@@ -231,6 +231,7 @@ export function transformGoogleEvents(googleData, config) {
         image: null,
         images: [],
         links: [],
+        htmlLink: item.htmlLink || "",
         attachments: apiAttachments,
         _imageAttachments: imageAttachments,
       },

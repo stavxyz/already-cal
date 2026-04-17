@@ -3203,6 +3203,7 @@ ${text}</tr>
           image: null,
           images: [],
           links: [],
+          htmlLink: item.htmlLink || "",
           attachments: apiAttachments,
           _imageAttachments: imageAttachments
         },

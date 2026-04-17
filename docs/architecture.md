@@ -126,13 +126,13 @@ Palette CSS files (`src/palettes/*.css`) define styles via `.already[data-palett
 
 ## Registry System
 
-`src/registry.js` provides a generic, type-agnostic registry used for layouts (and future extensible types like theme bundles). The API:
+`src/registry.js` provides a generic, type-agnostic registry used for layouts (and future extensible types like theme bundles). Containers use `Object.create(null)` to avoid prototype pollution. The API:
 
 - `defineType(type, validator)` — creates a new registry type with a validation function
-- `registerBuiltIn(type, name, impl)` — registers a built-in entry (protected from override)
+- `registerBuiltIn(type, name, impl)` — registers a built-in entry (protected from override and duplication)
 - `register(type, name, impl)` — registers a custom entry (throws if name collides with a built-in)
-- `get(type, name, fallback)` — retrieves an entry, or returns `fallback`
-- `has(type, name)` — checks if a name is registered
+- `get(type, name, fallback)` — retrieves an entry, or returns `fallback`. Intentionally lenient on undefined types for graceful rendering fallback.
+- `has(type, name)` — checks if a name is registered. Same lenient behavior as `get()`.
 
 ### Layout Registry
 
@@ -145,7 +145,7 @@ Palette CSS files (`src/palettes/*.css`) define styles via `.already[data-palett
 
 ### Error Handling
 
-Grid and list views wrap every layout render call in a try/catch. If a layout function throws or returns a non-`HTMLElement`/`DocumentFragment` value, an error card is rendered in place of the event. Error cards display the event title and a "Render error" label, and do not receive click handlers or modifier classes (`--past`, `--featured`).
+`safeRenderCard()` in `src/layouts/helpers.js` wraps every layout render call in a try/catch. If a layout function throws or returns a non-`HTMLElement` value, an error card is rendered in place of the event and the error is logged via `console.error`. `decorateCard()` in `src/views/helpers.js` applies modifier classes (`--past`, `--featured`), `data-event-id`, and click bindings — but skips error cards entirely. An unrecognized layout name in `resolveTheme()` triggers a `console.warn` before falling back to `"clean"`.
 
 ## Extraction Pipeline
 
@@ -225,7 +225,9 @@ Key import relationships (simplified):
 - **`data.js`** imports: `util/directives.js`, `util/images.js`, `util/links.js`, `util/attachments.js`, `util/description.js`, `util/tokens.js`
 - **`theme.js`** imports: `registry.js`, `layouts/registry.js` (side-effect import for type initialization)
 - **`layouts/registry.js`** imports: `registry.js`, all `layouts/{name}/{name}.js`
-- **`views/grid.js`** and **`views/list.js`** import: `layouts/registry.js`, `layouts/helpers.js`
+- **`layouts/helpers.js`** imports: `views/helpers.js` (createElement), `util/dates.js`; exports `safeRenderCard`, `renderErrorCard`
+- **`views/helpers.js`** imports: `router.js`, `util/dates.js`; exports `decorateCard`, `bindEventClick`, `createElement`, etc.
+- **`views/grid.js`** and **`views/list.js`** import: `layouts/helpers.js` (safeRenderCard), `layouts/registry.js`, `views/helpers.js` (decorateCard)
 - **`views/detail.js`** imports: `views/lightbox.js`
 - **`util/directives.js`** imports: `util/images.js` (for `normalizeImageUrl`, `imageCanonicalId`), `util/sanitize.js` (for `cleanupHtml`, `stripUrl`)
 - **`ui/*` modules** are leaf nodes — they don't import from each other

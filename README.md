@@ -325,7 +325,7 @@ Already.registerLayout('timeline', (event, options) => {
 Already.init({ el: '#cal', theme: { layout: 'timeline' } });
 ```
 
-The render function receives an event and an options object (`orientation`, `imagePosition`, `index`, `timezone`, `locale`, `config`) and must return an `HTMLElement` or `DocumentFragment`. If a custom layout throws or returns something invalid, an error card is rendered in its place. Built-in layout names cannot be overridden. See the [full custom layout reference](docs/configuration.md#custom-layouts) for details.
+The render function receives an event and an options object (`orientation`, `imagePosition`, `index`, `timezone`, `locale`, `config`) and must return an `HTMLElement`. If a custom layout throws or returns something invalid, an error card is rendered in its place and the error is logged via `console.error`. Built-in layout names cannot be overridden. See the [full custom layout reference](docs/configuration.md#custom-layouts) for details.
 
 ## Link Extraction
 

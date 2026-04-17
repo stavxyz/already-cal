@@ -1,5 +1,6 @@
 import { has } from "./registry.js";
-// Registers built-in layout types; must precede any has("layout", ...) call
+// Side-effect import: initializes the "layout" registry type and registers
+// built-ins so that has("layout", ...) lookups in resolveTheme() find them.
 import "./layouts/registry.js";
 
 const VALID_PALETTES = new Set(["light", "dark", "warm", "cool"]);
@@ -32,7 +33,14 @@ export function resolveTheme(theme) {
 
   const layout = has("layout", input.layout)
     ? input.layout
-    : THEME_DEFAULTS.layout;
+    : (() => {
+        if (input.layout != null && input.layout !== THEME_DEFAULTS.layout) {
+          console.warn(
+            `already-cal: Unknown layout "${input.layout}", falling back to "${THEME_DEFAULTS.layout}"`,
+          );
+        }
+        return THEME_DEFAULTS.layout;
+      })();
 
   const palette = VALID_PALETTES.has(input.palette)
     ? input.palette

@@ -84,7 +84,11 @@ const I18N_DEFAULTS = {
 // Expose defaults so consumers can extend (e.g. Already.DEFAULTS.knownPlatforms)
 export { DEFAULTS };
 
-/** Register a custom layout render function. See docs/configuration.md for the contract. */
+/**
+ * Register a custom layout render function.
+ * Must return an HTMLElement. Built-in names (clean, hero, badge, compact)
+ * cannot be overridden. Re-registering a custom name replaces the previous.
+ */
 export function registerLayout(name, renderFn) {
   register("layout", name, renderFn);
 }

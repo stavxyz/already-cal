@@ -275,7 +275,7 @@ eventFilter: (event) => !event.title.includes('[INTERNAL]'),
 
 ## Custom Layouts
 
-Register custom card layouts via `Already.registerLayout(name, renderFn)`. The render function receives an event object and an options object, and must return an `HTMLElement` or `DocumentFragment`.
+Register custom card layouts via `Already.registerLayout(name, renderFn)`. The render function receives an event object and an options object, and must return an `HTMLElement`.
 
 ```js
 Already.registerLayout('timeline', (event, options) => {
@@ -305,7 +305,7 @@ Already.init({
 ### Render function signature
 
 ```
-(event, options) => HTMLElement | DocumentFragment
+(event, options) => HTMLElement
 ```
 
 **`event`** — the enriched [event object](event-schema.md)
@@ -314,7 +314,7 @@ Already.init({
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `orientation` | `string` | `"vertical"` or `"horizontal"` |
+| `orientation` | `string` | `"vertical"` or `"horizontal"`. In list view, defaults to `"horizontal"` regardless of theme setting (except for compact layout). |
 | `imagePosition` | `string` | `"left"`, `"right"`, or `"alternating"` |
 | `index` | `number` | Zero-based index of this event in the current view |
 | `timezone` | `string` | Calendar timezone (e.g. `"America/Chicago"`) |
@@ -324,7 +324,7 @@ Already.init({
 ### Rules
 
 - **Name** must be a non-empty string. Built-in names (`clean`, `hero`, `badge`, `compact`) cannot be overridden — an error is thrown.
-- **Return type** must be `HTMLElement` or `DocumentFragment`. If the function throws or returns something else, an error card is rendered in place of the event.
+- **Return type** must be `HTMLElement`. If the function throws or returns something else, an error card is rendered in place of the event and the error is logged via `console.error`.
 - **Registration timing** — call `registerLayout()` before or after `init()`. Layouts registered after `init()` take effect on the next view render (e.g. after `setConfig()` or view switch).
 - **Re-registration** — registering the same custom name again replaces the previous function.
 

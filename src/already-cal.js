@@ -1,4 +1,5 @@
 import { loadData } from "./data.js";
+import { register } from "./registry.js";
 import { getInitialView, onHashChange, parseHash, setView } from "./router.js";
 import { applyTheme } from "./theme.js";
 import { renderHeader } from "./ui/header.js";
@@ -82,6 +83,11 @@ const I18N_DEFAULTS = {
 
 // Expose defaults so consumers can extend (e.g. Already.DEFAULTS.knownPlatforms)
 export { DEFAULTS };
+
+/** Register a custom layout render function. See docs/configuration.md for the contract. */
+export function registerLayout(name, renderFn) {
+  register("layout", name, renderFn);
+}
 
 /** The most recently created instance. In multi-instance setups, only the last init()'d instance is stored here. */
 export let _instance = null;

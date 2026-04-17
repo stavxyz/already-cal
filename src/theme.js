@@ -1,11 +1,12 @@
 import { has } from "./registry.js";
-// Side-effect import: initializes the "layout" registry type and registers
-// built-ins so that has("layout", ...) lookups in resolveTheme() find them.
-import "./layouts/registry.js";
-
-const VALID_PALETTES = new Set(["light", "dark", "warm", "cool"]);
-const VALID_ORIENTATIONS = new Set(["vertical", "horizontal"]);
-const VALID_IMAGE_POSITIONS = new Set(["left", "right", "alternating"]);
+// Side-effect import: initializes the "theme" registry type and registers
+// built-in bundles. Also transitively initializes the "layout" registry.
+import {
+  getTheme,
+  VALID_IMAGE_POSITIONS,
+  VALID_ORIENTATIONS,
+  VALID_PALETTES,
+} from "./themes/registry.js";
 
 const THEME_KEYS = new Set([
   "layout",
@@ -22,8 +23,43 @@ export const THEME_DEFAULTS = {
 };
 
 /**
+ * Resolve a single dimension (orientation, imagePosition, palette) through
+ * the priority chain: constraint > user > bundle default > THEME_DEFAULTS.
+ * Throws when a user value conflicts with a bundle constraint.
+ */
+function resolveDimension(dimension, userValue, bundle, validSet, themeName) {
+  const constraint = bundle?.constraints?.[dimension];
+  const bundleDefault = bundle?.defaults?.[dimension];
+
+  if (constraint !== undefined) {
+    if (userValue !== undefined && userValue !== constraint) {
+      throw new Error(
+        `already-cal: Theme "${themeName}" constrains ${dimension} to "${constraint}", but "${userValue}" was passed`,
+      );
+    }
+    return constraint;
+  }
+
+  if (userValue !== undefined && validSet.has(userValue)) {
+    return userValue;
+  }
+
+  if (bundleDefault !== undefined) {
+    return bundleDefault;
+  }
+
+  return THEME_DEFAULTS[dimension];
+}
+
+/**
  * Resolve a theme config value (string shorthand or object) into
  * normalized layout/palette/orientation settings plus CSS overrides.
+ *
+ * Checks the theme bundle registry first. If the layout names a registered
+ * bundle, applies its defaults, constraints, and CSS overrides with the
+ * priority chain: constraint > user > bundle default > THEME_DEFAULTS.
+ *
+ * Throws on constraint violations (user value conflicts with bundle constraint).
  */
 export function resolveTheme(theme) {
   if (typeof theme === "string") {
@@ -31,43 +67,64 @@ export function resolveTheme(theme) {
   }
   const input = theme || {};
 
-  const layout = has("layout", input.layout)
-    ? input.layout
-    : (() => {
-        if (input.layout != null && input.layout !== THEME_DEFAULTS.layout) {
-          console.warn(
-            `already-cal: Unknown layout "${input.layout}", falling back to "${THEME_DEFAULTS.layout}"`,
-          );
-        }
-        return THEME_DEFAULTS.layout;
-      })();
+  // Check if the layout names a theme bundle
+  const bundle = input.layout ? getTheme(input.layout) : undefined;
 
-  const palette = VALID_PALETTES.has(input.palette)
-    ? input.palette
-    : THEME_DEFAULTS.palette;
+  // Resolve layout
+  let layout;
+  if (bundle) {
+    layout = bundle.layout || input.layout;
+  } else if (has("layout", input.layout)) {
+    layout = input.layout;
+  } else {
+    if (input.layout != null && input.layout !== THEME_DEFAULTS.layout) {
+      console.warn(
+        `already-cal: Unknown layout "${input.layout}", falling back to "${THEME_DEFAULTS.layout}"`,
+      );
+    }
+    layout = THEME_DEFAULTS.layout;
+  }
 
-  // Compact has no image — force vertical
-  const orientation =
-    layout === "compact"
-      ? "vertical"
-      : VALID_ORIENTATIONS.has(input.orientation)
-        ? input.orientation
-        : THEME_DEFAULTS.orientation;
+  const themeName = input.layout;
+
+  const orientation = resolveDimension(
+    "orientation",
+    input.orientation,
+    bundle,
+    VALID_ORIENTATIONS,
+    themeName,
+  );
+
+  const rawImagePosition = resolveDimension(
+    "imagePosition",
+    input.imagePosition,
+    bundle,
+    VALID_IMAGE_POSITIONS,
+    themeName,
+  );
+
+  const palette = resolveDimension(
+    "palette",
+    input.palette,
+    bundle,
+    VALID_PALETTES,
+    themeName,
+  );
 
   // imagePosition only applies when horizontal
   const imagePosition =
-    orientation === "horizontal" &&
-    VALID_IMAGE_POSITIONS.has(input.imagePosition)
-      ? input.imagePosition
+    orientation === "horizontal"
+      ? rawImagePosition
       : THEME_DEFAULTS.imagePosition;
 
-  // Everything not a known theme key is a CSS custom property override
-  const overrides = {};
+  // CSS overrides: user overrides > bundle overrides (merged)
+  const userOverrides = {};
   for (const [key, value] of Object.entries(input)) {
     if (!THEME_KEYS.has(key)) {
-      overrides[key] = value;
+      userOverrides[key] = value;
     }
   }
+  const overrides = { ...(bundle?.overrides || {}), ...userOverrides };
 
   return { layout, orientation, imagePosition, palette, overrides };
 }

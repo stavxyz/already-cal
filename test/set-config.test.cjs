@@ -104,13 +104,16 @@ describe("setConfig — theme updates", () => {
     assert.strictEqual(container.dataset.layout, "hero");
   });
 
-  it("compact layout forces orientation to vertical", async () => {
-    const { instance, container } = createInitedInstance();
+  it("compact layout constrains orientation to vertical (throws on conflict)", async () => {
+    const { instance } = createInitedInstance();
     await new Promise((r) => setTimeout(r, 10));
-    instance.setConfig({
-      theme: { layout: "compact", orientation: "horizontal" },
-    });
-    assert.strictEqual(container.dataset.orientation, "vertical");
+    assert.throws(
+      () =>
+        instance.setConfig({
+          theme: { layout: "compact", orientation: "horizontal" },
+        }),
+      /constrains orientation to "vertical", but "horizontal" was passed/,
+    );
   });
 
   it("falls back to default for invalid layout values", async () => {

@@ -1,6 +1,6 @@
-const registries = {};
-const builtIns = {};
-const validators = {};
+const registries = Object.create(null);
+const builtIns = Object.create(null);
+const validators = Object.create(null);
 
 export function defineType(type, validator) {
   if (registries[type]) {
@@ -21,6 +21,11 @@ export function registerBuiltIn(type, name, impl) {
   if (typeof name !== "string" || name === "") {
     throw new Error(
       `Registry "${type}": name must be a non-empty string, got: ${typeof name}`,
+    );
+  }
+  if (builtIns[type].has(name)) {
+    throw new Error(
+      `Registry "${type}": built-in "${name}" is already registered`,
     );
   }
   validators[type](name, impl);
@@ -44,6 +49,12 @@ export function register(type, name, impl) {
   registries[type].set(name, impl);
 }
 
+/**
+ * Retrieve a registered entry. Returns fallback (or undefined) if the type
+ * is not defined or the name is not registered. Intentionally lenient —
+ * get/has never throw so that rendering code can fall back gracefully,
+ * while register/registerBuiltIn are strict and throw on misuse.
+ */
 export function get(type, name, fallback) {
   if (!registries[type]) return fallback;
   return registries[type].get(name) ?? fallback;
@@ -60,7 +71,10 @@ function assertTypeDefined(type) {
   }
 }
 
-/** Test-only: reset all registries. Not exported in the bundle. */
+/**
+ * Test-only: reset all registries. Tree-shaken from the IIFE bundle
+ * because nothing in the entry graph imports it.
+ */
 export function _resetForTesting() {
   for (const key of Object.keys(registries)) {
     delete registries[key];

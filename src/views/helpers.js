@@ -49,6 +49,18 @@ export function applyEventClasses(el, event, baseClass) {
   el.className = cls;
 }
 
+/**
+ * Apply modifier classes, data attributes, and click binding to a
+ * successfully rendered card. Skips error cards (already-card--error).
+ */
+export function decorateCard(card, event, viewName, config) {
+  if (card.classList.contains("already-card--error")) return;
+  if (isPast(event.start)) card.classList.add("already-card--past");
+  if (event.featured) card.classList.add("already-card--featured");
+  card.dataset.eventId = event.id;
+  bindEventClick(card, event, viewName, config);
+}
+
 /** Filter out events with the hidden flag. */
 export function filterHidden(events) {
   return events.filter((e) => !e.hidden);

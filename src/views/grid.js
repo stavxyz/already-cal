@@ -1,10 +1,9 @@
-import { renderErrorCard } from "../layouts/helpers.js";
+import { safeRenderCard } from "../layouts/helpers.js";
 import { getLayout } from "../layouts/registry.js";
 import { THEME_DEFAULTS } from "../theme.js";
-import { isPast } from "../util/dates.js";
 import {
-  bindEventClick,
   createElement,
+  decorateCard,
   filterHidden,
   sortFeaturedByDate,
 } from "./helpers.js";
@@ -23,41 +22,15 @@ export function renderGridView(container, events, timezone, config) {
 
   for (let i = 0; i < events.length; i++) {
     const event = events[i];
-    let card;
-    try {
-      card = renderCard(event, {
-        orientation: theme.orientation,
-        imagePosition: theme.imagePosition,
-        index: i,
-        timezone,
-        locale,
-        config,
-      });
-      if (
-        !(card instanceof HTMLElement) &&
-        !(card instanceof DocumentFragment)
-      ) {
-        throw new TypeError(
-          `Layout returned ${typeof card} instead of HTMLElement`,
-        );
-      }
-    } catch (err) {
-      console.warn(
-        `already-cal: Layout render error for "${event.title}":`,
-        err,
-      );
-      card = renderErrorCard(event);
-    }
-
-    if (!card.classList.contains("already-card--error")) {
-      // Add modifier classes via classList (not applyEventClasses which
-      // overwrites className and would destroy layout-specific classes)
-      if (isPast(event.start)) card.classList.add("already-card--past");
-      if (event.featured) card.classList.add("already-card--featured");
-      card.dataset.eventId = event.id;
-      bindEventClick(card, event, "grid", config);
-    }
-
+    const card = safeRenderCard(renderCard, event, {
+      orientation: theme.orientation,
+      imagePosition: theme.imagePosition,
+      index: i,
+      timezone,
+      locale,
+      config,
+    });
+    decorateCard(card, event, "grid", config);
     grid.appendChild(card);
   }
 

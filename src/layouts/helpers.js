@@ -68,8 +68,31 @@ export function renderErrorCard(event) {
   title.textContent = event.title || "Unknown Event";
   body.appendChild(title);
   const msg = createElement("div", "already-card__meta");
-  msg.textContent = "Render error";
+  msg.textContent = "Could not display this event";
   body.appendChild(msg);
   card.appendChild(body);
   return card;
+}
+
+/**
+ * Safely invoke a layout render function, returning an error card on failure.
+ * Validates that the return value is an HTMLElement; logs the error via
+ * console.error so custom layout authors get full stack traces.
+ */
+export function safeRenderCard(renderFn, event, options) {
+  try {
+    const card = renderFn(event, options);
+    if (!(card instanceof HTMLElement)) {
+      throw new TypeError(
+        `Layout returned ${typeof card} instead of HTMLElement`,
+      );
+    }
+    return card;
+  } catch (err) {
+    console.error(
+      `already-cal: Layout render error for "${event.title}":`,
+      err,
+    );
+    return renderErrorCard(event);
+  }
 }

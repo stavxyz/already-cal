@@ -23,6 +23,7 @@ var Already = (() => {
     DEFAULTS: () => DEFAULTS,
     _instance: () => _instance,
     init: () => init,
+    registerLayout: () => registerLayout,
     setConfig: () => setConfig
   });
 
@@ -3222,6 +3223,63 @@ ${text}</tr>
     };
   }
 
+  // src/registry.js
+  var registries = {};
+  var builtIns = {};
+  var validators = {};
+  function defineType(type, validator) {
+    if (registries[type]) {
+      throw new Error(`Registry type "${type}" is already defined`);
+    }
+    if (typeof validator !== "function") {
+      throw new TypeError(
+        `Registry "${type}": validator must be a function, got: ${typeof validator}`
+      );
+    }
+    registries[type] = /* @__PURE__ */ new Map();
+    builtIns[type] = /* @__PURE__ */ new Set();
+    validators[type] = validator;
+  }
+  function registerBuiltIn(type, name, impl) {
+    assertTypeDefined(type);
+    if (typeof name !== "string" || name === "") {
+      throw new Error(
+        `Registry "${type}": name must be a non-empty string, got: ${typeof name}`
+      );
+    }
+    validators[type](name, impl);
+    registries[type].set(name, impl);
+    builtIns[type].add(name);
+  }
+  function register(type, name, impl) {
+    assertTypeDefined(type);
+    if (typeof name !== "string" || name === "") {
+      throw new Error(
+        `Registry "${type}": name must be a non-empty string, got: ${typeof name}`
+      );
+    }
+    if (builtIns[type].has(name)) {
+      throw new Error(
+        `Registry "${type}": "${name}" is a built-in and cannot be overridden`
+      );
+    }
+    validators[type](name, impl);
+    registries[type].set(name, impl);
+  }
+  function get(type, name, fallback) {
+    if (!registries[type]) return fallback;
+    return registries[type].get(name) ?? fallback;
+  }
+  function has(type, name) {
+    if (!registries[type]) return false;
+    return registries[type].has(name);
+  }
+  function assertTypeDefined(type) {
+    if (!registries[type]) {
+      throw new Error(`Registry type "${type}" is not defined`);
+    }
+  }
+
   // src/router.js
   var VALID_VIEWS = ["month", "week", "day", "grid", "list"];
   function storageKey(config) {
@@ -3274,126 +3332,6 @@ ${text}</tr>
     };
     window.addEventListener("hashchange", handler);
     return () => window.removeEventListener("hashchange", handler);
-  }
-
-  // src/theme.js
-  var VALID_LAYOUTS = /* @__PURE__ */ new Set(["clean", "hero", "badge", "compact"]);
-  var VALID_PALETTES = /* @__PURE__ */ new Set(["light", "dark", "warm", "cool"]);
-  var VALID_ORIENTATIONS = /* @__PURE__ */ new Set(["vertical", "horizontal"]);
-  var VALID_IMAGE_POSITIONS = /* @__PURE__ */ new Set(["left", "right", "alternating"]);
-  var THEME_KEYS = /* @__PURE__ */ new Set([
-    "layout",
-    "orientation",
-    "imagePosition",
-    "palette"
-  ]);
-  var THEME_DEFAULTS = {
-    layout: "clean",
-    orientation: "vertical",
-    imagePosition: "left",
-    palette: "light"
-  };
-  function resolveTheme(theme) {
-    if (typeof theme === "string") {
-      theme = { layout: theme };
-    }
-    const input = theme || {};
-    const layout = VALID_LAYOUTS.has(input.layout) ? input.layout : THEME_DEFAULTS.layout;
-    const palette = VALID_PALETTES.has(input.palette) ? input.palette : THEME_DEFAULTS.palette;
-    const orientation = layout === "compact" ? "vertical" : VALID_ORIENTATIONS.has(input.orientation) ? input.orientation : THEME_DEFAULTS.orientation;
-    const imagePosition = orientation === "horizontal" && VALID_IMAGE_POSITIONS.has(input.imagePosition) ? input.imagePosition : THEME_DEFAULTS.imagePosition;
-    const overrides = {};
-    for (const [key, value] of Object.entries(input)) {
-      if (!THEME_KEYS.has(key)) {
-        overrides[key] = value;
-      }
-    }
-    return { layout, orientation, imagePosition, palette, overrides };
-  }
-  function applyTheme(el, themeInput, previousOverrideKeys) {
-    const theme = resolveTheme(themeInput);
-    el.dataset.layout = theme.layout;
-    el.dataset.orientation = theme.orientation;
-    el.dataset.imagePosition = theme.imagePosition;
-    el.dataset.palette = theme.palette;
-    for (const prop of previousOverrideKeys) {
-      el.style.removeProperty(prop);
-    }
-    const overrideKeys = [];
-    for (const [key, value] of Object.entries(theme.overrides)) {
-      const prop = `--already-${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`;
-      el.style.setProperty(prop, value);
-      overrideKeys.push(prop);
-    }
-    return { ...theme, overrideKeys };
-  }
-
-  // src/ui/header.js
-  function renderHeader(container, calendarData, config) {
-    if (!config.showHeader) {
-      container.innerHTML = "";
-      return;
-    }
-    const name = config.headerTitle ?? calendarData?.name ?? "";
-    const description = config.headerDescription ?? calendarData?.description ?? "";
-    if (!name && !description) {
-      container.innerHTML = "";
-      return;
-    }
-    const i18n = config.i18n || {};
-    const subscribeLabel = i18n.subscribe || "Subscribe";
-    let subscribeUrl = config.subscribeUrl || null;
-    if (!subscribeUrl && config.google?.calendarId) {
-      const cid = btoa(config.google.calendarId).replace(/=+$/, "");
-      subscribeUrl = `https://calendar.google.com/calendar/u/0?cid=${cid}`;
-    }
-    if (!subscribeUrl && calendarData?.calendarId) {
-      const cid = btoa(calendarData.calendarId).replace(/=+$/, "");
-      subscribeUrl = `https://calendar.google.com/calendar/u/0?cid=${cid}`;
-    }
-    const header = document.createElement("div");
-    header.className = "already-header";
-    if (config.headerIcon) {
-      const icon = document.createElement("img");
-      icon.className = "already-header-icon";
-      icon.src = config.headerIcon;
-      icon.alt = "";
-      icon.loading = "lazy";
-      header.appendChild(icon);
-    }
-    const textCol = document.createElement("div");
-    textCol.className = "already-header-text";
-    if (name) {
-      const h = document.createElement("h2");
-      h.className = "already-header-name";
-      h.textContent = name;
-      textCol.appendChild(h);
-    }
-    if (description) {
-      const p = document.createElement("p");
-      p.className = "already-header-description";
-      if (subscribeUrl && /subscribe/i.test(description)) {
-        p.innerHTML = description.replace(
-          /(subscribe)/i,
-          `<a href="${subscribeUrl}" target="_blank" rel="noopener" class="already-header-description-link">$1</a>`
-        );
-      } else {
-        p.textContent = description;
-      }
-      textCol.appendChild(p);
-    }
-    header.appendChild(textCol);
-    if (subscribeUrl) {
-      const btn = document.createElement("a");
-      btn.className = "already-header-subscribe";
-      btn.href = subscribeUrl;
-      btn.target = "_blank";
-      btn.rel = "noopener";
-      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 1v2M11 1v2M2 6h12M3 3h10a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8v4M6 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> ${escapeHtml(subscribeLabel)}`;
-      header.appendChild(btn);
-    }
-    container.innerHTML = "";
-    container.appendChild(header);
   }
 
   // src/util/dates.js
@@ -3507,6 +3445,404 @@ ${text}</tr>
       names.push(new Intl.DateTimeFormat(locale, { weekday: "short" }).format(d));
     }
     return names;
+  }
+
+  // src/views/helpers.js
+  function createElement(tag2, className, attrs) {
+    const el = document.createElement(tag2);
+    if (className) el.className = className;
+    if (attrs) {
+      for (const [key, value] of Object.entries(attrs)) {
+        el.setAttribute(key, value);
+      }
+    }
+    return el;
+  }
+  function bindEventClick(el, event, viewName, config, { stopPropagation = false } = {}) {
+    function handleClick(e) {
+      if (stopPropagation) e.stopPropagation();
+      if (config.onEventClick) {
+        const result = config.onEventClick(event, viewName);
+        if (result === false) return;
+      }
+      setEventDetail(event.id);
+    }
+    el.addEventListener("click", handleClick);
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        if (stopPropagation) e.stopPropagation();
+        handleClick(e);
+      }
+    });
+    el.setAttribute("tabindex", "0");
+    el.setAttribute("role", "button");
+  }
+  function applyEventClasses(el, event, baseClass) {
+    let cls = baseClass;
+    if (isPast(event.start)) cls += ` ${baseClass}--past`;
+    if (event.featured) cls += ` ${baseClass}--featured`;
+    el.className = cls;
+  }
+  function filterHidden(events) {
+    return events.filter((e) => !e.hidden);
+  }
+  function sortFeatured(events) {
+    return [...events].sort(
+      (a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0)
+    );
+  }
+  function sortFeaturedByDate(events, timezone, locale) {
+    const dateKey = (e) => {
+      const p = getDatePartsInTz(e.start, timezone, locale);
+      return `${p.year}-${p.month}-${p.day}`;
+    };
+    const groups = /* @__PURE__ */ new Map();
+    for (const e of events) {
+      const key = dateKey(e);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(e);
+    }
+    return [...groups.values()].flatMap(
+      (group) => [...group].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))
+    );
+  }
+
+  // src/layouts/helpers.js
+  function buildCardClasses(layoutName, orientation, imagePosition, index) {
+    let cls = `already-card already-card--${layoutName}`;
+    cls += ` already-card--${orientation}`;
+    if (orientation === "horizontal" && (imagePosition === "right" || imagePosition === "alternating" && index % 2 === 1)) {
+      cls += " already-card--image-right";
+    }
+    return cls;
+  }
+  function createCardImage(event) {
+    if (!event.image) return null;
+    const wrapper = createElement("div", "already-card__image");
+    const img = document.createElement("img");
+    img.src = event.image;
+    img.alt = event.title;
+    img.setAttribute("loading", "lazy");
+    img.onerror = () => {
+      wrapper.style.display = "none";
+    };
+    wrapper.appendChild(img);
+    return wrapper;
+  }
+  function buildBadge(isoString, timezone, locale) {
+    const dateParts = getDatePartsInTz(isoString, timezone, locale);
+    const badge = createElement("div", "already-card__badge");
+    const day = createElement("div", "already-card__badge-day");
+    day.textContent = dateParts.day;
+    badge.appendChild(day);
+    const month = createElement("div", "already-card__badge-month");
+    month.textContent = MONTH_NAMES_SHORT[dateParts.month] || "";
+    badge.appendChild(month);
+    return badge;
+  }
+  function renderErrorCard(event) {
+    const card = createElement("div", "already-card already-card--error");
+    const body = createElement("div", "already-card__body");
+    const title = createElement("div", "already-card__title");
+    title.textContent = event.title || "Unknown Event";
+    body.appendChild(title);
+    const msg = createElement("div", "already-card__meta");
+    msg.textContent = "Render error";
+    body.appendChild(msg);
+    card.appendChild(body);
+    return card;
+  }
+
+  // src/layouts/badge/badge.js
+  function render(event, options2) {
+    const { orientation, imagePosition, index, timezone, locale } = options2;
+    const card = createElement("div");
+    card.className = buildCardClasses("badge", orientation, imagePosition, index);
+    const imageEl = createCardImage(event);
+    if (imageEl) {
+      imageEl.classList.add("already-card__image--badged");
+      const badge = buildBadge(event.start, timezone, locale);
+      imageEl.appendChild(badge);
+      card.appendChild(imageEl);
+    }
+    const body = createElement("div", "already-card__body");
+    if (!event.image) {
+      const badge = buildBadge(event.start, timezone, locale);
+      badge.classList.add("already-card__badge--inline");
+      body.appendChild(badge);
+    }
+    const title = createElement("div", "already-card__title");
+    title.textContent = event.title;
+    body.appendChild(title);
+    const dateStr = formatDate(event.start, timezone, locale);
+    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
+    const endTimeStr = !event.allDay && event.end ? ` \u2013 ${formatTime(event.end, timezone, locale)}` : "";
+    const meta = createElement("div", "already-card__meta");
+    meta.textContent = `${dateStr}${timeStr}${endTimeStr}`;
+    body.appendChild(meta);
+    if (event.location) {
+      const loc = createElement("div", "already-card__location");
+      loc.textContent = `\u{1F4CD} ${event.location}`;
+      body.appendChild(loc);
+    }
+    if (event.tags && event.tags.length > 0) {
+      const tagsEl = createElement("div", "already-card__tags");
+      for (const tag2 of event.tags) {
+        const pill = createElement("span", "already-card__tag");
+        pill.textContent = tag2;
+        tagsEl.appendChild(pill);
+      }
+      body.appendChild(tagsEl);
+    }
+    if (event.description) {
+      const desc = createElement("div", "already-card__description");
+      desc.textContent = event.description;
+      body.appendChild(desc);
+    }
+    if (event.htmlLink) {
+      const actions = createElement("div", "already-card__footer");
+      const rsvp = createElement("a", "already-card__action", {
+        href: event.htmlLink,
+        target: "_blank",
+        rel: "noopener noreferrer"
+      });
+      rsvp.textContent = "RSVP";
+      actions.appendChild(rsvp);
+      body.appendChild(actions);
+    }
+    card.appendChild(body);
+    return card;
+  }
+
+  // src/layouts/clean/clean.js
+  function render2(event, options2) {
+    const { orientation, imagePosition, index, timezone, locale } = options2;
+    const card = createElement("div");
+    card.className = buildCardClasses("clean", orientation, imagePosition, index);
+    const imageEl = createCardImage(event);
+    if (imageEl) card.appendChild(imageEl);
+    const body = createElement("div", "already-card__body");
+    const title = createElement("div", "already-card__title");
+    title.textContent = event.title;
+    body.appendChild(title);
+    const dateStr = formatDateShort(event.start, timezone, locale);
+    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
+    const meta = createElement("div", "already-card__meta");
+    meta.textContent = `${dateStr}${timeStr}`;
+    body.appendChild(meta);
+    if (event.location) {
+      const loc = createElement("div", "already-card__location");
+      loc.textContent = event.location;
+      body.appendChild(loc);
+    }
+    card.appendChild(body);
+    return card;
+  }
+
+  // src/layouts/compact/compact.js
+  function render3(event, options2) {
+    const { timezone, locale } = options2;
+    const card = createElement("div");
+    card.className = "already-card already-card--compact";
+    const body = createElement("div", "already-card__body");
+    const row = createElement("div", "already-card__compact-row");
+    const info = createElement("div", "already-card__compact-info");
+    const title = createElement("div", "already-card__title");
+    title.textContent = event.title;
+    info.appendChild(title);
+    const dateStr = formatDateShort(event.start, timezone, locale);
+    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
+    const meta = createElement("div", "already-card__meta");
+    meta.textContent = `${dateStr}${timeStr}`;
+    info.appendChild(meta);
+    if (event.location) {
+      const loc = createElement("div", "already-card__location");
+      loc.textContent = `\u{1F4CD} ${event.location}`;
+      info.appendChild(loc);
+    }
+    row.appendChild(info);
+    const badge = buildBadge(event.start, timezone, locale);
+    badge.classList.add("already-card__badge--inline");
+    row.appendChild(badge);
+    body.appendChild(row);
+    if (event.tags && event.tags.length > 0) {
+      const tagsEl = createElement("div", "already-card__tags");
+      for (const tag2 of event.tags) {
+        const pill = createElement("span", "already-card__tag");
+        pill.textContent = tag2;
+        tagsEl.appendChild(pill);
+      }
+      body.appendChild(tagsEl);
+    }
+    card.appendChild(body);
+    return card;
+  }
+
+  // src/layouts/hero/hero.js
+  function render4(event, options2) {
+    const { orientation, imagePosition, index, timezone, locale } = options2;
+    const card = createElement("div");
+    card.className = buildCardClasses("hero", orientation, imagePosition, index);
+    const imageEl = createCardImage(event);
+    if (imageEl) card.appendChild(imageEl);
+    const body = createElement("div", "already-card__body");
+    const title = createElement("div", "already-card__title");
+    title.textContent = event.title;
+    body.appendChild(title);
+    if (event.description) {
+      const desc = createElement("div", "already-card__description");
+      desc.textContent = event.description;
+      body.appendChild(desc);
+    }
+    const footer = createElement("div", "already-card__footer");
+    if (event.location) {
+      const loc = createElement("span", "already-card__location");
+      loc.textContent = event.location;
+      footer.appendChild(loc);
+    }
+    const dateStr = formatDateShort(event.start, timezone, locale);
+    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
+    const endTimeStr = !event.allDay && event.end ? ` \u2013 ${formatTime(event.end, timezone, locale)}` : "";
+    const meta = createElement("span", "already-card__meta");
+    meta.textContent = `${dateStr}${timeStr}${endTimeStr}`;
+    footer.appendChild(meta);
+    body.appendChild(footer);
+    card.appendChild(body);
+    return card;
+  }
+
+  // src/layouts/registry.js
+  defineType("layout", (name, fn) => {
+    if (typeof fn !== "function") {
+      throw new Error(`Layout "${name}" must be a function`);
+    }
+  });
+  registerBuiltIn("layout", "clean", render2);
+  registerBuiltIn("layout", "hero", render4);
+  registerBuiltIn("layout", "badge", render);
+  registerBuiltIn("layout", "compact", render3);
+  function getLayout(name) {
+    return get("layout", name, render2);
+  }
+
+  // src/theme.js
+  var VALID_PALETTES = /* @__PURE__ */ new Set(["light", "dark", "warm", "cool"]);
+  var VALID_ORIENTATIONS = /* @__PURE__ */ new Set(["vertical", "horizontal"]);
+  var VALID_IMAGE_POSITIONS = /* @__PURE__ */ new Set(["left", "right", "alternating"]);
+  var THEME_KEYS = /* @__PURE__ */ new Set([
+    "layout",
+    "orientation",
+    "imagePosition",
+    "palette"
+  ]);
+  var THEME_DEFAULTS = {
+    layout: "clean",
+    orientation: "vertical",
+    imagePosition: "left",
+    palette: "light"
+  };
+  function resolveTheme(theme) {
+    if (typeof theme === "string") {
+      theme = { layout: theme };
+    }
+    const input = theme || {};
+    const layout = has("layout", input.layout) ? input.layout : THEME_DEFAULTS.layout;
+    const palette = VALID_PALETTES.has(input.palette) ? input.palette : THEME_DEFAULTS.palette;
+    const orientation = layout === "compact" ? "vertical" : VALID_ORIENTATIONS.has(input.orientation) ? input.orientation : THEME_DEFAULTS.orientation;
+    const imagePosition = orientation === "horizontal" && VALID_IMAGE_POSITIONS.has(input.imagePosition) ? input.imagePosition : THEME_DEFAULTS.imagePosition;
+    const overrides = {};
+    for (const [key, value] of Object.entries(input)) {
+      if (!THEME_KEYS.has(key)) {
+        overrides[key] = value;
+      }
+    }
+    return { layout, orientation, imagePosition, palette, overrides };
+  }
+  function applyTheme(el, themeInput, previousOverrideKeys) {
+    const theme = resolveTheme(themeInput);
+    el.dataset.layout = theme.layout;
+    el.dataset.orientation = theme.orientation;
+    el.dataset.imagePosition = theme.imagePosition;
+    el.dataset.palette = theme.palette;
+    for (const prop of previousOverrideKeys) {
+      el.style.removeProperty(prop);
+    }
+    const overrideKeys = [];
+    for (const [key, value] of Object.entries(theme.overrides)) {
+      const prop = `--already-${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`;
+      el.style.setProperty(prop, value);
+      overrideKeys.push(prop);
+    }
+    return { ...theme, overrideKeys };
+  }
+
+  // src/ui/header.js
+  function renderHeader(container, calendarData, config) {
+    if (!config.showHeader) {
+      container.innerHTML = "";
+      return;
+    }
+    const name = config.headerTitle ?? calendarData?.name ?? "";
+    const description = config.headerDescription ?? calendarData?.description ?? "";
+    if (!name && !description) {
+      container.innerHTML = "";
+      return;
+    }
+    const i18n = config.i18n || {};
+    const subscribeLabel = i18n.subscribe || "Subscribe";
+    let subscribeUrl = config.subscribeUrl || null;
+    if (!subscribeUrl && config.google?.calendarId) {
+      const cid = btoa(config.google.calendarId).replace(/=+$/, "");
+      subscribeUrl = `https://calendar.google.com/calendar/u/0?cid=${cid}`;
+    }
+    if (!subscribeUrl && calendarData?.calendarId) {
+      const cid = btoa(calendarData.calendarId).replace(/=+$/, "");
+      subscribeUrl = `https://calendar.google.com/calendar/u/0?cid=${cid}`;
+    }
+    const header = document.createElement("div");
+    header.className = "already-header";
+    if (config.headerIcon) {
+      const icon = document.createElement("img");
+      icon.className = "already-header-icon";
+      icon.src = config.headerIcon;
+      icon.alt = "";
+      icon.loading = "lazy";
+      header.appendChild(icon);
+    }
+    const textCol = document.createElement("div");
+    textCol.className = "already-header-text";
+    if (name) {
+      const h = document.createElement("h2");
+      h.className = "already-header-name";
+      h.textContent = name;
+      textCol.appendChild(h);
+    }
+    if (description) {
+      const p = document.createElement("p");
+      p.className = "already-header-description";
+      if (subscribeUrl && /subscribe/i.test(description)) {
+        p.innerHTML = description.replace(
+          /(subscribe)/i,
+          `<a href="${subscribeUrl}" target="_blank" rel="noopener" class="already-header-description-link">$1</a>`
+        );
+      } else {
+        p.textContent = description;
+      }
+      textCol.appendChild(p);
+    }
+    header.appendChild(textCol);
+    if (subscribeUrl) {
+      const btn = document.createElement("a");
+      btn.className = "already-header-subscribe";
+      btn.href = subscribeUrl;
+      btn.target = "_blank";
+      btn.rel = "noopener";
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 1v2M11 1v2M2 6h12M3 3h10a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8v4M6 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> ${escapeHtml(subscribeLabel)}`;
+      header.appendChild(btn);
+    }
+    container.innerHTML = "";
+    container.appendChild(header);
   }
 
   // src/ui/pagination.js
@@ -3872,67 +4208,6 @@ ${text}</tr>
     container.appendChild(bar);
   }
 
-  // src/views/helpers.js
-  function createElement(tag2, className, attrs) {
-    const el = document.createElement(tag2);
-    if (className) el.className = className;
-    if (attrs) {
-      for (const [key, value] of Object.entries(attrs)) {
-        el.setAttribute(key, value);
-      }
-    }
-    return el;
-  }
-  function bindEventClick(el, event, viewName, config, { stopPropagation = false } = {}) {
-    function handleClick(e) {
-      if (stopPropagation) e.stopPropagation();
-      if (config.onEventClick) {
-        const result = config.onEventClick(event, viewName);
-        if (result === false) return;
-      }
-      setEventDetail(event.id);
-    }
-    el.addEventListener("click", handleClick);
-    el.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        if (stopPropagation) e.stopPropagation();
-        handleClick(e);
-      }
-    });
-    el.setAttribute("tabindex", "0");
-    el.setAttribute("role", "button");
-  }
-  function applyEventClasses(el, event, baseClass) {
-    let cls = baseClass;
-    if (isPast(event.start)) cls += ` ${baseClass}--past`;
-    if (event.featured) cls += ` ${baseClass}--featured`;
-    el.className = cls;
-  }
-  function filterHidden(events) {
-    return events.filter((e) => !e.hidden);
-  }
-  function sortFeatured(events) {
-    return [...events].sort(
-      (a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0)
-    );
-  }
-  function sortFeaturedByDate(events, timezone, locale) {
-    const dateKey = (e) => {
-      const p = getDatePartsInTz(e.start, timezone, locale);
-      return `${p.year}-${p.month}-${p.day}`;
-    };
-    const groups = /* @__PURE__ */ new Map();
-    for (const e of events) {
-      const key = dateKey(e);
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(e);
-    }
-    return [...groups.values()].flatMap(
-      (group) => [...group].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))
-    );
-  }
-
   // src/views/day.js
   function renderDayView(container, events, timezone, currentDate, config) {
     config = config || {};
@@ -4287,204 +4562,6 @@ ${text}</tr>
     backBtn.focus();
   }
 
-  // src/layouts/helpers.js
-  function buildCardClasses(layoutName, orientation, imagePosition, index) {
-    let cls = `already-card already-card--${layoutName}`;
-    cls += ` already-card--${orientation}`;
-    if (orientation === "horizontal" && (imagePosition === "right" || imagePosition === "alternating" && index % 2 === 1)) {
-      cls += " already-card--image-right";
-    }
-    return cls;
-  }
-  function createCardImage(event) {
-    if (!event.image) return null;
-    const wrapper = createElement("div", "already-card__image");
-    const img = document.createElement("img");
-    img.src = event.image;
-    img.alt = event.title;
-    img.setAttribute("loading", "lazy");
-    img.onerror = () => {
-      wrapper.style.display = "none";
-    };
-    wrapper.appendChild(img);
-    return wrapper;
-  }
-  function buildBadge(isoString, timezone, locale) {
-    const dateParts = getDatePartsInTz(isoString, timezone, locale);
-    const badge = createElement("div", "already-card__badge");
-    const day = createElement("div", "already-card__badge-day");
-    day.textContent = dateParts.day;
-    badge.appendChild(day);
-    const month = createElement("div", "already-card__badge-month");
-    month.textContent = MONTH_NAMES_SHORT[dateParts.month] || "";
-    badge.appendChild(month);
-    return badge;
-  }
-
-  // src/layouts/badge/badge.js
-  function render(event, options2) {
-    const { orientation, imagePosition, index, timezone, locale } = options2;
-    const card = createElement("div");
-    card.className = buildCardClasses("badge", orientation, imagePosition, index);
-    const imageEl = createCardImage(event);
-    if (imageEl) {
-      imageEl.classList.add("already-card__image--badged");
-      const badge = buildBadge(event.start, timezone, locale);
-      imageEl.appendChild(badge);
-      card.appendChild(imageEl);
-    }
-    const body = createElement("div", "already-card__body");
-    if (!event.image) {
-      const badge = buildBadge(event.start, timezone, locale);
-      badge.classList.add("already-card__badge--inline");
-      body.appendChild(badge);
-    }
-    const title = createElement("div", "already-card__title");
-    title.textContent = event.title;
-    body.appendChild(title);
-    const dateStr = formatDate(event.start, timezone, locale);
-    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
-    const endTimeStr = !event.allDay && event.end ? ` \u2013 ${formatTime(event.end, timezone, locale)}` : "";
-    const meta = createElement("div", "already-card__meta");
-    meta.textContent = `${dateStr}${timeStr}${endTimeStr}`;
-    body.appendChild(meta);
-    if (event.location) {
-      const loc = createElement("div", "already-card__location");
-      loc.textContent = `\u{1F4CD} ${event.location}`;
-      body.appendChild(loc);
-    }
-    if (event.tags && event.tags.length > 0) {
-      const tagsEl = createElement("div", "already-card__tags");
-      for (const tag2 of event.tags) {
-        const pill = createElement("span", "already-card__tag");
-        pill.textContent = tag2;
-        tagsEl.appendChild(pill);
-      }
-      body.appendChild(tagsEl);
-    }
-    if (event.description) {
-      const desc = createElement("div", "already-card__description");
-      desc.textContent = event.description;
-      body.appendChild(desc);
-    }
-    if (event.htmlLink) {
-      const actions = createElement("div", "already-card__footer");
-      const rsvp = createElement("a", "already-card__action", {
-        href: event.htmlLink,
-        target: "_blank",
-        rel: "noopener noreferrer"
-      });
-      rsvp.textContent = "RSVP";
-      actions.appendChild(rsvp);
-      body.appendChild(actions);
-    }
-    card.appendChild(body);
-    return card;
-  }
-
-  // src/layouts/clean/clean.js
-  function render2(event, options2) {
-    const { orientation, imagePosition, index, timezone, locale } = options2;
-    const card = createElement("div");
-    card.className = buildCardClasses("clean", orientation, imagePosition, index);
-    const imageEl = createCardImage(event);
-    if (imageEl) card.appendChild(imageEl);
-    const body = createElement("div", "already-card__body");
-    const title = createElement("div", "already-card__title");
-    title.textContent = event.title;
-    body.appendChild(title);
-    const dateStr = formatDateShort(event.start, timezone, locale);
-    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
-    const meta = createElement("div", "already-card__meta");
-    meta.textContent = `${dateStr}${timeStr}`;
-    body.appendChild(meta);
-    if (event.location) {
-      const loc = createElement("div", "already-card__location");
-      loc.textContent = event.location;
-      body.appendChild(loc);
-    }
-    card.appendChild(body);
-    return card;
-  }
-
-  // src/layouts/compact/compact.js
-  function render3(event, options2) {
-    const { timezone, locale } = options2;
-    const card = createElement("div");
-    card.className = "already-card already-card--compact";
-    const body = createElement("div", "already-card__body");
-    const row = createElement("div", "already-card__compact-row");
-    const info = createElement("div", "already-card__compact-info");
-    const title = createElement("div", "already-card__title");
-    title.textContent = event.title;
-    info.appendChild(title);
-    const dateStr = formatDateShort(event.start, timezone, locale);
-    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
-    const meta = createElement("div", "already-card__meta");
-    meta.textContent = `${dateStr}${timeStr}`;
-    info.appendChild(meta);
-    if (event.location) {
-      const loc = createElement("div", "already-card__location");
-      loc.textContent = `\u{1F4CD} ${event.location}`;
-      info.appendChild(loc);
-    }
-    row.appendChild(info);
-    const badge = buildBadge(event.start, timezone, locale);
-    badge.classList.add("already-card__badge--inline");
-    row.appendChild(badge);
-    body.appendChild(row);
-    if (event.tags && event.tags.length > 0) {
-      const tagsEl = createElement("div", "already-card__tags");
-      for (const tag2 of event.tags) {
-        const pill = createElement("span", "already-card__tag");
-        pill.textContent = tag2;
-        tagsEl.appendChild(pill);
-      }
-      body.appendChild(tagsEl);
-    }
-    card.appendChild(body);
-    return card;
-  }
-
-  // src/layouts/hero/hero.js
-  function render4(event, options2) {
-    const { orientation, imagePosition, index, timezone, locale } = options2;
-    const card = createElement("div");
-    card.className = buildCardClasses("hero", orientation, imagePosition, index);
-    const imageEl = createCardImage(event);
-    if (imageEl) card.appendChild(imageEl);
-    const body = createElement("div", "already-card__body");
-    const title = createElement("div", "already-card__title");
-    title.textContent = event.title;
-    body.appendChild(title);
-    if (event.description) {
-      const desc = createElement("div", "already-card__description");
-      desc.textContent = event.description;
-      body.appendChild(desc);
-    }
-    const footer = createElement("div", "already-card__footer");
-    if (event.location) {
-      const loc = createElement("span", "already-card__location");
-      loc.textContent = event.location;
-      footer.appendChild(loc);
-    }
-    const dateStr = formatDateShort(event.start, timezone, locale);
-    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
-    const endTimeStr = !event.allDay && event.end ? ` \u2013 ${formatTime(event.end, timezone, locale)}` : "";
-    const meta = createElement("span", "already-card__meta");
-    meta.textContent = `${dateStr}${timeStr}${endTimeStr}`;
-    footer.appendChild(meta);
-    body.appendChild(footer);
-    card.appendChild(body);
-    return card;
-  }
-
-  // src/layouts/registry.js
-  var layouts = { clean: render2, hero: render4, badge: render, compact: render3 };
-  function getLayout(name) {
-    return layouts[name] || layouts.clean;
-  }
-
   // src/views/grid.js
   function renderGridView(container, events, timezone, config) {
     config = config || {};
@@ -4496,18 +4573,34 @@ ${text}</tr>
     const renderCard = getLayout(theme.layout);
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
-      const card = renderCard(event, {
-        orientation: theme.orientation,
-        imagePosition: theme.imagePosition,
-        index: i,
-        timezone,
-        locale,
-        config
-      });
-      if (isPast(event.start)) card.classList.add("already-card--past");
-      if (event.featured) card.classList.add("already-card--featured");
-      card.dataset.eventId = event.id;
-      bindEventClick(card, event, "grid", config);
+      let card;
+      try {
+        card = renderCard(event, {
+          orientation: theme.orientation,
+          imagePosition: theme.imagePosition,
+          index: i,
+          timezone,
+          locale,
+          config
+        });
+        if (!(card instanceof HTMLElement) && !(card instanceof DocumentFragment)) {
+          throw new TypeError(
+            `Layout returned ${typeof card} instead of HTMLElement`
+          );
+        }
+      } catch (err) {
+        console.warn(
+          `already-cal: Layout render error for "${event.title}":`,
+          err
+        );
+        card = renderErrorCard(event);
+      }
+      if (!card.classList.contains("already-card--error")) {
+        if (isPast(event.start)) card.classList.add("already-card--past");
+        if (event.featured) card.classList.add("already-card--featured");
+        card.dataset.eventId = event.id;
+        bindEventClick(card, event, "grid", config);
+      }
       grid.appendChild(card);
     }
     container.innerHTML = "";
@@ -4526,18 +4619,34 @@ ${text}</tr>
     const renderCard = getLayout(theme.layout);
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
-      const card = renderCard(event, {
-        orientation,
-        imagePosition: theme.imagePosition,
-        index: i,
-        timezone,
-        locale,
-        config
-      });
-      if (isPast(event.start)) card.classList.add("already-card--past");
-      if (event.featured) card.classList.add("already-card--featured");
-      card.dataset.eventId = event.id;
-      bindEventClick(card, event, "list", config);
+      let card;
+      try {
+        card = renderCard(event, {
+          orientation,
+          imagePosition: theme.imagePosition,
+          index: i,
+          timezone,
+          locale,
+          config
+        });
+        if (!(card instanceof HTMLElement) && !(card instanceof DocumentFragment)) {
+          throw new TypeError(
+            `Layout returned ${typeof card} instead of HTMLElement`
+          );
+        }
+      } catch (err) {
+        console.warn(
+          `already-cal: Layout render error for "${event.title}":`,
+          err
+        );
+        card = renderErrorCard(event);
+      }
+      if (!card.classList.contains("already-card--error")) {
+        if (isPast(event.start)) card.classList.add("already-card--past");
+        if (event.featured) card.classList.add("already-card--featured");
+        card.dataset.eventId = event.id;
+        bindEventClick(card, event, "list", config);
+      }
       list2.appendChild(card);
     }
     container.innerHTML = "";
@@ -4808,6 +4917,9 @@ ${text}</tr>
     loadMore: "Load more",
     showEarlier: "Show earlier"
   };
+  function registerLayout(name, renderFn) {
+    register("layout", name, renderFn);
+  }
   var _instance = null;
   function setConfig(config) {
     if (!_instance) {

@@ -57,6 +57,46 @@ describe("transformGoogleEvents", () => {
   });
 });
 
+describe("transformGoogleEvents — field mapping", () => {
+  it("maps htmlLink from Google Calendar API items", () => {
+    const data = transformGoogleEvents({
+      summary: "Test",
+      timeZone: "UTC",
+      items: [
+        {
+          id: "1",
+          summary: "Test",
+          description: "",
+          htmlLink: "https://www.google.com/calendar/event?eid=abc123",
+          start: { dateTime: "2099-06-15T10:00:00Z" },
+          end: { dateTime: "2099-06-15T11:00:00Z" },
+        },
+      ],
+    });
+    assert.strictEqual(
+      data.events[0].htmlLink,
+      "https://www.google.com/calendar/event?eid=abc123",
+    );
+  });
+
+  it("defaults htmlLink to empty string when not present", () => {
+    const data = transformGoogleEvents({
+      summary: "Test",
+      timeZone: "UTC",
+      items: [
+        {
+          id: "1",
+          summary: "Test",
+          description: "",
+          start: { dateTime: "2099-06-15T10:00:00Z" },
+          end: { dateTime: "2099-06-15T11:00:00Z" },
+        },
+      ],
+    });
+    assert.strictEqual(data.events[0].htmlLink, "");
+  });
+});
+
 describe("enrichEvent — token pipeline deduplication", () => {
   it("deduplicates exact duplicate platform links", () => {
     const data = transformGoogleEvents({

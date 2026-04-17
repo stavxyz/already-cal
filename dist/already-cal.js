@@ -3224,9 +3224,9 @@ ${text}</tr>
   }
 
   // src/registry.js
-  var registries = {};
-  var builtIns = {};
-  var validators = {};
+  var registries = /* @__PURE__ */ Object.create(null);
+  var builtIns = /* @__PURE__ */ Object.create(null);
+  var validators = /* @__PURE__ */ Object.create(null);
   function defineType(type, validator) {
     if (registries[type]) {
       throw new Error(`Registry type "${type}" is already defined`);
@@ -3245,6 +3245,11 @@ ${text}</tr>
     if (typeof name !== "string" || name === "") {
       throw new Error(
         `Registry "${type}": name must be a non-empty string, got: ${typeof name}`
+      );
+    }
+    if (builtIns[type].has(name)) {
+      throw new Error(
+        `Registry "${type}": built-in "${name}" is already registered`
       );
     }
     validators[type](name, impl);
@@ -3484,6 +3489,13 @@ ${text}</tr>
     if (event.featured) cls += ` ${baseClass}--featured`;
     el.className = cls;
   }
+  function decorateCard(card, event, viewName, config) {
+    if (card.classList.contains("already-card--error")) return;
+    if (isPast(event.start)) card.classList.add("already-card--past");
+    if (event.featured) card.classList.add("already-card--featured");
+    card.dataset.eventId = event.id;
+    bindEventClick(card, event, viewName, config);
+  }
   function filterHidden(events) {
     return events.filter((e) => !e.hidden);
   }
@@ -3548,10 +3560,27 @@ ${text}</tr>
     title.textContent = event.title || "Unknown Event";
     body.appendChild(title);
     const msg = createElement("div", "already-card__meta");
-    msg.textContent = "Render error";
+    msg.textContent = "Could not display this event";
     body.appendChild(msg);
     card.appendChild(body);
     return card;
+  }
+  function safeRenderCard(renderFn, event, options2) {
+    try {
+      const card = renderFn(event, options2);
+      if (!(card instanceof HTMLElement)) {
+        throw new TypeError(
+          `Layout returned ${typeof card} instead of HTMLElement`
+        );
+      }
+      return card;
+    } catch (err) {
+      console.error(
+        `already-cal: Layout render error for "${event.title}":`,
+        err
+      );
+      return renderErrorCard(event);
+    }
   }
 
   // src/layouts/badge/badge.js
@@ -3747,7 +3776,14 @@ ${text}</tr>
       theme = { layout: theme };
     }
     const input = theme || {};
-    const layout = has("layout", input.layout) ? input.layout : THEME_DEFAULTS.layout;
+    const layout = has("layout", input.layout) ? input.layout : (() => {
+      if (input.layout != null && input.layout !== THEME_DEFAULTS.layout) {
+        console.warn(
+          `already-cal: Unknown layout "${input.layout}", falling back to "${THEME_DEFAULTS.layout}"`
+        );
+      }
+      return THEME_DEFAULTS.layout;
+    })();
     const palette = VALID_PALETTES.has(input.palette) ? input.palette : THEME_DEFAULTS.palette;
     const orientation = layout === "compact" ? "vertical" : VALID_ORIENTATIONS.has(input.orientation) ? input.orientation : THEME_DEFAULTS.orientation;
     const imagePosition = orientation === "horizontal" && VALID_IMAGE_POSITIONS.has(input.imagePosition) ? input.imagePosition : THEME_DEFAULTS.imagePosition;
@@ -4573,34 +4609,15 @@ ${text}</tr>
     const renderCard = getLayout(theme.layout);
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
-      let card;
-      try {
-        card = renderCard(event, {
-          orientation: theme.orientation,
-          imagePosition: theme.imagePosition,
-          index: i,
-          timezone,
-          locale,
-          config
-        });
-        if (!(card instanceof HTMLElement) && !(card instanceof DocumentFragment)) {
-          throw new TypeError(
-            `Layout returned ${typeof card} instead of HTMLElement`
-          );
-        }
-      } catch (err) {
-        console.warn(
-          `already-cal: Layout render error for "${event.title}":`,
-          err
-        );
-        card = renderErrorCard(event);
-      }
-      if (!card.classList.contains("already-card--error")) {
-        if (isPast(event.start)) card.classList.add("already-card--past");
-        if (event.featured) card.classList.add("already-card--featured");
-        card.dataset.eventId = event.id;
-        bindEventClick(card, event, "grid", config);
-      }
+      const card = safeRenderCard(renderCard, event, {
+        orientation: theme.orientation,
+        imagePosition: theme.imagePosition,
+        index: i,
+        timezone,
+        locale,
+        config
+      });
+      decorateCard(card, event, "grid", config);
       grid.appendChild(card);
     }
     container.innerHTML = "";
@@ -4619,34 +4636,15 @@ ${text}</tr>
     const renderCard = getLayout(theme.layout);
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
-      let card;
-      try {
-        card = renderCard(event, {
-          orientation,
-          imagePosition: theme.imagePosition,
-          index: i,
-          timezone,
-          locale,
-          config
-        });
-        if (!(card instanceof HTMLElement) && !(card instanceof DocumentFragment)) {
-          throw new TypeError(
-            `Layout returned ${typeof card} instead of HTMLElement`
-          );
-        }
-      } catch (err) {
-        console.warn(
-          `already-cal: Layout render error for "${event.title}":`,
-          err
-        );
-        card = renderErrorCard(event);
-      }
-      if (!card.classList.contains("already-card--error")) {
-        if (isPast(event.start)) card.classList.add("already-card--past");
-        if (event.featured) card.classList.add("already-card--featured");
-        card.dataset.eventId = event.id;
-        bindEventClick(card, event, "list", config);
-      }
+      const card = safeRenderCard(renderCard, event, {
+        orientation,
+        imagePosition: theme.imagePosition,
+        index: i,
+        timezone,
+        locale,
+        config
+      });
+      decorateCard(card, event, "list", config);
       list2.appendChild(card);
     }
     container.innerHTML = "";

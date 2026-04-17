@@ -1,4 +1,5 @@
 import { has } from "./registry.js";
+// Registers built-in layout types; must precede any has("layout", ...) call
 import "./layouts/registry.js";
 
 const VALID_PALETTES = new Set(["light", "dark", "warm", "cool"]);

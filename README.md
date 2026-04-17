@@ -310,7 +310,22 @@ This is equivalent to:
 
 The JS approach is useful for runtime changes via `setConfig()`. The CSS approach works for static overrides.
 
-Layouts are a fixed set of 4 built-in options (`clean`, `hero`, `badge`, `compact`). Custom layout renderers are not currently supported — see [#32](https://github.com/stavxyz/already-cal/issues/32) for future plans.
+### Custom Layouts
+
+Register your own card layouts via `Already.registerLayout()`:
+
+```js
+Already.registerLayout('timeline', (event, options) => {
+  const card = document.createElement('div');
+  card.className = 'already-card already-card--timeline';
+  card.textContent = event.title;
+  return card;
+});
+
+Already.init({ el: '#cal', theme: { layout: 'timeline' } });
+```
+
+The render function receives an event and an options object (`orientation`, `imagePosition`, `index`, `timezone`, `locale`, `config`) and must return an `HTMLElement` or `DocumentFragment`. If a custom layout throws or returns something invalid, an error card is rendered in its place. Built-in layout names cannot be overridden. See the [full custom layout reference](docs/configuration.md#custom-layouts) for details.
 
 ## Link Extraction
 

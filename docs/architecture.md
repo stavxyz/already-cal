@@ -105,7 +105,7 @@ Grid and list views use `getLayout(theme.layout)` from `src/layouts/registry.js`
 `resolveTheme(themeInput)` accepts either a string (layout shorthand) or an object:
 
 - **Fixed keys** (validated against allowed values):
-  - `layout` — `"clean"` | `"hero"` | `"badge"` | `"compact"` (default: `"clean"`)
+  - `layout` — any registered layout name; built-in: `"clean"`, `"hero"`, `"badge"`, `"compact"` (default: `"clean"`)
   - `palette` — `"light"` | `"dark"` | `"warm"` | `"cool"` (default: `"light"`)
   - `orientation` — `"vertical"` | `"horizontal"` (default: `"vertical"`, forced to `"vertical"` for compact layout)
   - `imagePosition` — `"left"` | `"right"` | `"alternating"` (default: `"left"`, only used when orientation is `"horizontal"`)
@@ -124,14 +124,28 @@ Grid and list views use `getLayout(theme.layout)` from `src/layouts/registry.js`
 
 Palette CSS files (`src/palettes/*.css`) define styles via `.already[data-palette="name"]` attribute selectors. The `.already` class scopes palette styles to the mount element. Setting `data-palette` activates the corresponding palette — no JavaScript re-render needed.
 
-## Layout Registry
+## Registry System
 
-`src/layouts/registry.js` exports `getLayout(name)`:
+`src/registry.js` provides a generic, type-agnostic registry used for layouts (and future extensible types like theme bundles). The API:
 
-- Maps layout names to render functions from `src/layouts/{name}/{name}.js`
-- Returns `layouts.clean` as fallback for unknown names
+- `defineType(type, validator)` — creates a new registry type with a validation function
+- `registerBuiltIn(type, name, impl)` — registers a built-in entry (protected from override)
+- `register(type, name, impl)` — registers a custom entry (throws if name collides with a built-in)
+- `get(type, name, fallback)` — retrieves an entry, or returns `fallback`
+- `has(type, name)` — checks if a name is registered
+
+### Layout Registry
+
+`src/layouts/registry.js` initializes the `"layout"` registry type and registers the four built-in layouts. It exports `getLayout(name)` which returns `clean` as fallback for unknown names.
+
+- Built-in layouts: `clean`, `hero`, `badge`, `compact` — each in `src/layouts/{name}/{name}.js`
 - Each layout module exports a render function: `(event, options) => HTMLElement` where `options` includes `orientation`, `imagePosition`, `index`, `timezone`, `locale`, and `config`
-- The set is fixed: `clean`, `hero`, `badge`, `compact`. See [#32](https://github.com/stavxyz/already-cal/issues/32) for future custom layout support.
+- Custom layouts are registered via `Already.registerLayout(name, renderFn)` which delegates to `register("layout", name, renderFn)`
+- Built-in names are protected — attempting to register a custom layout with a built-in name throws an error
+
+### Error Handling
+
+Grid and list views wrap every layout render call in a try/catch. If a layout function throws or returns a non-`HTMLElement`/`DocumentFragment` value, an error card is rendered in place of the event. Error cards display the event title and a "Render error" label, and do not receive click handlers or modifier classes (`--past`, `--featured`).
 
 ## Extraction Pipeline
 
@@ -207,10 +221,11 @@ The `destroyed` flag also guards the async gap in `start()` — if `destroy()` i
 
 Key import relationships (simplified):
 
-- **`already-cal.js`** imports: `data.js`, `router.js`, `theme.js`, all `views/*`, all `ui/*`
+- **`already-cal.js`** imports: `registry.js`, `data.js`, `router.js`, `theme.js`, all `views/*`, all `ui/*`
 - **`data.js`** imports: `util/directives.js`, `util/images.js`, `util/links.js`, `util/attachments.js`, `util/description.js`, `util/tokens.js`
-- **`theme.js`** — no imports (self-contained)
-- **`views/grid.js`** and **`views/list.js`** import: `layouts/registry.js`
+- **`theme.js`** imports: `registry.js`, `layouts/registry.js` (side-effect import for type initialization)
+- **`layouts/registry.js`** imports: `registry.js`, all `layouts/{name}/{name}.js`
+- **`views/grid.js`** and **`views/list.js`** import: `layouts/registry.js`, `layouts/helpers.js`
 - **`views/detail.js`** imports: `views/lightbox.js`
 - **`util/directives.js`** imports: `util/images.js` (for `normalizeImageUrl`, `imageCanonicalId`), `util/sanitize.js` (for `cleanupHtml`, `stripUrl`)
 - **`ui/*` modules** are leaf nodes — they don't import from each other

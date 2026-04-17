@@ -273,6 +273,61 @@ Return `true` to keep, `false` to exclude. Runs after `eventTransform`.
 eventFilter: (event) => !event.title.includes('[INTERNAL]'),
 ```
 
+## Custom Layouts
+
+Register custom card layouts via `Already.registerLayout(name, renderFn)`. The render function receives an event object and an options object, and must return an `HTMLElement` or `DocumentFragment`.
+
+```js
+Already.registerLayout('timeline', (event, options) => {
+  const card = document.createElement('div');
+  card.className = 'already-card already-card--timeline';
+
+  const title = document.createElement('div');
+  title.className = 'already-card__title';
+  title.textContent = event.title;
+  card.appendChild(title);
+
+  const meta = document.createElement('div');
+  meta.className = 'already-card__meta';
+  meta.textContent = new Date(event.start).toLocaleDateString(options.locale);
+  card.appendChild(meta);
+
+  return card;
+});
+
+Already.init({
+  el: '#cal',
+  theme: { layout: 'timeline' },
+  // ...
+});
+```
+
+### Render function signature
+
+```
+(event, options) => HTMLElement | DocumentFragment
+```
+
+**`event`** — the enriched [event object](event-schema.md)
+
+**`options`** object:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `orientation` | `string` | `"vertical"` or `"horizontal"` |
+| `imagePosition` | `string` | `"left"`, `"right"`, or `"alternating"` |
+| `index` | `number` | Zero-based index of this event in the current view |
+| `timezone` | `string` | Calendar timezone (e.g. `"America/Chicago"`) |
+| `locale` | `string` | Locale string (e.g. `"en-US"`) |
+| `config` | `object` | Full config object |
+
+### Rules
+
+- **Name** must be a non-empty string. Built-in names (`clean`, `hero`, `badge`, `compact`) cannot be overridden — an error is thrown.
+- **Return type** must be `HTMLElement` or `DocumentFragment`. If the function throws or returns something else, an error card is rendered in place of the event.
+- **Registration timing** — call `registerLayout()` before or after `init()`. Layouts registered after `init()` take effect on the next view render (e.g. after `setConfig()` or view switch).
+- **Re-registration** — registering the same custom name again replaces the previous function.
+
 ## Custom Renderers
 
 Override the default loading, empty, and error states. Return an HTML string, `HTMLElement`, or `DocumentFragment`.

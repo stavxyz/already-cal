@@ -3773,9 +3773,12 @@ ${text}</tr>
     imagePosition: VALID_IMAGE_POSITIONS,
     palette: VALID_PALETTES
   };
+  function isPlainObject(value) {
+    return value != null && typeof value === "object" && !Array.isArray(value);
+  }
   var themeNames = [];
   function validateBundle(name, bundle) {
-    if (!bundle || typeof bundle !== "object" || Array.isArray(bundle)) {
+    if (!isPlainObject(bundle)) {
       throw new Error(`Theme "${name}": bundle must be a plain object`);
     }
     for (const key of Object.keys(bundle)) {
@@ -3797,7 +3800,7 @@ ${text}</tr>
     }
     for (const section of ["defaults", "constraints"]) {
       if (bundle[section] !== void 0) {
-        if (!bundle[section] || typeof bundle[section] !== "object" || Array.isArray(bundle[section])) {
+        if (!isPlainObject(bundle[section])) {
           throw new Error(`Theme "${name}": ${section} must be a plain object`);
         }
         for (const [key, value] of Object.entries(bundle[section])) {
@@ -3813,23 +3816,22 @@ ${text}</tr>
       }
     }
     if (bundle.overrides !== void 0) {
-      if (!bundle.overrides || typeof bundle.overrides !== "object" || Array.isArray(bundle.overrides)) {
+      if (!isPlainObject(bundle.overrides)) {
         throw new Error(`Theme "${name}": overrides must be a plain object`);
       }
     }
   }
   defineType("theme", validateBundle);
-  registerBuiltIn("theme", "clean", { layout: "clean" });
-  themeNames.push("clean");
-  registerBuiltIn("theme", "hero", { layout: "hero" });
-  themeNames.push("hero");
-  registerBuiltIn("theme", "badge", { layout: "badge" });
-  themeNames.push("badge");
-  registerBuiltIn("theme", "compact", {
-    layout: "compact",
-    constraints: { orientation: "vertical" }
-  });
-  themeNames.push("compact");
+  var BUILT_IN_THEMES = [
+    ["clean", { layout: "clean" }],
+    ["hero", { layout: "hero" }],
+    ["badge", { layout: "badge" }],
+    ["compact", { layout: "compact", constraints: { orientation: "vertical" } }]
+  ];
+  for (const [name, bundle] of BUILT_IN_THEMES) {
+    registerBuiltIn("theme", name, bundle);
+    themeNames.push(name);
+  }
   function getTheme(name) {
     return get("theme", name);
   }
@@ -3866,8 +3868,13 @@ ${text}</tr>
       }
       return constraint;
     }
-    if (userValue !== void 0 && validSet.has(userValue)) {
-      return userValue;
+    if (userValue !== void 0) {
+      if (validSet.has(userValue)) {
+        return userValue;
+      }
+      console.warn(
+        `already-cal: Invalid ${dimension} "${userValue}", falling back to default`
+      );
     }
     if (bundleDefault !== void 0) {
       return bundleDefault;
@@ -3922,7 +3929,7 @@ ${text}</tr>
         userOverrides[key] = value;
       }
     }
-    const overrides = { ...bundle?.overrides || {}, ...userOverrides };
+    const overrides = { ...bundle?.overrides ?? {}, ...userOverrides };
     return { layout, orientation, imagePosition, palette, overrides };
   }
   function applyTheme(el, themeInput, previousOverrideKeys) {
@@ -5049,29 +5056,31 @@ ${text}</tr>
     register("layout", name, renderFn);
   }
   function registerTheme(name, bundle) {
-    const processed = { ...bundle };
-    if (typeof bundle.layout === "function") {
-      register("layout", name, bundle.layout);
-      processed.layout = name;
+    if (!bundle || typeof bundle !== "object" || Array.isArray(bundle)) {
+      throw new Error(`registerTheme("${name}"): bundle must be a plain object`);
     }
-    register("theme", name, processed);
+    const hasLayoutFn = typeof bundle.layout === "function";
+    register("theme", name, bundle);
+    if (hasLayoutFn) {
+      register("layout", name, bundle.layout);
+      register("theme", name, { ...bundle, layout: name });
+    }
     addThemeName(name);
     THEMES = buildThemesSnapshot();
   }
+  var SNAPSHOT_OPTIONAL_KEYS = ["defaults", "constraints", "overrides"];
   function buildThemesSnapshot() {
     const result = {};
     for (const name of getThemeNames()) {
       const bundle = getTheme(name);
-      if (bundle) {
-        const copy = { layout: bundle.layout };
-        if (bundle.defaults)
-          copy.defaults = Object.freeze({ ...bundle.defaults });
-        if (bundle.constraints)
-          copy.constraints = Object.freeze({ ...bundle.constraints });
-        if (bundle.overrides)
-          copy.overrides = Object.freeze({ ...bundle.overrides });
-        result[name] = Object.freeze(copy);
+      if (!bundle) continue;
+      const copy = { layout: bundle.layout };
+      for (const key of SNAPSHOT_OPTIONAL_KEYS) {
+        if (bundle[key]) {
+          copy[key] = Object.freeze({ ...bundle[key] });
+        }
       }
+      result[name] = Object.freeze(copy);
     }
     return Object.freeze(result);
   }
@@ -5111,7 +5120,7 @@ ${text}</tr>
       const errorDiv = document.createElement("div");
       errorDiv.className = "already-error";
       const p = document.createElement("p");
-      p.textContent = err.message;
+      p.textContent = err.message?.startsWith("already-cal:") ? err.message : "Could not initialize calendar. Check the browser console for details.";
       errorDiv.appendChild(p);
       el.appendChild(errorDiv);
       throw err;
@@ -5433,7 +5442,7 @@ ${text}</tr>
           themeResult = newThemeResult;
           config._theme = newThemeResult;
         } catch (err) {
-          console.error(err.message);
+          console.error("already-cal: theme update failed:", err);
         }
       }
       if (newConfig.views !== void 0) {

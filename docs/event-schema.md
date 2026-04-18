@@ -68,7 +68,7 @@ Tokens are deduplicated — a directive and a URL pointing to the same resource 
 
 ## Description Rendering
 
-After extraction, the cleaned description is rendered based on auto-detected format:
+Event descriptions use **AFL (Already Format Language)**. After extraction, the cleaned description is rendered based on auto-detected format:
 
 | Format | Detection | Rendering |
 |--------|-----------|-----------|
@@ -76,9 +76,11 @@ After extraction, the cleaned description is rendered based on auto-detected for
 | Markdown | Contains `# headings`, `**bold**`, `[links](url)`, `- lists` | Parsed with [marked](https://github.com/markedjs/marked), then sanitized |
 | Plain text | Default | Escaped, newlines converted to `<br>` |
 
-Sanitization rules are configurable — see the [sanitization section](configuration.md#sanitization) in the configuration reference.
+Comment lines (`// `) are stripped before any extraction runs. Sanitization rules are configurable — see the [sanitization section](configuration.md#sanitization) in the configuration reference.
 
 The format is stored as `event.descriptionFormat` and can be pre-set in your data to skip auto-detection.
+
+For the full AFL specification including comments, directives, and URL extraction, see the **[AFL Reference](afl.md)**.
 
 ## Pre-loaded Data Format
 

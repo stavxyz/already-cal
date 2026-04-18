@@ -464,13 +464,15 @@ Priority order: `initialEvent` > URL hash/path > localStorage > `defaultView`.
 
 ## Description Rendering
 
-Event descriptions are auto-detected as HTML, markdown, or plain text:
+Event descriptions are written in **AFL (Already Format Language)** — a superset of plain text, HTML, and markdown that adds comments, directives, and automatic URL extraction. See the **[AFL reference](docs/afl.md)** for the full format specification.
+
+The base format is auto-detected:
 
 - **HTML** (contains `<tag>`) — sanitized to allowed tags and attributes
 - **Markdown** (contains `# headings`, `**bold**`, `[links](url)`, `- lists`) — parsed with [marked](https://github.com/markedjs/marked), then sanitized
 - **Plain text** (default) — escaped, newlines converted to `<br>`
 
-Extracted URLs (images, platform links, file attachments, directives) are removed from the rendered description. Sanitization rules are configurable via `sanitization` config.
+Comment lines (`// `) are stripped before rendering. Extracted URLs (images, platform links, file attachments, directives) are removed from the rendered description. Sanitization rules are configurable via `sanitization` config.
 
 ## Past Events
 
@@ -568,6 +570,7 @@ open dev.html           # local preview with mock data
 | [Configuration Reference](docs/configuration.md) | Every config option with types, defaults, and descriptions |
 | [Event Schema](docs/event-schema.md) | Event object fields and data pipeline |
 | [Directives Reference](docs/directives.md) | `#already:` directive syntax for all platforms, images, and tags |
+| [AFL Reference](docs/afl.md) | Already Format Language: comments, directives, URL extraction, format detection |
 | [Architecture](docs/architecture.md) | Technical deep-dive: data pipeline, rendering flow, theme system, lifecycle |
 | [Development Guide](docs/development.md) | Project structure, build system, testing, linting, CI |
 | [Contributing](CONTRIBUTING.md) | How to contribute: workflow, code style, commit conventions |

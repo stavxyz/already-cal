@@ -50,6 +50,7 @@ src/
 │   ├── sticky.js           # Sticky header positioning
 │   └── states.js           # Loading, empty, and error state renderers
 ├── util/
+│   ├── comments.js         # AFL comment stripping (// line syntax)
 │   ├── tokens.js           # TokenSet — deduplication container with canonical IDs
 │   ├── directives.js       # #already: directive extraction
 │   ├── images.js           # Image URL extraction (Drive, Dropbox normalization)

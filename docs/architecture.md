@@ -19,6 +19,7 @@ Format detection
   ▼
 enrichEvent() — per event
   Processes the description in this order:
+  0. Comments — // lines stripped (AFL comment syntax)
   1. Directives — #already: tokens extracted and removed
   2. Images — image URLs, Drive links, Dropbox links extracted and removed
   3. Links — platform URLs extracted and removed
@@ -48,7 +49,7 @@ Per render (on view switch, filter change, pagination, etc.):
 View renderer
 ```
 
-Data loading is in `src/data.js`. Enrichment helpers are in `src/util/` (directives.js, images.js, links.js, attachments.js). The `TokenSet` deduplication container is in `src/util/tokens.js`.
+Data loading is in `src/data.js`. Enrichment helpers are in `src/util/` (comments.js, directives.js, images.js, links.js, attachments.js). The `TokenSet` deduplication container is in `src/util/tokens.js`.
 
 ## Rendering Flow
 

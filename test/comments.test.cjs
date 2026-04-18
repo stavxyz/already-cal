@@ -101,4 +101,21 @@ describe("stripComments", () => {
   it("normalizes CRLF even without comments present", () => {
     assert.strictEqual(stripComments("line 1\r\nline 2"), "line 1\nline 2");
   });
+
+  it("strips a line whose content is additional // markers", () => {
+    assert.strictEqual(stripComments("// // still a comment"), "");
+  });
+
+  it("preserves protocol-relative URLs at line start", () => {
+    assert.strictEqual(stripComments("//example.com/path"), "//example.com/path");
+  });
+
+  it("is a pass-through when no comments or &amp; are present", () => {
+    const input = "line one\nline two\nline three";
+    assert.strictEqual(stripComments(input), input);
+  });
+
+  it("strips a trailing comment that follows a blank line", () => {
+    assert.strictEqual(stripComments("content\n\n// trailing"), "content");
+  });
 });

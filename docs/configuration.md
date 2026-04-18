@@ -313,7 +313,7 @@ Already.init({ el: "#cal", theme: "timeline" });
 |-----|------|-------------|
 | `layout` | function or string | Render function (auto-registered as a layout under the theme name), or name of an existing registered layout. Optional — if omitted, uses the user's layout choice or the default `"clean"`. |
 | `defaults` | object | Default values for `orientation`, `imagePosition`, and/or `palette`. Applied when the user does not provide that dimension. |
-| `constraints` | object | Enforced values for `orientation`, `imagePosition`, and/or `palette`. The user cannot override these — a conflict throws (from `init()`) or logs via `console.error` (from `setConfig()`). |
+| `constraints` | object | Enforced values for `orientation`, `imagePosition`, and/or `palette`. The user cannot override these — a conflict throws an error. `init()` re-throws after rendering an error state; `setConfig()` catches and logs via `console.error`. |
 | `overrides` | object | CSS custom property values. Keys are camelCase and become `--already-{kebab-case}` inline styles on the mount element. |
 
 Valid dimension values:

@@ -1,5 +1,6 @@
 const { describe, it, before } = require("node:test");
 const assert = require("node:assert");
+const { createTestEvent } = require("./helpers.cjs");
 
 let transformGoogleEvents;
 let enrichEvent;
@@ -269,24 +270,11 @@ describe("enrichEvent — token pipeline deduplication", () => {
 
 describe("enrichEvent — AFL comments", () => {
   it("strips comment lines before processing directives", () => {
-    const event = {
+    const event = createTestEvent({
       id: "comment-test",
-      title: "Test",
       description:
         "// #already:tag:disabled\n#already:tag:active\nVisible text",
-      location: "",
-      start: "2099-06-15T10:00:00-05:00",
-      end: "2099-06-15T11:00:00-05:00",
-      allDay: false,
-      image: null,
-      images: [],
-      links: [],
-      attachments: [],
-      tags: [],
-      featured: false,
-      hidden: false,
-      htmlLink: "",
-    };
+    });
     const result = enrichEvent(event, {});
     // The commented-out tag directive should NOT be processed
     assert.strictEqual(result.tags.length, 1);
@@ -297,27 +285,43 @@ describe("enrichEvent — AFL comments", () => {
   });
 
   it("strips comment lines before image extraction", () => {
-    const event = {
+    const event = createTestEvent({
       id: "comment-img",
-      title: "Test",
       description:
         "// https://example.com/photo.png\nhttps://example.com/real.png",
-      location: "",
-      start: "2099-06-15T10:00:00-05:00",
-      end: "2099-06-15T11:00:00-05:00",
-      allDay: false,
-      image: null,
-      images: [],
-      links: [],
-      attachments: [],
-      tags: [],
-      featured: false,
-      hidden: false,
-      htmlLink: "",
-    };
+    });
     const result = enrichEvent(event, {});
     // Only the non-commented image should be extracted
     assert.strictEqual(result.images.length, 1);
     assert.strictEqual(result.images[0], "https://example.com/real.png");
+  });
+
+  it("does not set featured when the directive is commented out", () => {
+    const event = createTestEvent({
+      id: "comment-featured",
+      description: "// #already:featured\nRegular event",
+    });
+    const result = enrichEvent(event, {});
+    assert.strictEqual(result.featured, false);
+  });
+
+  it("does not set hidden when the directive is commented out", () => {
+    const event = createTestEvent({
+      id: "comment-hidden",
+      description: "// #already:hidden\nStill visible",
+    });
+    const result = enrichEvent(event, {});
+    assert.strictEqual(result.hidden, false);
+  });
+
+  it("strips comment lines before link extraction", () => {
+    const event = createTestEvent({
+      id: "comment-link",
+      description:
+        "// https://instagram.com/disabled\nhttps://instagram.com/active",
+    });
+    const result = enrichEvent(event, {});
+    assert.strictEqual(result.links.length, 1);
+    assert.ok(result.links[0].url.includes("instagram.com/active"));
   });
 });

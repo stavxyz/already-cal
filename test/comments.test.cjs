@@ -107,7 +107,10 @@ describe("stripComments", () => {
   });
 
   it("preserves protocol-relative URLs at line start", () => {
-    assert.strictEqual(stripComments("//example.com/path"), "//example.com/path");
+    assert.strictEqual(
+      stripComments("//example.com/path"),
+      "//example.com/path",
+    );
   });
 
   it("is a pass-through when no comments or &amp; are present", () => {

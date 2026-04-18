@@ -54,7 +54,10 @@ describe("stripComments", () => {
   });
 
   it("decodes &amp; before matching", () => {
-    assert.strictEqual(stripComments("&amp;// not a comment"), "&// not a comment");
+    assert.strictEqual(
+      stripComments("&amp;// not a comment"),
+      "&// not a comment",
+    );
   });
 
   it("strips comment after &amp; decoding when line-leading", () => {
@@ -83,7 +86,10 @@ describe("stripComments", () => {
   it("collapses multiple blank lines left by comment removal", () => {
     const input = "above\n\n// comment\n\nbelow";
     const result = stripComments(input);
-    assert.ok(!result.includes("\n\n\n"), "should not have 3+ consecutive newlines");
+    assert.ok(
+      !result.includes("\n\n\n"),
+      "should not have 3+ consecutive newlines",
+    );
     assert.strictEqual(result, "above\n\nbelow");
   });
 });

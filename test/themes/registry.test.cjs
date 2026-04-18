@@ -207,3 +207,78 @@ describe("theme registry — custom theme re-registration", () => {
     assert.strictEqual(getTheme("replaceable").layout, "hero");
   });
 });
+
+describe("registerTheme — public API", () => {
+  let registerTheme;
+  before(async () => {
+    const mod = await import("../../src/already-cal.js");
+    registerTheme = mod.registerTheme;
+  });
+
+  it("registers a theme bundle with layout string", () => {
+    registerTheme("pub-api-str", {
+      layout: "hero",
+      defaults: { palette: "dark" },
+    });
+    assert.strictEqual(has("theme", "pub-api-str"), true);
+    assert.strictEqual(getTheme("pub-api-str").layout, "hero");
+  });
+
+  it("auto-registers layout function under theme name", () => {
+    const renderFn = () => document.createElement("div");
+    registerTheme("pub-api-fn", { layout: renderFn });
+    // Layout registry should have the function registered under the theme name
+    assert.strictEqual(has("layout", "pub-api-fn"), true);
+    // Bundle should store the layout name as a string
+    assert.strictEqual(getTheme("pub-api-fn").layout, "pub-api-fn");
+  });
+
+  it("throws when overriding a built-in theme name", () => {
+    assert.throws(
+      () => registerTheme("compact", { layout: "compact" }),
+      /built-in/i,
+    );
+  });
+
+  it("allows re-registering a custom theme name", () => {
+    registerTheme("pub-api-replace", { layout: "clean" });
+    registerTheme("pub-api-replace", { layout: "badge" });
+    assert.strictEqual(getTheme("pub-api-replace").layout, "badge");
+  });
+});
+
+describe("THEMES — frozen snapshot", () => {
+  let THEMES_ref;
+  before(async () => {
+    const mod = await import("../../src/already-cal.js");
+    THEMES_ref = () => mod.THEMES;
+  });
+
+  it("includes all four built-in themes", () => {
+    const themes = THEMES_ref();
+    assert.ok(themes.clean);
+    assert.ok(themes.hero);
+    assert.ok(themes.badge);
+    assert.ok(themes.compact);
+  });
+
+  it("includes custom themes registered via registerTheme", () => {
+    const themes = THEMES_ref();
+    assert.ok(
+      themes["pub-api-str"],
+      "should include custom theme registered earlier",
+    );
+  });
+
+  it("compact bundle shows constraint", () => {
+    const themes = THEMES_ref();
+    assert.deepStrictEqual(themes.compact.constraints, {
+      orientation: "vertical",
+    });
+  });
+
+  it("snapshot is frozen", () => {
+    const themes = THEMES_ref();
+    assert.ok(Object.isFrozen(themes));
+  });
+});

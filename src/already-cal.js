@@ -2,6 +2,7 @@ import { loadData } from "./data.js";
 import { register } from "./registry.js";
 import { getInitialView, onHashChange, parseHash, setView } from "./router.js";
 import { applyTheme } from "./theme.js";
+import { addThemeName, getTheme, getThemeNames } from "./themes/registry.js";
 import { renderHeader } from "./ui/header.js";
 import { paginateEvents, renderPaginationButtons } from "./ui/pagination.js";
 import { renderPastToggle } from "./ui/past-toggle.js";
@@ -92,6 +93,46 @@ export { DEFAULTS };
 export function registerLayout(name, renderFn) {
   register("layout", name, renderFn);
 }
+
+/**
+ * Register a custom theme bundle. Packages a layout, palette/orientation
+ * defaults, constraints, and CSS custom property overrides into a reusable unit.
+ *
+ * If `bundle.layout` is a render function, it is auto-registered in the
+ * layout registry under the theme name. Built-in names cannot be overridden.
+ */
+export function registerTheme(name, bundle) {
+  const processed = { ...bundle };
+  if (typeof bundle.layout === "function") {
+    register("layout", name, bundle.layout);
+    processed.layout = name;
+  }
+  register("theme", name, processed);
+  addThemeName(name);
+  THEMES = buildThemesSnapshot();
+}
+
+function buildThemesSnapshot() {
+  const result = {};
+  for (const name of getThemeNames()) {
+    const bundle = getTheme(name);
+    if (bundle) {
+      const copy = { layout: bundle.layout };
+      if (bundle.defaults) copy.defaults = { ...bundle.defaults };
+      if (bundle.constraints) copy.constraints = { ...bundle.constraints };
+      if (bundle.overrides) copy.overrides = { ...bundle.overrides };
+      result[name] = Object.freeze(copy);
+    }
+  }
+  return Object.freeze(result);
+}
+
+/**
+ * Frozen snapshot of all registered theme bundles (built-in and custom).
+ * Updated when registerTheme() is called. In the IIFE bundle, esbuild's
+ * getter ensures each access to Already.THEMES returns the latest snapshot.
+ */
+export let THEMES = buildThemesSnapshot();
 
 /** The most recently created instance. In multi-instance setups, only the last init()'d instance is stored here. */
 export let _instance = null;

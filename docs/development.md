@@ -17,7 +17,7 @@ npm install
 
 ```
 src/
-├── already-cal.js          # Main entry point — init(), setConfig(), destroy(), DEFAULTS
+├── already-cal.js          # Main entry point — init(), setConfig(), registerLayout(), registerTheme(), DEFAULTS, THEMES
 ├── data.js                 # Data loading, format detection, event enrichment
 ├── registry.js             # Generic, type-agnostic registry (layouts, theme bundles)
 ├── router.js               # Hash-based routing, localStorage view persistence

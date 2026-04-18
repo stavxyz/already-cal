@@ -266,3 +266,58 @@ describe("enrichEvent — token pipeline deduplication", () => {
     assert.ok(tags.some((t) => t.value === "free&open"));
   });
 });
+
+describe("enrichEvent — AFL comments", () => {
+  it("strips comment lines before processing directives", () => {
+    const event = {
+      id: "comment-test",
+      title: "Test",
+      description:
+        "// #already:tag:disabled\n#already:tag:active\nVisible text",
+      location: "",
+      start: "2099-06-15T10:00:00-05:00",
+      end: "2099-06-15T11:00:00-05:00",
+      allDay: false,
+      image: null,
+      images: [],
+      links: [],
+      attachments: [],
+      tags: [],
+      featured: false,
+      hidden: false,
+      htmlLink: "",
+    };
+    const result = enrichEvent(event, {});
+    // The commented-out tag directive should NOT be processed
+    assert.strictEqual(result.tags.length, 1);
+    assert.strictEqual(result.tags[0].value, "active");
+    // The comment line should not appear in the description
+    assert.ok(!result.description.includes("// #already"));
+    assert.ok(result.description.includes("Visible text"));
+  });
+
+  it("strips comment lines before image extraction", () => {
+    const event = {
+      id: "comment-img",
+      title: "Test",
+      description:
+        "// https://example.com/photo.png\nhttps://example.com/real.png",
+      location: "",
+      start: "2099-06-15T10:00:00-05:00",
+      end: "2099-06-15T11:00:00-05:00",
+      allDay: false,
+      image: null,
+      images: [],
+      links: [],
+      attachments: [],
+      tags: [],
+      featured: false,
+      hidden: false,
+      htmlLink: "",
+    };
+    const result = enrichEvent(event, {});
+    // Only the non-commented image should be extracted
+    assert.strictEqual(result.images.length, 1);
+    assert.strictEqual(result.images[0], "https://example.com/real.png");
+  });
+});

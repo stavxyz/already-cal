@@ -3,6 +3,7 @@ import {
   extractAttachmentTokens,
   labelForType,
 } from "./util/attachments.js";
+import { stripComments } from "./util/comments.js";
 import { detectFormat } from "./util/description.js";
 import { extractDirectives } from "./util/directives.js";
 import { extractImageTokens, normalizeImageUrl } from "./util/images.js";
@@ -68,6 +69,9 @@ export function enrichEvent(event, config) {
   let hidden = event.hidden || false;
 
   const tokenSet = new TokenSet();
+
+  // Step 0: Strip AFL comments (// lines)
+  description = stripComments(description);
 
   // Step 1: Extract directives (#already: syntax)
   if (description) {

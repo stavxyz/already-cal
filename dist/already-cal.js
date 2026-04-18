@@ -29,6 +29,11 @@ var Already = (() => {
     setConfig: () => setConfig
   });
 
+  // src/util/html-entities.js
+  function decodeAmp(text) {
+    return text.replace(/&amp;/g, "&");
+  }
+
   // src/util/sanitize.js
   var ESC_MAP = {
     "&": "&amp;",
@@ -184,7 +189,7 @@ var Already = (() => {
   }
   function extractImageTokens(description, config) {
     if (!description) return { tokens: [], description };
-    description = description.replace(/&amp;/g, "&");
+    description = decodeAmp(description);
     const extensions = config?.imageExtensions || DEFAULT_IMAGE_EXTENSIONS;
     const pattern = buildImagePattern(extensions);
     const seen = /* @__PURE__ */ new Set();
@@ -311,7 +316,7 @@ var Already = (() => {
   }
   function extractAttachmentTokens(description, _config) {
     if (!description) return { tokens: [], description };
-    description = description.replace(/&amp;/g, "&");
+    description = decodeAmp(description);
     const tokens = [];
     let cleaned = description;
     const seen = /* @__PURE__ */ new Set();
@@ -366,7 +371,8 @@ var Already = (() => {
   var COMMENT_RE = /^[ \t]*\/\/ .*$\n?/gm;
   function stripComments(description) {
     if (!description) return "";
-    let text = description.replace(/&amp;/g, "&");
+    let text = decodeAmp(description);
+    text = text.replace(/\r\n/g, "\n");
     text = text.replace(COMMENT_RE, "");
     text = text.replace(/\n{3,}/g, "\n\n").replace(/^\n+/, "").replace(/\n+$/, "");
     return text;
@@ -2765,7 +2771,7 @@ ${text}</tr>
   function extractDirectives(description) {
     if (!description)
       return { tokens: [], description, featured: false, hidden: false };
-    description = description.replace(/&amp;/g, "&");
+    description = decodeAmp(description);
     const tokens = [];
     const seen = /* @__PURE__ */ new Set();
     let cleaned = description;
@@ -3016,7 +3022,7 @@ ${text}</tr>
   ];
   function extractLinkTokens(description, config) {
     if (!description) return { tokens: [], description };
-    description = description.replace(/&amp;/g, "&");
+    description = decodeAmp(description);
     const platforms = config?.knownPlatforms || DEFAULT_PLATFORMS;
     const tokens = [];
     let cleaned = description;

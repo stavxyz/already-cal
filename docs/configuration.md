@@ -332,7 +332,7 @@ The same bundle lookup applies when `theme` is an object — if `theme.layout` n
 Each dimension (`orientation`, `imagePosition`, `palette`) is resolved in this order:
 
 ```
-constraint (enforced, throws/logs if user contradicts)
+constraint (enforced, throws if user contradicts)
   > user-provided value
     > bundle default
       > THEME_DEFAULTS (vertical, left, light)

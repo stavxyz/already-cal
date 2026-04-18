@@ -48,6 +48,7 @@ Use descriptive commit messages with conventional prefixes:
 | `docs:` | Documentation changes |
 | `test:` | Test additions or fixes |
 | `build:` | Build system or dependency changes |
+| `style:` | Formatting and code style changes (no logic changes) |
 | `refactor:` | Code changes that don't add features or fix bugs |
 
 Keep commits atomic — each commit should represent one logical change.

@@ -11,6 +11,8 @@ const COMMENT_RE = /^[ \t]*\/\/ .*$\n?/gm;
 export function stripComments(description) {
   if (!description) return "";
   let text = decodeAmp(description);
+  // Normalize CRLF → LF so the regex matches regardless of line-ending style.
+  text = text.replace(/\r\n/g, "\n");
   // Remove comment lines (the `\n?` consumes the trailing newline so no
   // orphan blank line is left where the comment stood).
   text = text.replace(COMMENT_RE, "");

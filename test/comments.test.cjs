@@ -92,4 +92,13 @@ describe("stripComments", () => {
     );
     assert.strictEqual(result, "above\n\nbelow");
   });
+
+  it("strips comments in CRLF-terminated input", () => {
+    const input = "above\r\n// comment\r\nbelow";
+    assert.strictEqual(stripComments(input), "above\nbelow");
+  });
+
+  it("normalizes CRLF even without comments present", () => {
+    assert.strictEqual(stripComments("line 1\r\nline 2"), "line 1\nline 2");
+  });
 });

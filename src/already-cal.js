@@ -185,7 +185,13 @@ export function init(userConfig) {
     themeResult = applyTheme(el, config.theme, []);
   } catch (err) {
     el.classList.add("already");
-    el.innerHTML = `<div class="already-error"><p>${err.message}</p></div>`;
+    el.innerHTML = "";
+    const errorDiv = document.createElement("div");
+    errorDiv.className = "already-error";
+    const p = document.createElement("p");
+    p.textContent = err.message;
+    errorDiv.appendChild(p);
+    el.appendChild(errorDiv);
     throw err;
   }
   config._theme = themeResult;
@@ -571,7 +577,7 @@ export function init(userConfig) {
         themeResult = newThemeResult;
         config._theme = newThemeResult;
       } catch (err) {
-        console.error("already-cal:", err.message);
+        console.error(err.message);
       }
     }
 

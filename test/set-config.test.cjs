@@ -109,18 +109,21 @@ describe("setConfig — theme updates", () => {
     const origError = console.error;
     console.error = (...args) => errors.push(args.join(" "));
 
-    const { instance } = createInitedInstance();
-    await new Promise((r) => setTimeout(r, 10));
-    // Should NOT throw — error is caught and logged
-    instance.setConfig({
-      theme: { layout: "compact", orientation: "horizontal" },
-    });
+    try {
+      const { instance } = createInitedInstance();
+      await new Promise((r) => setTimeout(r, 10));
+      // Should NOT throw — error is caught and logged
+      instance.setConfig({
+        theme: { layout: "compact", orientation: "horizontal" },
+      });
 
-    console.error = origError;
-    assert.ok(
-      errors.some((msg) => msg.includes("constrains orientation")),
-      "should log constraint violation error",
-    );
+      assert.ok(
+        errors.some((msg) => msg.includes("constrains orientation")),
+        "should log constraint violation error",
+      );
+    } finally {
+      console.error = origError;
+    }
   });
 
   it("falls back to default for invalid layout values", async () => {
@@ -734,16 +737,19 @@ describe("setConfig — constraint violation handling", () => {
     const origError = console.error;
     console.error = (...args) => errors.push(args.join(" "));
 
-    const { instance } = createInitedInstance({ theme: "hero" });
-    instance.setConfig({
-      theme: { layout: "compact", orientation: "horizontal" },
-    });
+    try {
+      const { instance } = createInitedInstance({ theme: "hero" });
+      instance.setConfig({
+        theme: { layout: "compact", orientation: "horizontal" },
+      });
 
-    console.error = origError;
-    assert.ok(
-      errors.some((msg) => msg.includes("constrains orientation")),
-      "should log constraint violation error",
-    );
+      assert.ok(
+        errors.some((msg) => msg.includes("constrains orientation")),
+        "should log constraint violation error",
+      );
+    } finally {
+      console.error = origError;
+    }
   });
 
   it("accepts valid theme after a constraint violation", () => {

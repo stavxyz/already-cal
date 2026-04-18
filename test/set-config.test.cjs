@@ -1,7 +1,7 @@
 require("./setup-dom.cjs");
 const { describe, it, before, afterEach } = require("node:test");
 const assert = require("node:assert");
-const { createTestEvent } = require("./helpers.cjs");
+const { createTestEvent, captureConsoleError } = require("./helpers.cjs");
 
 let init;
 const instances = [];
@@ -105,25 +105,17 @@ describe("setConfig — theme updates", () => {
   });
 
   it("compact layout constrains orientation to vertical (logs error, does not throw)", async () => {
-    const errors = [];
-    const origError = console.error;
-    console.error = (...args) => errors.push(args.join(" "));
-
-    try {
-      const { instance } = createInitedInstance();
-      await new Promise((r) => setTimeout(r, 10));
-      // Should NOT throw — error is caught and logged
+    const { instance } = createInitedInstance();
+    await new Promise((r) => setTimeout(r, 10));
+    const errors = captureConsoleError(() => {
       instance.setConfig({
         theme: { layout: "compact", orientation: "horizontal" },
       });
-
-      assert.ok(
-        errors.some((msg) => msg.includes("constrains orientation")),
-        "should log constraint violation error",
-      );
-    } finally {
-      console.error = origError;
-    }
+    });
+    assert.ok(
+      errors.some((msg) => msg.includes("constrains orientation")),
+      "should log constraint violation error",
+    );
   });
 
   it("falls back to default for invalid layout values", async () => {
@@ -733,23 +725,16 @@ describe("setConfig — constraint violation handling", () => {
   });
 
   it("logs error on constraint violation", () => {
-    const errors = [];
-    const origError = console.error;
-    console.error = (...args) => errors.push(args.join(" "));
-
-    try {
-      const { instance } = createInitedInstance({ theme: "hero" });
+    const { instance } = createInitedInstance({ theme: "hero" });
+    const errors = captureConsoleError(() => {
       instance.setConfig({
         theme: { layout: "compact", orientation: "horizontal" },
       });
-
-      assert.ok(
-        errors.some((msg) => msg.includes("constrains orientation")),
-        "should log constraint violation error",
-      );
-    } finally {
-      console.error = origError;
-    }
+    });
+    assert.ok(
+      errors.some((msg) => msg.includes("constrains orientation")),
+      "should log constraint violation error",
+    );
   });
 
   it("accepts valid theme after a constraint violation", () => {
@@ -787,9 +772,16 @@ describe("init — constraint violation handling", () => {
     }
     assert.ok(threw, "init should throw on constraint violation");
     assert.ok(
-      container.querySelector(".already-error") ||
-        container.innerHTML.includes("constrains"),
-      "container should show error state",
+      container.classList.contains("already"),
+      "should add 'already' class even on error",
+    );
+    const errorDiv = container.querySelector(".already-error");
+    assert.ok(errorDiv, "should render .already-error div");
+    const errorP = errorDiv.querySelector("p");
+    assert.ok(errorP, "should have error paragraph");
+    assert.ok(
+      errorP.textContent.includes("constrains orientation"),
+      "should show constraint message",
     );
     container.remove();
   });

@@ -266,4 +266,49 @@ describe("resolveTheme — bundle resolution", () => {
     assert.strictEqual(result.palette, "warm");
     assert.strictEqual(result.imagePosition, "right");
   });
+
+  it("ignores invalid user dimension and falls back to bundle default", () => {
+    register("theme", "bundle-fallback-invalid", {
+      layout: "hero",
+      defaults: { orientation: "horizontal" },
+    });
+    const result = resolveTheme({
+      layout: "bundle-fallback-invalid",
+      orientation: "diagonal",
+    });
+    assert.strictEqual(result.orientation, "horizontal");
+  });
+
+  it("ignores invalid user dimension and falls back to THEME_DEFAULTS when no bundle default", () => {
+    const result = resolveTheme({ palette: "neon" });
+    assert.strictEqual(result.palette, "light");
+  });
+
+  it("uses theme name as layout when bundle omits layout property", () => {
+    register("theme", "no-layout-bundle", { defaults: { palette: "dark" } });
+    const result = resolveTheme("no-layout-bundle");
+    assert.strictEqual(result.layout, "no-layout-bundle");
+    assert.strictEqual(result.palette, "dark");
+  });
+});
+
+describe("applyTheme — camelCase to kebab-case CSS conversion", () => {
+  function makeEl() {
+    return document.createElement("div");
+  }
+
+  it("converts camelCase override keys to kebab-case CSS properties", () => {
+    const el = makeEl();
+    applyTheme(el, { fontSizeSm: "0.7rem" }, []);
+    assert.strictEqual(
+      el.style.getPropertyValue("--already-font-size-sm"),
+      "0.7rem",
+    );
+  });
+
+  it("converts multi-capital camelCase correctly", () => {
+    const el = makeEl();
+    applyTheme(el, { bgColor: "red" }, []);
+    assert.strictEqual(el.style.getPropertyValue("--already-bg-color"), "red");
+  });
 });

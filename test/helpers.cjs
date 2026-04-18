@@ -19,4 +19,22 @@ function createTestEvent(overrides = {}) {
   };
 }
 
-module.exports = { createTestEvent };
+/**
+ * Capture console.error calls during fn execution. Restores console.error
+ * in a finally block to prevent test pollution on assertion failures.
+ * @param {Function} fn - Function to execute while capturing
+ * @returns {string[]} Array of captured error message strings
+ */
+function captureConsoleError(fn) {
+  const errors = [];
+  const origError = console.error;
+  console.error = (...args) => errors.push(args.join(" "));
+  try {
+    fn();
+  } finally {
+    console.error = origError;
+  }
+  return errors;
+}
+
+module.exports = { createTestEvent, captureConsoleError };

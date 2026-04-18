@@ -114,6 +114,27 @@ describe("theme registry — validator rejects invalid bundles", () => {
       /overrides must be a plain object/,
     );
   });
+
+  it("throws when defaults is an array", () => {
+    assert.throws(
+      () => register("theme", "bad-def-arr", { defaults: ["vertical"] }),
+      /defaults must be a plain object/,
+    );
+  });
+
+  it("throws when constraints is an array", () => {
+    assert.throws(
+      () => register("theme", "bad-con-arr", { constraints: ["vertical"] }),
+      /constraints must be a plain object/,
+    );
+  });
+
+  it("throws when overrides is an array", () => {
+    assert.throws(
+      () => register("theme", "bad-ovr-arr", { overrides: [] }),
+      /overrides must be a plain object/,
+    );
+  });
 });
 
 describe("theme registry — validator accepts valid bundles", () => {
@@ -150,21 +171,11 @@ describe("theme registry — validator accepts valid bundles", () => {
 });
 
 describe("theme registry — built-in bundles", () => {
-  it("registers clean as a built-in", () => {
-    assert.strictEqual(has("theme", "clean"), true);
-  });
-
-  it("registers hero as a built-in", () => {
-    assert.strictEqual(has("theme", "hero"), true);
-  });
-
-  it("registers badge as a built-in", () => {
-    assert.strictEqual(has("theme", "badge"), true);
-  });
-
-  it("registers compact as a built-in", () => {
-    assert.strictEqual(has("theme", "compact"), true);
-  });
+  for (const name of ["clean", "hero", "badge", "compact"]) {
+    it(`registers ${name} as a built-in`, () => {
+      assert.strictEqual(has("theme", name), true);
+    });
+  }
 
   it("compact bundle has orientation constraint", () => {
     const bundle = getTheme("compact");
@@ -245,6 +256,32 @@ describe("registerTheme — public API", () => {
     registerTheme("pub-api-replace", { layout: "badge" });
     assert.strictEqual(getTheme("pub-api-replace").layout, "badge");
   });
+
+  it("throws with clear message on null bundle", () => {
+    assert.throws(
+      () => registerTheme("null-bundle", null),
+      /bundle must be a plain object/,
+    );
+  });
+
+  it("throws with clear message on undefined bundle", () => {
+    assert.throws(
+      () => registerTheme("undef-bundle", undefined),
+      /bundle must be a plain object/,
+    );
+  });
+
+  it("does not register layout when theme validation fails", () => {
+    assert.throws(
+      () => registerTheme("orphan-test", { layout: () => {}, bogus: true }),
+      /unknown key/,
+    );
+    assert.strictEqual(
+      has("layout", "orphan-test"),
+      false,
+      "layout should not be registered when theme validation fails",
+    );
+  });
 });
 
 describe("THEMES — frozen snapshot", () => {
@@ -280,5 +317,30 @@ describe("THEMES — frozen snapshot", () => {
   it("snapshot is frozen", () => {
     const themes = THEMES_ref();
     assert.ok(Object.isFrozen(themes));
+  });
+
+  it("sub-objects are frozen", () => {
+    const themes = THEMES_ref();
+    assert.ok(Object.isFrozen(themes.compact.constraints));
+  });
+
+  it("updates after registerTheme is called", async () => {
+    const mod = await import("../../src/already-cal.js");
+    const before = mod.THEMES;
+    assert.strictEqual(before["snapshot-update-test"], undefined);
+    mod.registerTheme("snapshot-update-test", { layout: "clean" });
+    const after = mod.THEMES;
+    assert.ok(after["snapshot-update-test"]);
+    assert.notStrictEqual(before, after, "should be a new frozen object");
+  });
+
+  it("does not duplicate names after re-registration", async () => {
+    const themes = await import("../../src/themes/registry.js");
+    const mod = await import("../../src/already-cal.js");
+    mod.registerTheme("dedup-test", { layout: "clean" });
+    mod.registerTheme("dedup-test", { layout: "hero" });
+    const names = themes.getThemeNames();
+    const count = names.filter((n) => n === "dedup-test").length;
+    assert.strictEqual(count, 1, "should not have duplicate entries");
   });
 });

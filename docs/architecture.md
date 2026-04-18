@@ -98,19 +98,43 @@ Grid and list views use `getLayout(theme.layout)` from `src/layouts/registry.js`
 
 ## Theme System
 
-`src/theme.js` manages all visual configuration.
+`src/theme.js` manages all visual configuration. Theme bundles are registered in `src/themes/registry.js`.
+
+### Theme Bundles
+
+A theme bundle packages a layout, dimension defaults, constraints, and CSS custom property overrides into a named unit. The four built-in themes (`clean`, `hero`, `badge`, `compact`) are registered as bundles during module initialization. Custom bundles are registered via `Already.registerTheme(name, bundle)`.
+
+Built-in bundles:
+
+| Theme | Layout | Constraints |
+|-------|--------|------------|
+| `clean` | `"clean"` | none |
+| `hero` | `"hero"` | none |
+| `badge` | `"badge"` | none |
+| `compact` | `"compact"` | `{ orientation: "vertical" }` |
 
 ### Theme Resolution
 
-`resolveTheme(themeInput)` accepts either a string (layout shorthand) or an object:
+`resolveTheme(themeInput)` accepts either a string (layout shorthand) or an object. It first checks the theme bundle registry — if the layout names a registered bundle, the bundle's defaults, constraints, and overrides are applied.
 
 - **Fixed keys** (validated against allowed values):
   - `layout` — any registered layout name; built-in: `"clean"`, `"hero"`, `"badge"`, `"compact"` (default: `"clean"`)
   - `palette` — `"light"` | `"dark"` | `"warm"` | `"cool"` (default: `"light"`)
-  - `orientation` — `"vertical"` | `"horizontal"` (default: `"vertical"`, forced to `"vertical"` for compact layout)
+  - `orientation` — `"vertical"` | `"horizontal"` (default: `"vertical"`)
   - `imagePosition` — `"left"` | `"right"` | `"alternating"` (default: `"left"`, only used when orientation is `"horizontal"`)
 
 - **Open-ended keys** — anything else is collected as CSS custom property overrides (e.g. `primary: '#ff0000'` → `--already-primary: #ff0000`)
+
+**Priority chain per dimension** (orientation, imagePosition, palette):
+
+```
+constraint (enforced, throws/warns if user contradicts)
+  > user-provided value
+    > bundle default
+      > THEME_DEFAULTS
+```
+
+Invalid user values trigger a `console.warn` and fall through to the next level. Constraint violations throw an `Error` — see Error Handling below.
 
 ### Theme Application
 
@@ -124,9 +148,20 @@ Grid and list views use `getLayout(theme.layout)` from `src/layouts/registry.js`
 
 Palette CSS files (`src/palettes/*.css`) define styles via `.already[data-palette="name"]` attribute selectors. The `.already` class scopes palette styles to the mount element. Setting `data-palette` activates the corresponding palette — no JavaScript re-render needed.
 
+### Theme Error Handling
+
+Constraint violations (e.g., passing `orientation: "horizontal"` to a theme that constrains `orientation: "vertical"`) are handled differently by call site:
+
+- **`init()`** — renders a minimal error message in the container (`.already-error` div) and re-throws. Known constraint errors display the error message; unexpected errors show a generic fallback message.
+- **`setConfig()`** — logs the full error via `console.error` (preserving the stack trace) and leaves the current theme unchanged.
+
+### THEMES Snapshot
+
+`Already.THEMES` is a deeply frozen snapshot of all registered theme bundles (built-in and custom). It is rebuilt each time `registerTheme()` is called. In the IIFE bundle, esbuild's getter ensures each access returns the latest snapshot.
+
 ## Registry System
 
-`src/registry.js` provides a generic, type-agnostic registry used for layouts (and future extensible types like theme bundles). Containers use `Object.create(null)` to avoid prototype pollution. The API:
+`src/registry.js` provides a generic, type-agnostic registry used for layouts and theme bundles. Containers use `Object.create(null)` to avoid prototype pollution. The API:
 
 - `defineType(type, validator)` — creates a new registry type with a validation function
 - `registerBuiltIn(type, name, impl)` — registers a built-in entry (protected from override and duplication)
@@ -142,6 +177,15 @@ Palette CSS files (`src/palettes/*.css`) define styles via `.already[data-palett
 - Each layout module exports a render function: `(event, options) => HTMLElement` where `options` includes `orientation`, `imagePosition`, `index`, `timezone`, `locale`, and `config`
 - Custom layouts are registered via `Already.registerLayout(name, renderFn)` which delegates to `register("layout", name, renderFn)`
 - Built-in names are protected — attempting to register a custom layout with a built-in name throws an error
+
+### Theme Registry
+
+`src/themes/registry.js` initializes the `"theme"` registry type and registers the four built-in theme bundles. It exports `getTheme(name)`, `getThemeNames()`, `addThemeName(name)`, and validation sets (`VALID_PALETTES`, `VALID_ORIENTATIONS`, `VALID_IMAGE_POSITIONS`).
+
+- The validator (`validateBundle`) checks bundle type, allowed keys, layout type/reference, dimension key/value validity, and overrides type
+- Custom themes are registered via `Already.registerTheme(name, bundle)` which validates, optionally auto-registers a layout function, and updates the `THEMES` snapshot
+- Built-in names are protected — attempting to override a built-in theme throws an error
+- Custom themes can be re-registered (replacing the previous bundle)
 
 ### Error Handling
 
@@ -223,7 +267,8 @@ Key import relationships (simplified):
 
 - **`already-cal.js`** imports: `registry.js`, `data.js`, `router.js`, `theme.js`, all `views/*`, all `ui/*`
 - **`data.js`** imports: `util/directives.js`, `util/images.js`, `util/links.js`, `util/attachments.js`, `util/description.js`, `util/tokens.js`
-- **`theme.js`** imports: `registry.js`, `layouts/registry.js` (side-effect import for type initialization)
+- **`theme.js`** imports: `registry.js`, `themes/registry.js` (which transitively initializes the layout registry)
+- **`themes/registry.js`** imports: `registry.js`, `layouts/registry.js` (side-effect import for layout type initialization)
 - **`layouts/registry.js`** imports: `registry.js`, all `layouts/{name}/{name}.js`
 - **`layouts/helpers.js`** imports: `views/helpers.js` (createElement), `util/dates.js`; exports `safeRenderCard`, `renderErrorCard`
 - **`views/helpers.js`** imports: `router.js`, `util/dates.js`; exports `decorateCard`, `bindEventClick`, `createElement`, etc.

@@ -313,7 +313,7 @@ Already.init({ el: "#cal", theme: "timeline" });
 |-----|------|-------------|
 | `layout` | function or string | Render function (auto-registered as a layout under the theme name), or name of an existing registered layout. Optional — if omitted, uses the user's layout choice or the default `"clean"`. |
 | `defaults` | object | Default values for `orientation`, `imagePosition`, and/or `palette`. Applied when the user does not provide that dimension. |
-| `constraints` | object | Enforced values for `orientation`, `imagePosition`, and/or `palette`. The user cannot override these — a conflict throws (from `init()`) or logs via `console.error` (from `setConfig()`). |
+| `constraints` | object | Enforced values for `orientation`, `imagePosition`, and/or `palette`. The user cannot override these — a conflict throws (from `init()`) or logs via `console.error` (from `setConfig()`). Note: `imagePosition` constraints only take effect when `orientation` is `"horizontal"`. In vertical orientation, `imagePosition` always resolves to `"left"`. |
 | `overrides` | object | CSS custom property values. Keys are camelCase and become `--already-{kebab-case}` inline styles on the mount element. |
 
 Valid dimension values:
@@ -338,6 +338,8 @@ constraint (enforced, throws/logs if user contradicts)
       > THEME_DEFAULTS (vertical, left, light)
 ```
 
+Exception: `imagePosition` only takes effect when `orientation` is `"horizontal"`. In vertical orientation, `imagePosition` always resolves to `"left"` regardless of the priority chain.
+
 ### CSS overrides
 
 User CSS overrides win over bundle overrides — they are merged, with user values taking precedence:
@@ -351,7 +353,7 @@ User CSS overrides win over bundle overrides — they are merged, with user valu
 ### Error handling
 
 - **`init()`** — renders a minimal error message in the container element (not the configurable `renderError` state) and also throws. Use a try/catch if you want to handle it programmatically.
-- **`setConfig()`** — logs the error via `console.error` and leaves the current theme unchanged.
+- **`setConfig()`** — logs the full error (with stack trace) via `console.error` and leaves the current theme unchanged.
 
 ### `Already.THEMES`
 

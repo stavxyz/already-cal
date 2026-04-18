@@ -118,9 +118,12 @@ function buildThemesSnapshot() {
     const bundle = getTheme(name);
     if (bundle) {
       const copy = { layout: bundle.layout };
-      if (bundle.defaults) copy.defaults = { ...bundle.defaults };
-      if (bundle.constraints) copy.constraints = { ...bundle.constraints };
-      if (bundle.overrides) copy.overrides = { ...bundle.overrides };
+      if (bundle.defaults)
+        copy.defaults = Object.freeze({ ...bundle.defaults });
+      if (bundle.constraints)
+        copy.constraints = Object.freeze({ ...bundle.constraints });
+      if (bundle.overrides)
+        copy.overrides = Object.freeze({ ...bundle.overrides });
       result[name] = Object.freeze(copy);
     }
   }

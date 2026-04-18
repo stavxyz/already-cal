@@ -313,7 +313,7 @@ Already.init({ el: "#cal", theme: "timeline" });
 |-----|------|-------------|
 | `layout` | function or string | Render function (auto-registered as a layout under the theme name), or name of an existing registered layout. Optional — if omitted, uses the user's layout choice or the default `"clean"`. |
 | `defaults` | object | Default values for `orientation`, `imagePosition`, and/or `palette`. Applied when the user does not provide that dimension. |
-| `constraints` | object | Enforced values for `orientation`, `imagePosition`, and/or `palette`. The user cannot override these — a conflict throws (from `init()`) or logs via `console.error` (from `setConfig()`). Note: `imagePosition` constraints only take effect when `orientation` is `"horizontal"`. In vertical orientation, `imagePosition` always resolves to `"left"`. |
+| `constraints` | object | Enforced values for `orientation`, `imagePosition`, and/or `palette`. The user cannot override these — a conflict throws (from `init()`) or logs via `console.error` (from `setConfig()`). |
 | `overrides` | object | CSS custom property values. Keys are camelCase and become `--already-{kebab-case}` inline styles on the mount element. |
 
 Valid dimension values:
@@ -338,7 +338,7 @@ constraint (enforced, throws/logs if user contradicts)
       > THEME_DEFAULTS (vertical, left, light)
 ```
 
-Exception: `imagePosition` only takes effect when `orientation` is `"horizontal"`. In vertical orientation, `imagePosition` always resolves to `"left"` regardless of the priority chain.
+Note: `imagePosition`'s resolved value is forced to `"left"` in vertical orientation regardless of constraints or defaults. However, constraint violations are still enforced — passing a value that conflicts with an `imagePosition` constraint will still throw, even in vertical orientation.
 
 ### CSS overrides
 

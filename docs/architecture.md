@@ -128,7 +128,7 @@ Built-in bundles:
 **Priority chain per dimension** (orientation, imagePosition, palette):
 
 ```
-constraint (enforced, throws/warns if user contradicts)
+constraint (enforced, throws if user contradicts)
   > user-provided value
     > bundle default
       > THEME_DEFAULTS

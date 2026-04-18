@@ -19,8 +19,11 @@ npm install
 src/
 ├── already-cal.js          # Main entry point — init(), setConfig(), destroy(), DEFAULTS
 ├── data.js                 # Data loading, format detection, event enrichment
+├── registry.js             # Generic, type-agnostic registry (layouts, theme bundles)
 ├── router.js               # Hash-based routing, localStorage view persistence
 ├── theme.js                # Theme resolution, CSS custom property application
+├── themes/
+│   └── registry.js         # Theme bundle type, validator, built-in bundles
 ├── layouts/
 │   ├── registry.js         # Layout registry — getLayout(name) with clean fallback
 │   ├── helpers.js          # Shared layout rendering utilities
@@ -62,7 +65,7 @@ src/
 
 test/
 ├── setup-dom.cjs           # JSDOM initialization — exposes document, window, etc.
-├── helpers.cjs             # createTestEvent() factory
+├── helpers.cjs             # createTestEvent() factory, captureConsoleError() helper
 ├── set-config.test.cjs     # setConfig() and destroy() lifecycle tests
 ├── postmessage.test.cjs    # postMessage listener tests
 └── ...                     # Mirrors src/ structure (directives, links, images, etc.)
@@ -86,7 +89,7 @@ npm run build    # one-shot build
 npm run dev      # watch mode (rebuilds JS + CSS on change; minified versions not watched)
 ```
 
-The IIFE format exposes `Already` as a global — `Already.init()`, `Already.setConfig()`, `Already.DEFAULTS`.
+The IIFE format exposes `Already` as a global — `Already.init()`, `Already.setConfig()`, `Already.DEFAULTS`, `Already.registerLayout()`, `Already.registerTheme()`, `Already.THEMES`.
 
 ## Testing
 

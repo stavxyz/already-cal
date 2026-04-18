@@ -180,7 +180,14 @@ export function init(userConfig) {
     return;
   }
 
-  let themeResult = applyTheme(el, config.theme, []);
+  let themeResult;
+  try {
+    themeResult = applyTheme(el, config.theme, []);
+  } catch (err) {
+    el.classList.add("already");
+    el.innerHTML = `<div class="already-error"><p>${err.message}</p></div>`;
+    throw err;
+  }
   config._theme = themeResult;
 
   el.classList.add("already");
@@ -547,16 +554,25 @@ export function init(userConfig) {
     // Theme update — palette and CSS override changes are CSS-only (instant).
     // Layout/orientation/imagePosition changes require re-rendering the card structure.
     if (newConfig.theme !== undefined) {
-      const prev = config._theme;
-      themeResult = applyTheme(el, newConfig.theme, themeResult.overrideKeys);
-      if (
-        themeResult.layout !== prev.layout ||
-        themeResult.orientation !== prev.orientation ||
-        themeResult.imagePosition !== prev.imagePosition
-      ) {
-        needsRerender = true;
+      try {
+        const prev = config._theme;
+        const newThemeResult = applyTheme(
+          el,
+          newConfig.theme,
+          themeResult.overrideKeys,
+        );
+        if (
+          newThemeResult.layout !== prev.layout ||
+          newThemeResult.orientation !== prev.orientation ||
+          newThemeResult.imagePosition !== prev.imagePosition
+        ) {
+          needsRerender = true;
+        }
+        themeResult = newThemeResult;
+        config._theme = newThemeResult;
+      } catch (err) {
+        console.error("already-cal:", err.message);
       }
-      config._theme = themeResult;
     }
 
     if (newConfig.views !== undefined) {

@@ -104,15 +104,22 @@ describe("setConfig — theme updates", () => {
     assert.strictEqual(container.dataset.layout, "hero");
   });
 
-  it("compact layout constrains orientation to vertical (throws on conflict)", async () => {
+  it("compact layout constrains orientation to vertical (logs error, does not throw)", async () => {
+    const errors = [];
+    const origError = console.error;
+    console.error = (...args) => errors.push(args.join(" "));
+
     const { instance } = createInitedInstance();
     await new Promise((r) => setTimeout(r, 10));
-    assert.throws(
-      () =>
-        instance.setConfig({
-          theme: { layout: "compact", orientation: "horizontal" },
-        }),
-      /constrains orientation to "vertical", but "horizontal" was passed/,
+    // Should NOT throw — error is caught and logged
+    instance.setConfig({
+      theme: { layout: "compact", orientation: "horizontal" },
+    });
+
+    console.error = origError;
+    assert.ok(
+      errors.some((msg) => msg.includes("constrains orientation")),
+      "should log constraint violation error",
     );
   });
 
@@ -703,5 +710,81 @@ describe("destroy()", () => {
     instance.setConfig({ theme: { palette: "dark" } });
     assert.strictEqual(container.innerHTML, "");
     assert.strictEqual(container.dataset.palette, undefined);
+  });
+});
+
+describe("setConfig — constraint violation handling", () => {
+  it("preserves current theme when constraint is violated", () => {
+    const { instance, container } = createInitedInstance({
+      theme: "hero",
+    });
+    assert.strictEqual(container.dataset.layout, "hero");
+
+    // compact constrains orientation to vertical — passing horizontal should fail
+    instance.setConfig({
+      theme: { layout: "compact", orientation: "horizontal" },
+    });
+
+    // Theme should be unchanged — still hero
+    assert.strictEqual(container.dataset.layout, "hero");
+  });
+
+  it("logs error on constraint violation", () => {
+    const errors = [];
+    const origError = console.error;
+    console.error = (...args) => errors.push(args.join(" "));
+
+    const { instance } = createInitedInstance({ theme: "hero" });
+    instance.setConfig({
+      theme: { layout: "compact", orientation: "horizontal" },
+    });
+
+    console.error = origError;
+    assert.ok(
+      errors.some((msg) => msg.includes("constrains orientation")),
+      "should log constraint violation error",
+    );
+  });
+
+  it("accepts valid theme after a constraint violation", () => {
+    const { instance, container } = createInitedInstance({
+      theme: "hero",
+    });
+    // First: invalid — should fail silently
+    instance.setConfig({
+      theme: { layout: "compact", orientation: "horizontal" },
+    });
+    assert.strictEqual(container.dataset.layout, "hero");
+
+    // Second: valid — should succeed
+    instance.setConfig({ theme: "badge" });
+    assert.strictEqual(container.dataset.layout, "badge");
+  });
+});
+
+describe("init — constraint violation handling", () => {
+  it("renders error state on constraint violation", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    let threw = false;
+    try {
+      init({
+        el: container,
+        data: {
+          events: [],
+          calendar: { name: "Test", description: "", timezone: "UTC" },
+        },
+        theme: { layout: "compact", orientation: "horizontal" },
+      });
+    } catch {
+      threw = true;
+    }
+    assert.ok(threw, "init should throw on constraint violation");
+    assert.ok(
+      container.querySelector(".already-error") ||
+        container.innerHTML.includes("constrains"),
+      "container should show error state",
+    );
+    container.remove();
   });
 });

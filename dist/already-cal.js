@@ -21,9 +21,11 @@ var Already = (() => {
   var already_cal_exports = {};
   __export(already_cal_exports, {
     DEFAULTS: () => DEFAULTS,
+    THEMES: () => THEMES,
     _instance: () => _instance,
     init: () => init,
     registerLayout: () => registerLayout,
+    registerTheme: () => registerTheme,
     setConfig: () => setConfig
   });
 
@@ -3755,10 +3757,92 @@ ${text}</tr>
     return get("layout", name, render2);
   }
 
-  // src/theme.js
+  // src/themes/registry.js
   var VALID_PALETTES = /* @__PURE__ */ new Set(["light", "dark", "warm", "cool"]);
   var VALID_ORIENTATIONS = /* @__PURE__ */ new Set(["vertical", "horizontal"]);
   var VALID_IMAGE_POSITIONS = /* @__PURE__ */ new Set(["left", "right", "alternating"]);
+  var VALID_BUNDLE_KEYS = /* @__PURE__ */ new Set([
+    "layout",
+    "defaults",
+    "constraints",
+    "overrides"
+  ]);
+  var DIMENSION_KEYS = /* @__PURE__ */ new Set(["orientation", "imagePosition", "palette"]);
+  var DIMENSION_VALIDATORS = {
+    orientation: VALID_ORIENTATIONS,
+    imagePosition: VALID_IMAGE_POSITIONS,
+    palette: VALID_PALETTES
+  };
+  var themeNames = [];
+  function validateBundle(name, bundle) {
+    if (!bundle || typeof bundle !== "object" || Array.isArray(bundle)) {
+      throw new Error(`Theme "${name}": bundle must be a plain object`);
+    }
+    for (const key of Object.keys(bundle)) {
+      if (!VALID_BUNDLE_KEYS.has(key)) {
+        throw new Error(`Theme "${name}": unknown key "${key}"`);
+      }
+    }
+    if (bundle.layout !== void 0) {
+      if (typeof bundle.layout !== "function" && typeof bundle.layout !== "string") {
+        throw new Error(
+          `Theme "${name}": layout must be a function or string, got ${typeof bundle.layout}`
+        );
+      }
+      if (typeof bundle.layout === "string" && !has("layout", bundle.layout)) {
+        throw new Error(
+          `Theme "${name}": layout "${bundle.layout}" is not a registered layout`
+        );
+      }
+    }
+    for (const section of ["defaults", "constraints"]) {
+      if (bundle[section] !== void 0) {
+        if (!bundle[section] || typeof bundle[section] !== "object" || Array.isArray(bundle[section])) {
+          throw new Error(`Theme "${name}": ${section} must be a plain object`);
+        }
+        for (const [key, value] of Object.entries(bundle[section])) {
+          if (!DIMENSION_KEYS.has(key)) {
+            throw new Error(`Theme "${name}": unknown ${section} key "${key}"`);
+          }
+          if (!DIMENSION_VALIDATORS[key].has(value)) {
+            throw new Error(
+              `Theme "${name}": invalid ${section} value "${value}" for "${key}"`
+            );
+          }
+        }
+      }
+    }
+    if (bundle.overrides !== void 0) {
+      if (!bundle.overrides || typeof bundle.overrides !== "object" || Array.isArray(bundle.overrides)) {
+        throw new Error(`Theme "${name}": overrides must be a plain object`);
+      }
+    }
+  }
+  defineType("theme", validateBundle);
+  registerBuiltIn("theme", "clean", { layout: "clean" });
+  themeNames.push("clean");
+  registerBuiltIn("theme", "hero", { layout: "hero" });
+  themeNames.push("hero");
+  registerBuiltIn("theme", "badge", { layout: "badge" });
+  themeNames.push("badge");
+  registerBuiltIn("theme", "compact", {
+    layout: "compact",
+    constraints: { orientation: "vertical" }
+  });
+  themeNames.push("compact");
+  function getTheme(name) {
+    return get("theme", name);
+  }
+  function getThemeNames() {
+    return [...themeNames];
+  }
+  function addThemeName(name) {
+    if (!themeNames.includes(name)) {
+      themeNames.push(name);
+    }
+  }
+
+  // src/theme.js
   var THEME_KEYS = /* @__PURE__ */ new Set([
     "layout",
     "orientation",
@@ -3771,28 +3855,74 @@ ${text}</tr>
     imagePosition: "left",
     palette: "light"
   };
+  function resolveDimension(dimension, userValue, bundle, validSet, themeName) {
+    const constraint = bundle?.constraints?.[dimension];
+    const bundleDefault = bundle?.defaults?.[dimension];
+    if (constraint !== void 0) {
+      if (userValue !== void 0 && userValue !== constraint) {
+        throw new Error(
+          `already-cal: Theme "${themeName}" constrains ${dimension} to "${constraint}", but "${userValue}" was passed`
+        );
+      }
+      return constraint;
+    }
+    if (userValue !== void 0 && validSet.has(userValue)) {
+      return userValue;
+    }
+    if (bundleDefault !== void 0) {
+      return bundleDefault;
+    }
+    return THEME_DEFAULTS[dimension];
+  }
   function resolveTheme(theme) {
     if (typeof theme === "string") {
       theme = { layout: theme };
     }
     const input = theme || {};
-    const layout = has("layout", input.layout) ? input.layout : (() => {
+    const bundle = input.layout ? getTheme(input.layout) : void 0;
+    let layout;
+    if (bundle) {
+      layout = bundle.layout || input.layout;
+    } else if (has("layout", input.layout)) {
+      layout = input.layout;
+    } else {
       if (input.layout != null && input.layout !== THEME_DEFAULTS.layout) {
         console.warn(
           `already-cal: Unknown layout "${input.layout}", falling back to "${THEME_DEFAULTS.layout}"`
         );
       }
-      return THEME_DEFAULTS.layout;
-    })();
-    const palette = VALID_PALETTES.has(input.palette) ? input.palette : THEME_DEFAULTS.palette;
-    const orientation = layout === "compact" ? "vertical" : VALID_ORIENTATIONS.has(input.orientation) ? input.orientation : THEME_DEFAULTS.orientation;
-    const imagePosition = orientation === "horizontal" && VALID_IMAGE_POSITIONS.has(input.imagePosition) ? input.imagePosition : THEME_DEFAULTS.imagePosition;
-    const overrides = {};
+      layout = THEME_DEFAULTS.layout;
+    }
+    const themeName = input.layout;
+    const orientation = resolveDimension(
+      "orientation",
+      input.orientation,
+      bundle,
+      VALID_ORIENTATIONS,
+      themeName
+    );
+    const rawImagePosition = resolveDimension(
+      "imagePosition",
+      input.imagePosition,
+      bundle,
+      VALID_IMAGE_POSITIONS,
+      themeName
+    );
+    const palette = resolveDimension(
+      "palette",
+      input.palette,
+      bundle,
+      VALID_PALETTES,
+      themeName
+    );
+    const imagePosition = orientation === "horizontal" ? rawImagePosition : THEME_DEFAULTS.imagePosition;
+    const userOverrides = {};
     for (const [key, value] of Object.entries(input)) {
       if (!THEME_KEYS.has(key)) {
-        overrides[key] = value;
+        userOverrides[key] = value;
       }
     }
+    const overrides = { ...bundle?.overrides || {}, ...userOverrides };
     return { layout, orientation, imagePosition, palette, overrides };
   }
   function applyTheme(el, themeInput, previousOverrideKeys) {
@@ -4918,6 +5048,34 @@ ${text}</tr>
   function registerLayout(name, renderFn) {
     register("layout", name, renderFn);
   }
+  function registerTheme(name, bundle) {
+    const processed = { ...bundle };
+    if (typeof bundle.layout === "function") {
+      register("layout", name, bundle.layout);
+      processed.layout = name;
+    }
+    register("theme", name, processed);
+    addThemeName(name);
+    THEMES = buildThemesSnapshot();
+  }
+  function buildThemesSnapshot() {
+    const result = {};
+    for (const name of getThemeNames()) {
+      const bundle = getTheme(name);
+      if (bundle) {
+        const copy = { layout: bundle.layout };
+        if (bundle.defaults)
+          copy.defaults = Object.freeze({ ...bundle.defaults });
+        if (bundle.constraints)
+          copy.constraints = Object.freeze({ ...bundle.constraints });
+        if (bundle.overrides)
+          copy.overrides = Object.freeze({ ...bundle.overrides });
+        result[name] = Object.freeze(copy);
+      }
+    }
+    return Object.freeze(result);
+  }
+  var THEMES = buildThemesSnapshot();
   var _instance = null;
   function setConfig(config) {
     if (!_instance) {
@@ -4944,7 +5102,20 @@ ${text}</tr>
       console.error("already-cal: Element not found:", config.el);
       return;
     }
-    let themeResult = applyTheme(el, config.theme, []);
+    let themeResult;
+    try {
+      themeResult = applyTheme(el, config.theme, []);
+    } catch (err) {
+      el.classList.add("already");
+      el.innerHTML = "";
+      const errorDiv = document.createElement("div");
+      errorDiv.className = "already-error";
+      const p = document.createElement("p");
+      p.textContent = err.message;
+      errorDiv.appendChild(p);
+      el.appendChild(errorDiv);
+      throw err;
+    }
     config._theme = themeResult;
     el.classList.add("already");
     const headerContainer = document.createElement("div");
@@ -5249,12 +5420,21 @@ ${text}</tr>
       }
       let needsRerender = false;
       if (newConfig.theme !== void 0) {
-        const prev = config._theme;
-        themeResult = applyTheme(el, newConfig.theme, themeResult.overrideKeys);
-        if (themeResult.layout !== prev.layout || themeResult.orientation !== prev.orientation || themeResult.imagePosition !== prev.imagePosition) {
-          needsRerender = true;
+        try {
+          const prev = config._theme;
+          const newThemeResult = applyTheme(
+            el,
+            newConfig.theme,
+            themeResult.overrideKeys
+          );
+          if (newThemeResult.layout !== prev.layout || newThemeResult.orientation !== prev.orientation || newThemeResult.imagePosition !== prev.imagePosition) {
+            needsRerender = true;
+          }
+          themeResult = newThemeResult;
+          config._theme = newThemeResult;
+        } catch (err) {
+          console.error(err.message);
         }
-        config._theme = themeResult;
       }
       if (newConfig.views !== void 0) {
         if (Array.isArray(newConfig.views) && newConfig.views.length > 0) {

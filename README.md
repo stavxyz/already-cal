@@ -339,7 +339,7 @@ Already.registerTheme("timeline", {
     card.textContent = event.title;
     return card;
   },
-  defaults: { palette: "cool", orientation: "vertical" },
+  defaults: { palette: "cool" },
   constraints: { orientation: "vertical" },
   overrides: { primary: "#2563eb", radius: "4px" },
 });

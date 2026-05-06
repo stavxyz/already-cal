@@ -15,6 +15,12 @@ import {
 import { createTagFilter } from "./ui/tag-filter.js";
 import { renderViewSelector } from "./ui/view-selector.js";
 import { formatDate, formatDatetime, isPast } from "./util/dates.js";
+import {
+  DEFAULT_ALLOWED_ATTRS,
+  DEFAULT_ALLOWED_TAGS,
+  DEFAULT_ALLOWED_URL_SCHEMES,
+  RAW_TEXT_ELEMENTS,
+} from "./util/description.js";
 import { DEFAULT_PLATFORMS } from "./util/links.js";
 import { renderDayView } from "./views/day.js";
 import { renderDetailView } from "./views/detail.js";
@@ -82,8 +88,16 @@ const I18N_DEFAULTS = {
   showEarlier: "Show earlier",
 };
 
-// Expose defaults so consumers can extend (e.g. Already.DEFAULTS.knownPlatforms)
-export { DEFAULTS };
+// Expose defaults so consumers can extend rather than copy them
+// (e.g. `Already.DEFAULTS.knownPlatforms`, `Already.DEFAULT_ALLOWED_TAGS`).
+// Sanitizer constants are frozen at the source (see description.js).
+export {
+  DEFAULT_ALLOWED_ATTRS,
+  DEFAULT_ALLOWED_TAGS,
+  DEFAULT_ALLOWED_URL_SCHEMES,
+  DEFAULTS,
+  RAW_TEXT_ELEMENTS,
+};
 
 /**
  * Register a custom layout render function.

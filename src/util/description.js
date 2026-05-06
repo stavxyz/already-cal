@@ -1,7 +1,11 @@
 import { marked } from "marked";
 import { escapeHtml } from "./sanitize.js";
 
-const DEFAULT_ALLOWED_TAGS = [
+/**
+ * Default tag allow-list. Frozen so consumers can't mutate the shared
+ * default at runtime.
+ */
+export const DEFAULT_ALLOWED_TAGS = Object.freeze([
   "p",
   "a",
   "strong",
@@ -20,35 +24,47 @@ const DEFAULT_ALLOWED_TAGS = [
   "h4",
   "h5",
   "h6",
-];
+]);
 
-const DEFAULT_ALLOWED_ATTRS = {
+/**
+ * Default per-tag attribute allow-list. Frozen (including inner arrays) so
+ * consumers can't mutate the shared default at runtime.
+ */
+export const DEFAULT_ALLOWED_ATTRS = deepFreezeRecord({
   a: ["href", "target"],
   img: ["src", "alt"],
-};
+});
 
-// Default URL-scheme allow-list, applied per-attribute.
-// `<a href>` permits http/https/mailto/tel; `<img src>` permits http/https only.
-// Any value that does not begin with a scheme (relative paths, fragments,
-// protocol-relative `//host`) is treated as relative and allowed.
-// `data:` is intentionally NOT on the img allow-list — it would let
-// `data:image/svg+xml;base64,...` smuggle SVG XSS through. Operators who need
-// inline data images can override via `config.sanitization.allowedUrlSchemes`.
-const DEFAULT_ALLOWED_URL_SCHEMES = {
+/**
+ * Default URL-scheme allow-list, applied per-attribute.
+ * `<a href>` permits http/https/mailto/tel; `<img src>` permits http/https only.
+ * Any value that does not begin with a scheme (relative paths, fragments,
+ * protocol-relative `//host`) is treated as relative and allowed.
+ * `data:` is intentionally NOT on the img allow-list — it would let
+ * `data:image/svg+xml;base64,...` smuggle SVG XSS through. Operators who need
+ * inline data images can override via `config.sanitization.allowedUrlSchemes`.
+ *
+ * Frozen (including inner arrays) so consumers can't mutate the shared
+ * default at runtime.
+ */
+export const DEFAULT_ALLOWED_URL_SCHEMES = deepFreezeRecord({
   a: ["http", "https", "mailto", "tel"],
   img: ["http", "https"],
-};
+});
 
-// Raw-text elements: their "children" are program/data, not user content.
-// When dropped from the allow-list, their children must NOT be hoisted as text
-// (otherwise script bodies and stylesheet rules leak as visible text).
-const RAW_TEXT_ELEMENTS = new Set([
-  "script",
-  "style",
-  "noscript",
-  "template",
-  "textarea",
-]);
+/**
+ * Elements whose children are NOT user-visible content in the normal flow:
+ * program source (<script>, <style>), declarative-only (<template>),
+ * fallback-when-JS-disabled (<noscript>), or form-state initial-value
+ * (<textarea>). When any of these are disallowed, drop the whole element
+ * — hoisting their children would render program text or form values as
+ * visible content.
+ *
+ * Frozen so consumers can't mutate the shared default at runtime.
+ */
+export const RAW_TEXT_ELEMENTS = Object.freeze(
+  new Set(["script", "style", "noscript", "template", "textarea"]),
+);
 
 const HTML_TAG_RE = /<\/?[a-z][a-z0-9]*[\s>]/i;
 const MARKDOWN_RE = /(?:^|\n)#{1,6}\s|(?:^|\n)[-*]\s|\*\*|__|\[.+?\]\(.+?\)/;
@@ -65,16 +81,39 @@ export function detectFormat(text) {
   return "plain";
 }
 
+/** Freeze a record-of-arrays, freezing each inner array as well. */
+function deepFreezeRecord(obj) {
+  for (const key of Object.keys(obj)) {
+    if (Array.isArray(obj[key])) Object.freeze(obj[key]);
+  }
+  return Object.freeze(obj);
+}
+
+/** Normalize per-tag scheme entries to arrays so `.includes()` always works. */
+function normalizeUrlSchemes(raw) {
+  return Object.fromEntries(
+    Object.entries(raw).map(([tag, schemes]) => [
+      tag,
+      Array.isArray(schemes) ? schemes : Array.from(schemes),
+    ]),
+  );
+}
+
 /**
  * Sanitize HTML by removing disallowed tags and attributes.
+ *
+ * Partial overrides in `config.sanitization` are merged with the defaults
+ * (rather than replacing them), so an operator who tightens one tag doesn't
+ * accidentally disable the safety rails on others.
  *
  * @param {string} html - raw HTML to sanitize.
  * @param {object} [config] - optional configuration.
  * @param {object} [config.sanitization]
- * @param {string[]} [config.sanitization.allowedTags] - tag allow-list (overrides default).
- * @param {object} [config.sanitization.allowedAttrs] - per-tag attribute allow-list (overrides default).
+ * @param {string[]|Set<string>} [config.sanitization.allowedTags] - tag allow-list (merged into default).
+ * @param {object} [config.sanitization.allowedAttrs] - per-tag attribute allow-list (merged into default).
  * @param {object} [config.sanitization.allowedUrlSchemes] - per-tag URL-scheme allow-list
- *   (overrides default). Shape: `{ a: ["http", "https", ...], img: [...] }`.
+ *   (merged into default). Shape: `{ a: ["http", "https", ...], img: [...] }`.
+ *   Values may be arrays or Sets — both are accepted.
  *   Values without a scheme (relative URLs, fragments, protocol-relative URLs) are always allowed.
  *   Schemes outside the list cause the attribute to be stripped, but the element survives.
  * @returns {string} sanitized HTML.
@@ -84,9 +123,14 @@ export function sanitizeHtml(html, config) {
   const allowedTags = new Set(
     sanitization?.allowedTags || DEFAULT_ALLOWED_TAGS,
   );
-  const allowedAttrs = sanitization?.allowedAttrs || DEFAULT_ALLOWED_ATTRS;
-  const allowedUrlSchemes =
-    sanitization?.allowedUrlSchemes || DEFAULT_ALLOWED_URL_SCHEMES;
+  const allowedAttrs = {
+    ...DEFAULT_ALLOWED_ATTRS,
+    ...(sanitization?.allowedAttrs ?? {}),
+  };
+  const allowedUrlSchemes = normalizeUrlSchemes({
+    ...DEFAULT_ALLOWED_URL_SCHEMES,
+    ...(sanitization?.allowedUrlSchemes ?? {}),
+  });
 
   const div = document.createElement("div");
   div.innerHTML = html;
@@ -98,10 +142,15 @@ export function sanitizeHtml(html, config) {
  * Returns true if the URL is acceptable under the per-tag scheme allow-list.
  * Values without a scheme (empty, fragment-only, path-only, protocol-relative)
  * are treated as relative and always allowed.
+ *
+ * Strips tab/LF/CR before scheme parsing, per the WHATWG URL spec — browsers
+ * do this, so without normalization an attacker could hide the scheme as
+ * `java\tscript:` and bypass a naive prefix check.
  */
 function isUrlSchemeAllowed(url, allowedSchemes) {
   if (url == null) return true;
-  const match = URL_SCHEME_RE.exec(url);
+  const normalized = url.replace(/[\t\n\r]/g, "");
+  const match = URL_SCHEME_RE.exec(normalized);
   if (!match) return true; // no scheme → relative URL, allow
   const scheme = match[1].toLowerCase();
   return allowedSchemes.includes(scheme);
@@ -147,6 +196,10 @@ function sanitizeAttributes(element, allowedAttrs, allowedUrlSchemes) {
  * Raw-text elements (script/style/noscript/template/textarea) are dropped
  * entirely without hoisting children, so their program/data contents don't
  * leak as visible text.
+ *
+ * HTML comment nodes (`<!-- ... -->`) pass through unmodified — they are
+ * inert (do not execute) so this is safe; documenting it so a future reader
+ * doesn't wonder why they aren't filtered.
  */
 function sanitizeNode(node, allowedTags, allowedAttrs, allowedUrlSchemes) {
   let child = node.firstChild;

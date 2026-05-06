@@ -2570,11 +2570,11 @@ ${text}</tr>
     }
     return Object.freeze(obj);
   }
-  function normalizeUrlSchemes(raw) {
+  function normalizePerTagLists(raw) {
     return Object.fromEntries(
-      Object.entries(raw).map(([tag2, schemes]) => [
+      Object.entries(raw).map(([tag2, list2]) => [
         tag2,
-        Array.isArray(schemes) ? schemes : Array.from(schemes)
+        Array.isArray(list2) ? list2 : Array.from(list2)
       ])
     );
   }
@@ -2586,11 +2586,11 @@ ${text}</tr>
     const allowedTags = new Set(
       sanitization?.allowedTags || DEFAULT_ALLOWED_TAGS
     );
-    const allowedAttrs = {
+    const allowedAttrs = normalizePerTagLists({
       ...DEFAULT_ALLOWED_ATTRS,
       ...dropNullishValues(sanitization?.allowedAttrs ?? {})
-    };
-    const allowedUrlSchemes = normalizeUrlSchemes({
+    });
+    const allowedUrlSchemes = normalizePerTagLists({
       ...DEFAULT_ALLOWED_URL_SCHEMES,
       ...dropNullishValues(sanitization?.allowedUrlSchemes ?? {})
     });

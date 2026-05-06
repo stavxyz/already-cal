@@ -61,6 +61,11 @@ describe("badge layout", () => {
     assert.ok(el.querySelector(".already-card__description"));
   });
 
+  // The four `renders ...description...` cases below pin the contract that
+  // badge layouts route through renderDescription. The same suite lives in
+  // test/layouts/hero.test.cjs — keep them in sync. If a new layout adopts
+  // the renderDescription pattern, lift this into a shared helper.
+
   it("renders plain-text description as escaped HTML round-trip", () => {
     const el = render(
       createTestEvent({ description: "A simple description" }),

@@ -48,7 +48,7 @@ describe("hero layout", () => {
     assert.strictEqual(descEl.textContent, "A detailed description here");
   });
 
-  // The four `renders ...description...` cases below pin the contract that
+  // The `renders ...description...` cases below pin the contract that
   // hero layouts route through renderDescription. The same suite lives in
   // test/layouts/badge.test.cjs — keep them in sync. If a new layout adopts
   // the renderDescription pattern, lift this into a shared helper.
@@ -111,6 +111,16 @@ describe("hero layout", () => {
       descEl.innerHTML.includes("safe"),
       `safe content should remain, got: ${descEl.innerHTML}`,
     );
+    assert.ok(
+      !descEl.textContent.includes("alert(1)"),
+      "script body should not leak as text",
+    );
+  });
+
+  it("omits description block when whitespace-only", () => {
+    const event = createTestEvent({ description: "   \n  " });
+    const el = render(event, baseOptions);
+    assert.strictEqual(el.querySelector(".already-card__description"), null);
   });
 
   it("omits description when empty", () => {

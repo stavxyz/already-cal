@@ -21,6 +21,10 @@ var Already = (() => {
   var already_cal_exports = {};
   __export(already_cal_exports, {
     DEFAULTS: () => DEFAULTS,
+    DEFAULT_ALLOWED_ATTRS: () => DEFAULT_ALLOWED_ATTRS,
+    DEFAULT_ALLOWED_TAGS: () => DEFAULT_ALLOWED_TAGS,
+    DEFAULT_ALLOWED_URL_SCHEMES: () => DEFAULT_ALLOWED_URL_SCHEMES,
+    RAW_TEXT_ELEMENTS: () => RAW_TEXT_ELEMENTS,
     THEMES: () => THEMES,
     _instance: () => _instance,
     init: () => init,
@@ -2515,7 +2519,7 @@ ${text}</tr>
   var lexer = _Lexer.lex;
 
   // src/util/description.js
-  var DEFAULT_ALLOWED_TAGS = [
+  var DEFAULT_ALLOWED_TAGS = Object.freeze([
     "p",
     "a",
     "strong",
@@ -2534,22 +2538,18 @@ ${text}</tr>
     "h4",
     "h5",
     "h6"
-  ];
-  var DEFAULT_ALLOWED_ATTRS = {
+  ]);
+  var DEFAULT_ALLOWED_ATTRS = deepFreezeRecord({
     a: ["href", "target"],
     img: ["src", "alt"]
-  };
-  var DEFAULT_ALLOWED_URL_SCHEMES = {
+  });
+  var DEFAULT_ALLOWED_URL_SCHEMES = deepFreezeRecord({
     a: ["http", "https", "mailto", "tel"],
     img: ["http", "https"]
-  };
-  var RAW_TEXT_ELEMENTS = /* @__PURE__ */ new Set([
-    "script",
-    "style",
-    "noscript",
-    "template",
-    "textarea"
-  ]);
+  });
+  var RAW_TEXT_ELEMENTS = Object.freeze(
+    /* @__PURE__ */ new Set(["script", "style", "noscript", "template", "textarea"])
+  );
   var HTML_TAG_RE = /<\/?[a-z][a-z0-9]*[\s>]/i;
   var MARKDOWN_RE = /(?:^|\n)#{1,6}\s|(?:^|\n)[-*]\s|\*\*|__|\[.+?\]\(.+?\)/;
   var URL_SCHEME_RE = /^\s*([a-z][a-z0-9+.-]*):/i;
@@ -2559,13 +2559,33 @@ ${text}</tr>
     if (MARKDOWN_RE.test(text)) return "markdown";
     return "plain";
   }
+  function deepFreezeRecord(obj) {
+    for (const key of Object.keys(obj)) {
+      if (Array.isArray(obj[key])) Object.freeze(obj[key]);
+    }
+    return Object.freeze(obj);
+  }
+  function normalizeUrlSchemes(raw) {
+    return Object.fromEntries(
+      Object.entries(raw).map(([tag2, schemes]) => [
+        tag2,
+        Array.isArray(schemes) ? schemes : Array.from(schemes)
+      ])
+    );
+  }
   function sanitizeHtml(html2, config) {
     const sanitization = config?.sanitization;
     const allowedTags = new Set(
       sanitization?.allowedTags || DEFAULT_ALLOWED_TAGS
     );
-    const allowedAttrs = sanitization?.allowedAttrs || DEFAULT_ALLOWED_ATTRS;
-    const allowedUrlSchemes = sanitization?.allowedUrlSchemes || DEFAULT_ALLOWED_URL_SCHEMES;
+    const allowedAttrs = {
+      ...DEFAULT_ALLOWED_ATTRS,
+      ...sanitization?.allowedAttrs ?? {}
+    };
+    const allowedUrlSchemes = normalizeUrlSchemes({
+      ...DEFAULT_ALLOWED_URL_SCHEMES,
+      ...sanitization?.allowedUrlSchemes ?? {}
+    });
     const div = document.createElement("div");
     div.innerHTML = html2;
     sanitizeNode(div, allowedTags, allowedAttrs, allowedUrlSchemes);
@@ -2573,7 +2593,8 @@ ${text}</tr>
   }
   function isUrlSchemeAllowed(url, allowedSchemes) {
     if (url == null) return true;
-    const match = URL_SCHEME_RE.exec(url);
+    const normalized = url.replace(/[\t\n\r]/g, "");
+    const match = URL_SCHEME_RE.exec(normalized);
     if (!match) return true;
     const scheme = match[1].toLowerCase();
     return allowedSchemes.includes(scheme);

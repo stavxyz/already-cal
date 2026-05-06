@@ -3645,7 +3645,7 @@ ${text}</tr>
     }
     if (event.description) {
       const desc = createElement("div", "already-card__description");
-      desc.textContent = event.description;
+      desc.innerHTML = renderDescription(event.description, options2.config);
       body.appendChild(desc);
     }
     if (event.htmlLink) {
@@ -3740,7 +3740,7 @@ ${text}</tr>
     body.appendChild(title);
     if (event.description) {
       const desc = createElement("div", "already-card__description");
-      desc.textContent = event.description;
+      desc.innerHTML = renderDescription(event.description, options2.config);
       body.appendChild(desc);
     }
     const footer = createElement("div", "already-card__footer");

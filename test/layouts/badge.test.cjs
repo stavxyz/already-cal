@@ -61,6 +61,72 @@ describe("badge layout", () => {
     assert.ok(el.querySelector(".already-card__description"));
   });
 
+  it("renders plain-text description as escaped HTML round-trip", () => {
+    const el = render(
+      createTestEvent({ description: "A simple description" }),
+      baseOptions,
+    );
+    const descEl = el.querySelector(".already-card__description");
+    assert.ok(descEl, "missing .already-card__description");
+    assert.strictEqual(descEl.innerHTML, "A simple description");
+    assert.strictEqual(descEl.textContent, "A simple description");
+  });
+
+  it("renders HTML description as sanitized HTML", () => {
+    const el = render(
+      createTestEvent({
+        description:
+          '<strong>Bold</strong> and <a href="https://example.com">link</a>',
+      }),
+      baseOptions,
+    );
+    const descEl = el.querySelector(".already-card__description");
+    assert.ok(descEl, "missing .already-card__description");
+    assert.ok(
+      descEl.innerHTML.includes("<strong>Bold</strong>"),
+      `expected sanitized <strong>, got: ${descEl.innerHTML}`,
+    );
+    assert.strictEqual(
+      descEl.querySelector("a")?.getAttribute("href"),
+      "https://example.com",
+    );
+  });
+
+  it("renders Markdown description through marked parser", () => {
+    const el = render(
+      createTestEvent({ description: "**Bold** text" }),
+      baseOptions,
+    );
+    const descEl = el.querySelector(".already-card__description");
+    assert.ok(descEl, "missing .already-card__description");
+    assert.ok(
+      descEl.innerHTML.includes("<strong>Bold</strong>"),
+      `expected markdown-parsed <strong>, got: ${descEl.innerHTML}`,
+    );
+  });
+
+  it("strips disallowed tags like <script>", () => {
+    const el = render(
+      createTestEvent({ description: "<script>alert(1)</script>safe" }),
+      baseOptions,
+    );
+    const descEl = el.querySelector(".already-card__description");
+    assert.ok(descEl, "missing .already-card__description");
+    assert.ok(
+      !descEl.innerHTML.includes("<script"),
+      `<script> tag should be stripped, got: ${descEl.innerHTML}`,
+    );
+    assert.strictEqual(
+      descEl.querySelector("script"),
+      null,
+      "no <script> element should remain in the DOM",
+    );
+    assert.ok(
+      descEl.innerHTML.includes("safe"),
+      `safe content should remain, got: ${descEl.innerHTML}`,
+    );
+  });
+
   it("renders tag pills when tags are present", () => {
     const el = render(
       createTestEvent({ tags: ["Outdoor", "Family"] }),

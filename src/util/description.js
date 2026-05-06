@@ -27,8 +27,35 @@ const DEFAULT_ALLOWED_ATTRS = {
   img: ["src", "alt"],
 };
 
+// Default URL-scheme allow-list, applied per-attribute.
+// `<a href>` permits http/https/mailto/tel; `<img src>` permits http/https only.
+// Any value that does not begin with a scheme (relative paths, fragments,
+// protocol-relative `//host`) is treated as relative and allowed.
+// `data:` is intentionally NOT on the img allow-list — it would let
+// `data:image/svg+xml;base64,...` smuggle SVG XSS through. Operators who need
+// inline data images can override via `config.sanitization.allowedUrlSchemes`.
+const DEFAULT_ALLOWED_URL_SCHEMES = {
+  a: ["http", "https", "mailto", "tel"],
+  img: ["http", "https"],
+};
+
+// Raw-text elements: their "children" are program/data, not user content.
+// When dropped from the allow-list, their children must NOT be hoisted as text
+// (otherwise script bodies and stylesheet rules leak as visible text).
+const RAW_TEXT_ELEMENTS = new Set([
+  "script",
+  "style",
+  "noscript",
+  "template",
+  "textarea",
+]);
+
 const HTML_TAG_RE = /<\/?[a-z][a-z0-9]*[\s>]/i;
 const MARKDOWN_RE = /(?:^|\n)#{1,6}\s|(?:^|\n)[-*]\s|\*\*|__|\[.+?\]\(.+?\)/;
+// Extracts the URL scheme (everything before the first colon), case-insensitive.
+// Allows leading whitespace because the browser strips it before scheme parsing
+// — `" javascript:..."` is NOT a relative URL, it's a javascript: URL.
+const URL_SCHEME_RE = /^\s*([a-z][a-z0-9+.-]*):/i;
 
 /** Auto-detect whether text is HTML, markdown, or plain text. */
 export function detectFormat(text) {
@@ -38,41 +65,118 @@ export function detectFormat(text) {
   return "plain";
 }
 
-/** Sanitize HTML by removing disallowed tags and attributes. */
+/**
+ * Sanitize HTML by removing disallowed tags and attributes.
+ *
+ * @param {string} html - raw HTML to sanitize.
+ * @param {object} [config] - optional configuration.
+ * @param {object} [config.sanitization]
+ * @param {string[]} [config.sanitization.allowedTags] - tag allow-list (overrides default).
+ * @param {object} [config.sanitization.allowedAttrs] - per-tag attribute allow-list (overrides default).
+ * @param {object} [config.sanitization.allowedUrlSchemes] - per-tag URL-scheme allow-list
+ *   (overrides default). Shape: `{ a: ["http", "https", ...], img: [...] }`.
+ *   Values without a scheme (relative URLs, fragments, protocol-relative URLs) are always allowed.
+ *   Schemes outside the list cause the attribute to be stripped, but the element survives.
+ * @returns {string} sanitized HTML.
+ */
 export function sanitizeHtml(html, config) {
   const sanitization = config?.sanitization;
   const allowedTags = new Set(
     sanitization?.allowedTags || DEFAULT_ALLOWED_TAGS,
   );
   const allowedAttrs = sanitization?.allowedAttrs || DEFAULT_ALLOWED_ATTRS;
+  const allowedUrlSchemes =
+    sanitization?.allowedUrlSchemes || DEFAULT_ALLOWED_URL_SCHEMES;
 
   const div = document.createElement("div");
   div.innerHTML = html;
-  sanitizeNode(div, allowedTags, allowedAttrs);
+  sanitizeNode(div, allowedTags, allowedAttrs, allowedUrlSchemes);
   return div.innerHTML;
 }
 
-function sanitizeNode(node, allowedTags, allowedAttrs) {
-  const children = Array.from(node.childNodes);
-  for (const child of children) {
+/**
+ * Returns true if the URL is acceptable under the per-tag scheme allow-list.
+ * Values without a scheme (empty, fragment-only, path-only, protocol-relative)
+ * are treated as relative and always allowed.
+ */
+function isUrlSchemeAllowed(url, allowedSchemes) {
+  if (url == null) return true;
+  const match = URL_SCHEME_RE.exec(url);
+  if (!match) return true; // no scheme → relative URL, allow
+  const scheme = match[1].toLowerCase();
+  return allowedSchemes.includes(scheme);
+}
+
+/**
+ * Strip attributes whose name isn't in `allowedNames`. For `href` on <a> and
+ * `src` on <img>, additionally validate the URL scheme — if the scheme isn't
+ * on the allow-list, drop the attribute (but keep the element so link text /
+ * image alt survive).
+ */
+function sanitizeAttributes(element, allowedAttrs, allowedUrlSchemes) {
+  const tag = element.tagName.toLowerCase();
+  const allowedNames = allowedAttrs[tag] || [];
+  const schemes = allowedUrlSchemes[tag];
+  const attrs = Array.from(element.attributes);
+  for (const attr of attrs) {
+    if (!allowedNames.includes(attr.name)) {
+      element.removeAttribute(attr.name);
+      continue;
+    }
+    // URL-scheme validation for href/src (only when this tag has a scheme list).
+    if (
+      schemes &&
+      ((tag === "a" && attr.name === "href") ||
+        (tag === "img" && attr.name === "src")) &&
+      !isUrlSchemeAllowed(attr.value, schemes)
+    ) {
+      element.removeAttribute(attr.name);
+    }
+  }
+}
+
+/**
+ * Walk `node`'s children in-place, removing disallowed elements.
+ *
+ * Uses a live firstChild/nextSibling walk (not a snapshot) so that when a
+ * disallowed wrapper has its children hoisted, those hoisted children are
+ * re-examined on the next iteration — otherwise nested disallowed elements
+ * (e.g. `<form><input></form>`) would survive because they were not in the
+ * original snapshot of the parent's children.
+ *
+ * Raw-text elements (script/style/noscript/template/textarea) are dropped
+ * entirely without hoisting children, so their program/data contents don't
+ * leak as visible text.
+ */
+function sanitizeNode(node, allowedTags, allowedAttrs, allowedUrlSchemes) {
+  let child = node.firstChild;
+  while (child) {
+    const next = child.nextSibling;
     if (child.nodeType === Node.ELEMENT_NODE) {
       const tag = child.tagName.toLowerCase();
       if (!allowedTags.has(tag)) {
+        if (RAW_TEXT_ELEMENTS.has(tag)) {
+          // Drop entirely — no hoisting. Preserves the safety property that
+          // `<script>alert(1)</script>` produces no visible text.
+          node.removeChild(child);
+          child = next;
+          continue;
+        }
+        // Hoist children, then remove the wrapper. Advance the cursor to the
+        // first hoisted child so the loop re-examines it (otherwise newly
+        // hoisted siblings would be skipped).
+        const firstHoisted = child.firstChild;
         while (child.firstChild) {
           node.insertBefore(child.firstChild, child);
         }
         node.removeChild(child);
-      } else {
-        const allowed = allowedAttrs[tag] || [];
-        const attrs = Array.from(child.attributes);
-        for (const attr of attrs) {
-          if (!allowed.includes(attr.name)) {
-            child.removeAttribute(attr.name);
-          }
-        }
-        sanitizeNode(child, allowedTags, allowedAttrs);
+        child = firstHoisted ?? next;
+        continue;
       }
+      sanitizeAttributes(child, allowedAttrs, allowedUrlSchemes);
+      sanitizeNode(child, allowedTags, allowedAttrs, allowedUrlSchemes);
     }
+    child = next;
   }
 }
 

@@ -24,7 +24,7 @@ var Already = (() => {
     DEFAULT_ALLOWED_ATTRS: () => DEFAULT_ALLOWED_ATTRS,
     DEFAULT_ALLOWED_TAGS: () => DEFAULT_ALLOWED_TAGS,
     DEFAULT_ALLOWED_URL_SCHEMES: () => DEFAULT_ALLOWED_URL_SCHEMES,
-    RAW_TEXT_ELEMENTS: () => RAW_TEXT_ELEMENTS,
+    DEFAULT_RAW_TEXT_ELEMENTS: () => DEFAULT_RAW_TEXT_ELEMENTS,
     THEMES: () => THEMES,
     _instance: () => _instance,
     init: () => init,
@@ -2547,12 +2547,17 @@ ${text}</tr>
     a: ["http", "https", "mailto", "tel"],
     img: ["http", "https"]
   });
-  var RAW_TEXT_ELEMENTS = Object.freeze(
-    /* @__PURE__ */ new Set(["script", "style", "noscript", "template", "textarea"])
-  );
+  var DEFAULT_RAW_TEXT_ELEMENTS = Object.freeze([
+    "script",
+    "style",
+    "noscript",
+    "template",
+    "textarea"
+  ]);
+  var RAW_TEXT_ELEMENTS_SET = new Set(DEFAULT_RAW_TEXT_ELEMENTS);
   var HTML_TAG_RE = /<\/?[a-z][a-z0-9]*[\s>]/i;
   var MARKDOWN_RE = /(?:^|\n)#{1,6}\s|(?:^|\n)[-*]\s|\*\*|__|\[.+?\]\(.+?\)/;
-  var URL_SCHEME_RE = /^\s*([a-z][a-z0-9+.-]*):/i;
+  var URL_SCHEME_RE = /^([a-z][a-z0-9+.-]*):/i;
   function detectFormat(text) {
     if (!text) return "plain";
     if (HTML_TAG_RE.test(text)) return "html";
@@ -2573,6 +2578,9 @@ ${text}</tr>
       ])
     );
   }
+  function dropNullishValues(obj) {
+    return Object.fromEntries(Object.entries(obj).filter(([, v]) => v != null));
+  }
   function sanitizeHtml(html2, config) {
     const sanitization = config?.sanitization;
     const allowedTags = new Set(
@@ -2580,11 +2588,11 @@ ${text}</tr>
     );
     const allowedAttrs = {
       ...DEFAULT_ALLOWED_ATTRS,
-      ...sanitization?.allowedAttrs ?? {}
+      ...dropNullishValues(sanitization?.allowedAttrs ?? {})
     };
     const allowedUrlSchemes = normalizeUrlSchemes({
       ...DEFAULT_ALLOWED_URL_SCHEMES,
-      ...sanitization?.allowedUrlSchemes ?? {}
+      ...dropNullishValues(sanitization?.allowedUrlSchemes ?? {})
     });
     const div = document.createElement("div");
     div.innerHTML = html2;
@@ -2593,7 +2601,7 @@ ${text}</tr>
   }
   function isUrlSchemeAllowed(url, allowedSchemes) {
     if (url == null) return true;
-    const normalized = url.replace(/[\t\n\r]/g, "");
+    const normalized = url.replace(/^[\x00-\x20]+|[\t\n\r]/g, "");
     const match = URL_SCHEME_RE.exec(normalized);
     if (!match) return true;
     const scheme = match[1].toLowerCase();
@@ -2621,7 +2629,7 @@ ${text}</tr>
       if (child.nodeType === Node.ELEMENT_NODE) {
         const tag2 = child.tagName.toLowerCase();
         if (!allowedTags.has(tag2)) {
-          if (RAW_TEXT_ELEMENTS.has(tag2)) {
+          if (RAW_TEXT_ELEMENTS_SET.has(tag2)) {
             node.removeChild(child);
             child = next;
             continue;

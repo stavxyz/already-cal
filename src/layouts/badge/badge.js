@@ -69,7 +69,10 @@ export function render(event, options) {
   }
 
   // Description: shared sanitization with the detail view via renderDescription.
-  if (event.description) {
+  // Trim-gate: avoid emitting an empty `.already-card__description` div for
+  // whitespace-only descriptions (e.g. `"   "` or `"\n\n"`), which would
+  // otherwise produce a visible empty block after the innerHTML+<br> path.
+  if (event.description?.trim()) {
     const desc = createElement("div", "already-card__description");
     desc.innerHTML = renderDescription(event.description, options.config);
     body.appendChild(desc);

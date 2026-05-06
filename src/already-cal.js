@@ -19,7 +19,7 @@ import {
   DEFAULT_ALLOWED_ATTRS,
   DEFAULT_ALLOWED_TAGS,
   DEFAULT_ALLOWED_URL_SCHEMES,
-  RAW_TEXT_ELEMENTS,
+  DEFAULT_RAW_TEXT_ELEMENTS,
 } from "./util/description.js";
 import { DEFAULT_PLATFORMS } from "./util/links.js";
 import { renderDayView } from "./views/day.js";
@@ -95,8 +95,8 @@ export {
   DEFAULT_ALLOWED_ATTRS,
   DEFAULT_ALLOWED_TAGS,
   DEFAULT_ALLOWED_URL_SCHEMES,
+  DEFAULT_RAW_TEXT_ELEMENTS,
   DEFAULTS,
-  RAW_TEXT_ELEMENTS,
 };
 
 /**

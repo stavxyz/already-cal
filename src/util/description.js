@@ -38,8 +38,8 @@ export const DEFAULT_ALLOWED_ATTRS = deepFreezeRecord({
 /**
  * Default URL-scheme allow-list, applied per-attribute.
  * `<a href>` permits http/https/mailto/tel; `<img src>` permits http/https only.
- * Any value that does not begin with a scheme (relative paths, fragments,
- * protocol-relative `//host`) is treated as relative and allowed.
+ * Relative URLs (no scheme prefix, e.g. "/path", "#frag", "//host") are ALWAYS
+ * allowed regardless of this list — they have no scheme to validate.
  * `data:` is intentionally NOT on the img allow-list — it would let
  * `data:image/svg+xml;base64,...` smuggle SVG XSS through. Operators who need
  * inline data images can override via `config.sanitization.allowedUrlSchemes`.
@@ -61,17 +61,29 @@ export const DEFAULT_ALLOWED_URL_SCHEMES = deepFreezeRecord({
  * visible content.
  *
  * Frozen so consumers can't mutate the shared default at runtime.
+ * Exposed as an array (not a Set) so it's truly immutable — `Object.freeze`
+ * is a no-op on Set's prototype methods (`add`/`delete`), so freezing a Set
+ * doesn't actually prevent mutation. Consumers extending the default should
+ * write `new Set([...DEFAULT_RAW_TEXT_ELEMENTS, "mytag"])`.
  */
-export const RAW_TEXT_ELEMENTS = Object.freeze(
-  new Set(["script", "style", "noscript", "template", "textarea"]),
-);
+export const DEFAULT_RAW_TEXT_ELEMENTS = Object.freeze([
+  "script",
+  "style",
+  "noscript",
+  "template",
+  "textarea",
+]);
+
+/** Internal lookup, built at module init from the frozen public list. */
+const RAW_TEXT_ELEMENTS_SET = new Set(DEFAULT_RAW_TEXT_ELEMENTS);
 
 const HTML_TAG_RE = /<\/?[a-z][a-z0-9]*[\s>]/i;
 const MARKDOWN_RE = /(?:^|\n)#{1,6}\s|(?:^|\n)[-*]\s|\*\*|__|\[.+?\]\(.+?\)/;
 // Extracts the URL scheme (everything before the first colon), case-insensitive.
-// Allows leading whitespace because the browser strips it before scheme parsing
-// — `" javascript:..."` is NOT a relative URL, it's a javascript: URL.
-const URL_SCHEME_RE = /^\s*([a-z][a-z0-9+.-]*):/i;
+// Anchored at start with no leading-whitespace allowance because the caller
+// (`isUrlSchemeAllowed`) explicitly strips leading C0 controls + space first
+// — see the WHATWG URL parser comment there.
+const URL_SCHEME_RE = /^([a-z][a-z0-9+.-]*):/i;
 
 /** Auto-detect whether text is HTML, markdown, or plain text. */
 export function detectFormat(text) {
@@ -100,22 +112,43 @@ function normalizeUrlSchemes(raw) {
 }
 
 /**
+ * Drop keys whose values are null/undefined. Used before per-tag merges so
+ * that `{ a: null }` from a caller falls back to the default for `<a>` rather
+ * than crashing the merge (e.g. `Array.from(null)` throws TypeError).
+ */
+function dropNullishValues(obj) {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v != null));
+}
+
+/**
  * Sanitize HTML by removing disallowed tags and attributes.
  *
- * Partial overrides in `config.sanitization` are merged with the defaults
- * (rather than replacing them), so an operator who tightens one tag doesn't
- * accidentally disable the safety rails on others.
+ * Each `config.sanitization` option has its own merge semantics — see the
+ * per-option `@param` docs below. The general principle: per-tag options
+ * (`allowedAttrs`, `allowedUrlSchemes`) merge with the defaults so that
+ * tightening one tag doesn't accidentally disable the safety rails on
+ * others; the flat tag list (`allowedTags`) is replaced wholesale.
  *
  * @param {string} html - raw HTML to sanitize.
  * @param {object} [config] - optional configuration.
  * @param {object} [config.sanitization]
- * @param {string[]|Set<string>} [config.sanitization.allowedTags] - tag allow-list (merged into default).
- * @param {object} [config.sanitization.allowedAttrs] - per-tag attribute allow-list (merged into default).
- * @param {object} [config.sanitization.allowedUrlSchemes] - per-tag URL-scheme allow-list
- *   (merged into default). Shape: `{ a: ["http", "https", ...], img: [...] }`.
- *   Values may be arrays or Sets — both are accepted.
- *   Values without a scheme (relative URLs, fragments, protocol-relative URLs) are always allowed.
- *   Schemes outside the list cause the attribute to be stripped, but the element survives.
+ * @param {string[]|Set<string>} [config.sanitization.allowedTags] - tag
+ *   allow-list. REPLACES the default; use the exported `DEFAULT_ALLOWED_TAGS`
+ *   to extend, e.g. `[...DEFAULT_ALLOWED_TAGS, "details", "summary"]`.
+ * @param {object} [config.sanitization.allowedAttrs] - per-tag attribute
+ *   allow-list. Per-tag MERGE with the defaults — keys you provide override
+ *   that tag's allow-list, keys you omit fall back to the default. To disable
+ *   attributes for a tag entirely, pass that tag with an empty array (e.g.
+ *   `{ a: [] }` to allow no attrs on `<a>`). Setting the entire option to
+ *   `{}` is indistinguishable from omitting it; both yield defaults.
+ * @param {object} [config.sanitization.allowedUrlSchemes] - per-tag URL-scheme
+ *   allow-list. Same per-tag MERGE semantics as `allowedAttrs`. Shape:
+ *   `{ a: ["http", "https", ...], img: [...] }`. Values may be arrays or Sets
+ *   — both are accepted. Relative URLs (no scheme prefix, e.g. "/path",
+ *   "#frag", "//host") are ALWAYS allowed regardless of this list. Schemes
+ *   outside the list cause the attribute to be stripped, but the element
+ *   survives. Per-tag null/undefined values are dropped before merge so the
+ *   default for that tag is preserved.
  * @returns {string} sanitized HTML.
  */
 export function sanitizeHtml(html, config) {
@@ -123,13 +156,15 @@ export function sanitizeHtml(html, config) {
   const allowedTags = new Set(
     sanitization?.allowedTags || DEFAULT_ALLOWED_TAGS,
   );
+  // Drop null/undefined per-tag values from user input BEFORE merging so they
+  // don't shadow the default for that tag (e.g. `{ a: null }` → keep default).
   const allowedAttrs = {
     ...DEFAULT_ALLOWED_ATTRS,
-    ...(sanitization?.allowedAttrs ?? {}),
+    ...dropNullishValues(sanitization?.allowedAttrs ?? {}),
   };
   const allowedUrlSchemes = normalizeUrlSchemes({
     ...DEFAULT_ALLOWED_URL_SCHEMES,
-    ...(sanitization?.allowedUrlSchemes ?? {}),
+    ...dropNullishValues(sanitization?.allowedUrlSchemes ?? {}),
   });
 
   const div = document.createElement("div");
@@ -143,13 +178,18 @@ export function sanitizeHtml(html, config) {
  * Values without a scheme (empty, fragment-only, path-only, protocol-relative)
  * are treated as relative and always allowed.
  *
- * Strips tab/LF/CR before scheme parsing, per the WHATWG URL spec — browsers
- * do this, so without normalization an attacker could hide the scheme as
+ * Per the WHATWG URL parser, browsers strip leading C0 controls (0x00-0x1F)
+ * and space (0x20) from a URL before parsing, plus embedded tab/LF/CR. Without
+ * matching that, an attacker could hide the scheme as `\x01javascript:` or
  * `java\tscript:` and bypass a naive prefix check.
  */
 function isUrlSchemeAllowed(url, allowedSchemes) {
   if (url == null) return true;
-  const normalized = url.replace(/[\t\n\r]/g, "");
+  // Leading 0x00-0x20 strip + embedded \t\n\r strip, mirroring the WHATWG URL
+  // parser. The character class deliberately covers more than just \s: \s
+  // doesn't include 0x00-0x08 or 0x0E-0x1F, but browsers do strip those.
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: C0 controls are exactly what we need per WHATWG URL parser leading-strip rule.
+  const normalized = url.replace(/^[\x00-\x20]+|[\t\n\r]/g, "");
   const match = URL_SCHEME_RE.exec(normalized);
   if (!match) return true; // no scheme → relative URL, allow
   const scheme = match[1].toLowerCase();
@@ -208,7 +248,7 @@ function sanitizeNode(node, allowedTags, allowedAttrs, allowedUrlSchemes) {
     if (child.nodeType === Node.ELEMENT_NODE) {
       const tag = child.tagName.toLowerCase();
       if (!allowedTags.has(tag)) {
-        if (RAW_TEXT_ELEMENTS.has(tag)) {
+        if (RAW_TEXT_ELEMENTS_SET.has(tag)) {
           // Drop entirely — no hoisting. Preserves the safety property that
           // `<script>alert(1)</script>` produces no visible text.
           node.removeChild(child);

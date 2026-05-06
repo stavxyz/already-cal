@@ -79,6 +79,54 @@ describe("sanitizeHtml URL-scheme allow-list", () => {
     const out = sanitizeHtml('<a href="http://example.com">x</a>', config);
     assert.strictEqual(out, "<a>x</a>");
   });
+
+  it("blocks tab-obfuscated javascript: scheme", () => {
+    const out = sanitizeHtml('<a href="java\tscript:alert(1)">x</a>');
+    assert.strictEqual(out, "<a>x</a>");
+  });
+
+  it("blocks newline-obfuscated javascript: scheme", () => {
+    const out = sanitizeHtml('<a href="java\nscript:alert(1)">x</a>');
+    assert.strictEqual(out, "<a>x</a>");
+  });
+
+  it("blocks CR-obfuscated javascript: scheme", () => {
+    const out = sanitizeHtml('<a href="java\rscript:alert(1)">x</a>');
+    assert.strictEqual(out, "<a>x</a>");
+  });
+
+  it("blocks mixed leading-whitespace + embedded-tab obfuscation", () => {
+    const out = sanitizeHtml('<a href="\t\njavascript:alert(1)">x</a>');
+    assert.strictEqual(out, "<a>x</a>");
+  });
+
+  it("blocks vbscript: (not on default allow-list)", () => {
+    const out = sanitizeHtml('<a href="vbscript:msgbox(1)">x</a>');
+    assert.strictEqual(out, "<a>x</a>");
+  });
+
+  it("partial allowedUrlSchemes config narrows <a> but preserves <img> default", () => {
+    // Operator tightens <a> to https-only. <img> must fall back to the
+    // default (http/https only) — NOT become unrestricted.
+    const config = { sanitization: { allowedUrlSchemes: { a: ["https"] } } };
+    const out = sanitizeHtml('<img src="javascript:alert(1)" alt="x">', config);
+    const div = document.createElement("div");
+    div.innerHTML = out;
+    const img = div.querySelector("img");
+    assert.ok(img, "img element should survive");
+    assert.strictEqual(img.getAttribute("src"), null);
+    assert.strictEqual(img.getAttribute("alt"), "x");
+  });
+
+  it("accepts Set values in allowedUrlSchemes without crashing", () => {
+    const config = {
+      sanitization: { allowedUrlSchemes: { a: new Set(["https"]) } },
+    };
+    const out = sanitizeHtml('<a href="https://example.com">x</a>', config);
+    assert.strictEqual(out, '<a href="https://example.com">x</a>');
+    const blocked = sanitizeHtml('<a href="http://example.com">x</a>', config);
+    assert.strictEqual(blocked, "<a>x</a>");
+  });
 });
 
 describe("sanitizeHtml raw-text element handling", () => {

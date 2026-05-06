@@ -3,10 +3,18 @@ const { describe, it, before } = require("node:test");
 const assert = require("node:assert");
 
 let sanitizeHtml;
+let DEFAULT_ALLOWED_TAGS;
+let DEFAULT_ALLOWED_ATTRS;
+let DEFAULT_ALLOWED_URL_SCHEMES;
+let DEFAULT_RAW_TEXT_ELEMENTS;
 
 before(async () => {
   const mod = await import("../../src/util/description.js");
   sanitizeHtml = mod.sanitizeHtml;
+  DEFAULT_ALLOWED_TAGS = mod.DEFAULT_ALLOWED_TAGS;
+  DEFAULT_ALLOWED_ATTRS = mod.DEFAULT_ALLOWED_ATTRS;
+  DEFAULT_ALLOWED_URL_SCHEMES = mod.DEFAULT_ALLOWED_URL_SCHEMES;
+  DEFAULT_RAW_TEXT_ELEMENTS = mod.DEFAULT_RAW_TEXT_ELEMENTS;
 });
 
 describe("sanitizeHtml URL-scheme allow-list", () => {
@@ -107,7 +115,8 @@ describe("sanitizeHtml URL-scheme allow-list", () => {
 
   it("partial allowedUrlSchemes config narrows <a> but preserves <img> default", () => {
     // Operator tightens <a> to https-only. <img> must fall back to the
-    // default (http/https only) — NOT become unrestricted.
+    // default (http/https only) — NOT become unrestricted. Also assert the
+    // narrowed half: <a href="http://..."> is blocked under https-only.
     const config = { sanitization: { allowedUrlSchemes: { a: ["https"] } } };
     const out = sanitizeHtml('<img src="javascript:alert(1)" alt="x">', config);
     const div = document.createElement("div");
@@ -116,6 +125,9 @@ describe("sanitizeHtml URL-scheme allow-list", () => {
     assert.ok(img, "img element should survive");
     assert.strictEqual(img.getAttribute("src"), null);
     assert.strictEqual(img.getAttribute("alt"), "x");
+    // narrowed half: http on <a> is blocked because user supplied https-only
+    const aOut = sanitizeHtml('<a href="http://example.com">x</a>', config);
+    assert.strictEqual(aOut, "<a>x</a>");
   });
 
   it("accepts Set values in allowedUrlSchemes without crashing", () => {
@@ -153,5 +165,103 @@ describe("sanitizeHtml hoisted-children re-examination", () => {
     // surviving. The walker must re-examine hoisted children.
     const out = sanitizeHtml("<form><input type='text'></form>safe");
     assert.strictEqual(out, "safe");
+  });
+});
+
+describe("sanitizeHtml leading C0 control bypass", () => {
+  // Per WHATWG URL parser, browsers strip leading 0x00-0x20 from URLs before
+  // scheme parsing. Without matching that, an attacker could hide the scheme
+  // as `\x01javascript:...` and bypass a naive prefix check.
+  //
+  // NOTE: NUL (0x00) is omitted here because the HTML parser substitutes
+  // U+FFFD for U+0000 in attribute values, so by the time our sanitizer (or
+  // the browser's URL parser) sees the value, there is no NUL to strip — the
+  // resulting `�javascript:` has no valid scheme prefix and is treated
+  // as a relative URL by the browser. The threat is from C0 controls that
+  // survive HTML parsing, i.e. 0x01-0x1F.
+  it("blocks SOH-prefixed javascript: scheme (0x01)", () => {
+    const out = sanitizeHtml('<a href="\x01javascript:alert(1)">x</a>');
+    assert.strictEqual(out, "<a>x</a>");
+  });
+
+  it("blocks 0x08-prefixed javascript: scheme", () => {
+    const out = sanitizeHtml('<a href="\x08javascript:alert(1)">x</a>');
+    assert.strictEqual(out, "<a>x</a>");
+  });
+
+  it("blocks 0x1F-prefixed javascript: scheme", () => {
+    const out = sanitizeHtml('<a href="\x1Fjavascript:alert(1)">x</a>');
+    assert.strictEqual(out, "<a>x</a>");
+  });
+
+  it("blocks combined leading-C0 + embedded-tab obfuscation", () => {
+    const out = sanitizeHtml('<a href="\x01\tjavascript:alert(1)">x</a>');
+    assert.strictEqual(out, "<a>x</a>");
+  });
+});
+
+describe("sanitizeHtml config robustness", () => {
+  it("falls back to default for tag when user passes null per-tag value", () => {
+    // `Array.from(null)` would throw; the merge must drop the null and keep
+    // the default for that tag. Verify by exercising both halves of the
+    // default <a> allow-list.
+    const config = { sanitization: { allowedUrlSchemes: { a: null } } };
+    const httpOut = sanitizeHtml('<a href="http://example.com">x</a>', config);
+    assert.strictEqual(
+      httpOut,
+      '<a href="http://example.com">x</a>',
+      "http should survive (default <a> permits http)",
+    );
+    const jsOut = sanitizeHtml('<a href="javascript:alert(1)">x</a>', config);
+    assert.strictEqual(
+      jsOut,
+      "<a>x</a>",
+      "javascript: should still be blocked (default <a> rejects it)",
+    );
+  });
+
+  it("falls back to default for tag when user passes null in allowedAttrs", () => {
+    // Same defensive treatment for allowedAttrs.
+    const config = { sanitization: { allowedAttrs: { a: null } } };
+    const out = sanitizeHtml(
+      '<a href="http://example.com" target="_blank">x</a>',
+      config,
+    );
+    // default <a> allows href + target; both should survive.
+    assert.match(out, /href="http:\/\/example\.com"/);
+    assert.match(out, /target="_blank"/);
+  });
+
+  it("accepts Set value for allowedTags", () => {
+    const result = sanitizeHtml("<p>p</p><div>d</div>", {
+      sanitization: { allowedTags: new Set(["p"]) },
+    });
+    // <p> survives, <div> hoisted to text
+    assert.match(result, /<p>p<\/p>d/);
+  });
+});
+
+describe("sanitizer default constants are immutable", () => {
+  it("DEFAULT_ALLOWED_TAGS is frozen", () => {
+    assert.ok(Object.isFrozen(DEFAULT_ALLOWED_TAGS));
+  });
+
+  it("DEFAULT_ALLOWED_ATTRS is frozen with frozen inner arrays", () => {
+    assert.ok(Object.isFrozen(DEFAULT_ALLOWED_ATTRS));
+    for (const v of Object.values(DEFAULT_ALLOWED_ATTRS)) {
+      assert.ok(Object.isFrozen(v));
+    }
+  });
+
+  it("DEFAULT_ALLOWED_URL_SCHEMES is frozen with frozen inner arrays", () => {
+    assert.ok(Object.isFrozen(DEFAULT_ALLOWED_URL_SCHEMES));
+    for (const v of Object.values(DEFAULT_ALLOWED_URL_SCHEMES)) {
+      assert.ok(Object.isFrozen(v));
+    }
+  });
+
+  it("DEFAULT_RAW_TEXT_ELEMENTS is a frozen array", () => {
+    assert.ok(Array.isArray(DEFAULT_RAW_TEXT_ELEMENTS));
+    assert.ok(Object.isFrozen(DEFAULT_RAW_TEXT_ELEMENTS));
   });
 });

@@ -48,6 +48,66 @@ describe("hero layout", () => {
     assert.strictEqual(descEl.textContent, "A detailed description here");
   });
 
+  it("renders plain-text description as escaped HTML round-trip", () => {
+    const event = createTestEvent({ description: "A simple description" });
+    const el = render(event, baseOptions);
+    const descEl = el.querySelector(".already-card__description");
+    assert.ok(descEl, "missing .already-card__description");
+    assert.strictEqual(descEl.innerHTML, "A simple description");
+    assert.strictEqual(descEl.textContent, "A simple description");
+  });
+
+  it("renders HTML description as sanitized HTML", () => {
+    const event = createTestEvent({
+      description:
+        '<strong>Bold</strong> and <a href="https://example.com">link</a>',
+    });
+    const el = render(event, baseOptions);
+    const descEl = el.querySelector(".already-card__description");
+    assert.ok(descEl, "missing .already-card__description");
+    assert.ok(
+      descEl.innerHTML.includes("<strong>Bold</strong>"),
+      `expected sanitized <strong>, got: ${descEl.innerHTML}`,
+    );
+    assert.strictEqual(
+      descEl.querySelector("a")?.getAttribute("href"),
+      "https://example.com",
+    );
+  });
+
+  it("renders Markdown description through marked parser", () => {
+    const event = createTestEvent({ description: "**Bold** text" });
+    const el = render(event, baseOptions);
+    const descEl = el.querySelector(".already-card__description");
+    assert.ok(descEl, "missing .already-card__description");
+    assert.ok(
+      descEl.innerHTML.includes("<strong>Bold</strong>"),
+      `expected markdown-parsed <strong>, got: ${descEl.innerHTML}`,
+    );
+  });
+
+  it("strips disallowed tags like <script>", () => {
+    const event = createTestEvent({
+      description: "<script>alert(1)</script>safe",
+    });
+    const el = render(event, baseOptions);
+    const descEl = el.querySelector(".already-card__description");
+    assert.ok(descEl, "missing .already-card__description");
+    assert.ok(
+      !descEl.innerHTML.includes("<script"),
+      `<script> tag should be stripped, got: ${descEl.innerHTML}`,
+    );
+    assert.strictEqual(
+      descEl.querySelector("script"),
+      null,
+      "no <script> element should remain in the DOM",
+    );
+    assert.ok(
+      descEl.innerHTML.includes("safe"),
+      `safe content should remain, got: ${descEl.innerHTML}`,
+    );
+  });
+
   it("omits description when empty", () => {
     const event = createTestEvent({ description: "" });
     const el = render(event, baseOptions);

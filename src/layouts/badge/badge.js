@@ -1,4 +1,5 @@
 import { formatDate, formatTime } from "../../util/dates.js";
+import { renderDescription } from "../../util/description.js";
 import { createElement } from "../../views/helpers.js";
 import { buildBadge, buildCardClasses, createCardImage } from "../helpers.js";
 
@@ -67,10 +68,13 @@ export function render(event, options) {
     body.appendChild(tagsEl);
   }
 
-  // Description preview
+  // Description preview — route through renderDescription so HTML /
+  // Markdown / plain-text descriptions render consistently with detail.js
+  // (the only other site that previously rendered descriptions as
+  // sanitized HTML). Closes #190.
   if (event.description) {
     const desc = createElement("div", "already-card__description");
-    desc.textContent = event.description;
+    desc.innerHTML = renderDescription(event.description, options.config);
     body.appendChild(desc);
   }
 

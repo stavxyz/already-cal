@@ -101,12 +101,17 @@ function deepFreezeRecord(obj) {
   return Object.freeze(obj);
 }
 
-/** Normalize per-tag scheme entries to arrays so `.includes()` always works. */
-function normalizeUrlSchemes(raw) {
+/**
+ * Normalize per-tag list entries to arrays so `.includes()` always works.
+ * Used for both `allowedAttrs` and `allowedUrlSchemes` so callers can pass
+ * arrays OR Sets symmetrically — the alternative would be a subtle crash
+ * if someone passes a Set to one option but not the other.
+ */
+function normalizePerTagLists(raw) {
   return Object.fromEntries(
-    Object.entries(raw).map(([tag, schemes]) => [
+    Object.entries(raw).map(([tag, list]) => [
       tag,
-      Array.isArray(schemes) ? schemes : Array.from(schemes),
+      Array.isArray(list) ? list : Array.from(list),
     ]),
   );
 }
@@ -134,21 +139,25 @@ function dropNullishValues(obj) {
  * @param {object} [config.sanitization]
  * @param {string[]|Set<string>} [config.sanitization.allowedTags] - tag
  *   allow-list. REPLACES the default; use the exported `DEFAULT_ALLOWED_TAGS`
- *   to extend, e.g. `[...DEFAULT_ALLOWED_TAGS, "details", "summary"]`.
+ *   to extend, e.g. `[...DEFAULT_ALLOWED_TAGS, "details", "summary"]`. An
+ *   empty array or Set IS respected (not coerced to the default — the `||`
+ *   fallback only catches `null`/`undefined`/missing), so passing `[]`
+ *   correctly means "allow zero tags, hoist everything to text".
  * @param {object} [config.sanitization.allowedAttrs] - per-tag attribute
  *   allow-list. Per-tag MERGE with the defaults — keys you provide override
- *   that tag's allow-list, keys you omit fall back to the default. To disable
- *   attributes for a tag entirely, pass that tag with an empty array (e.g.
- *   `{ a: [] }` to allow no attrs on `<a>`). Setting the entire option to
- *   `{}` is indistinguishable from omitting it; both yield defaults.
+ *   that tag's allow-list, keys you omit fall back to the default. Per-tag
+ *   values may be arrays or Sets (both accepted; normalized to arrays
+ *   internally). To disable attributes for a tag entirely, pass that tag
+ *   with an empty array (e.g. `{ a: [] }` to allow no attrs on `<a>`).
+ *   Setting the entire option to `{}` is indistinguishable from omitting it;
+ *   both yield defaults. Per-tag null/undefined values are dropped before
+ *   merge so the default for that tag is preserved.
  * @param {object} [config.sanitization.allowedUrlSchemes] - per-tag URL-scheme
- *   allow-list. Same per-tag MERGE semantics as `allowedAttrs`. Shape:
- *   `{ a: ["http", "https", ...], img: [...] }`. Values may be arrays or Sets
- *   — both are accepted. Relative URLs (no scheme prefix, e.g. "/path",
- *   "#frag", "//host") are ALWAYS allowed regardless of this list. Schemes
- *   outside the list cause the attribute to be stripped, but the element
- *   survives. Per-tag null/undefined values are dropped before merge so the
- *   default for that tag is preserved.
+ *   allow-list. Same per-tag MERGE semantics as `allowedAttrs`, including
+ *   array/Set acceptance and null-drop. Shape: `{ a: ["http", "https", ...],
+ *   img: [...] }`. Relative URLs (no scheme prefix, e.g. "/path", "#frag",
+ *   "//host") are ALWAYS allowed regardless of this list. Schemes outside
+ *   the list cause the attribute to be stripped, but the element survives.
  * @returns {string} sanitized HTML.
  */
 export function sanitizeHtml(html, config) {
@@ -158,11 +167,13 @@ export function sanitizeHtml(html, config) {
   );
   // Drop null/undefined per-tag values from user input BEFORE merging so they
   // don't shadow the default for that tag (e.g. `{ a: null }` → keep default).
-  const allowedAttrs = {
+  // Normalize both options to arrays so callers may pass arrays OR Sets
+  // symmetrically (avoids a subtle TypeError on `.includes()` mid-render).
+  const allowedAttrs = normalizePerTagLists({
     ...DEFAULT_ALLOWED_ATTRS,
     ...dropNullishValues(sanitization?.allowedAttrs ?? {}),
-  };
-  const allowedUrlSchemes = normalizeUrlSchemes({
+  });
+  const allowedUrlSchemes = normalizePerTagLists({
     ...DEFAULT_ALLOWED_URL_SCHEMES,
     ...dropNullishValues(sanitization?.allowedUrlSchemes ?? {}),
   });

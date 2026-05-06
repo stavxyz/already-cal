@@ -239,6 +239,40 @@ describe("sanitizeHtml config robustness", () => {
     // <p> survives, <div> hoisted to text
     assert.match(result, /<p>p<\/p>d/);
   });
+
+  it("accepts Set values per-tag in allowedAttrs (symmetric with allowedUrlSchemes)", () => {
+    // Pre-fix: `.includes()` on a Set throws TypeError mid-render. Now both
+    // allowedAttrs and allowedUrlSchemes accept arrays AND Sets via the
+    // shared normalizePerTagLists helper.
+    const result = sanitizeHtml(
+      '<a href="https://example.com" target="_blank" rel="noopener">x</a>',
+      { sanitization: { allowedAttrs: { a: new Set(["href"]) } } },
+    );
+    // href survives (in the Set); target + rel stripped (not in the Set)
+    assert.match(result, /href="https:\/\/example\.com"/);
+    assert.ok(!result.includes("target="), "target should be stripped");
+    assert.ok(!result.includes("rel="), "rel should be stripped");
+  });
+
+  it("empty allowedTags array IS respected (not coerced to default)", () => {
+    // `||` only falls back on null/undefined/missing — empty array is
+    // truthy in JS, so `[] || DEFAULT` returns `[]`, not the default.
+    // Passing `[]` correctly means "allow zero tags, hoist everything
+    // to text". Pinned as a regression-guard in case a future refactor
+    // accidentally switches to `??` (which would behave the same here)
+    // OR introduces a `length === 0` fallback.
+    const out = sanitizeHtml("<p>kept</p><strong>bold</strong>", {
+      sanitization: { allowedTags: [] },
+    });
+    // Both <p> and <strong> hoisted to text — element-stripped, content kept.
+    assert.ok(!out.includes("<p>"), "p should be hoisted, got: " + out);
+    assert.ok(
+      !out.includes("<strong>"),
+      "strong should be hoisted, got: " + out,
+    );
+    assert.ok(out.includes("kept"));
+    assert.ok(out.includes("bold"));
+  });
 });
 
 describe("sanitizer default constants are immutable", () => {

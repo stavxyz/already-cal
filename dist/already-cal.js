@@ -2539,8 +2539,20 @@ ${text}</tr>
     a: ["href", "target"],
     img: ["src", "alt"]
   };
+  var DEFAULT_ALLOWED_URL_SCHEMES = {
+    a: ["http", "https", "mailto", "tel"],
+    img: ["http", "https"]
+  };
+  var RAW_TEXT_ELEMENTS = /* @__PURE__ */ new Set([
+    "script",
+    "style",
+    "noscript",
+    "template",
+    "textarea"
+  ]);
   var HTML_TAG_RE = /<\/?[a-z][a-z0-9]*[\s>]/i;
   var MARKDOWN_RE = /(?:^|\n)#{1,6}\s|(?:^|\n)[-*]\s|\*\*|__|\[.+?\]\(.+?\)/;
+  var URL_SCHEME_RE = /^\s*([a-z][a-z0-9+.-]*):/i;
   function detectFormat(text) {
     if (!text) return "plain";
     if (HTML_TAG_RE.test(text)) return "html";
@@ -2553,32 +2565,58 @@ ${text}</tr>
       sanitization?.allowedTags || DEFAULT_ALLOWED_TAGS
     );
     const allowedAttrs = sanitization?.allowedAttrs || DEFAULT_ALLOWED_ATTRS;
+    const allowedUrlSchemes = sanitization?.allowedUrlSchemes || DEFAULT_ALLOWED_URL_SCHEMES;
     const div = document.createElement("div");
     div.innerHTML = html2;
-    sanitizeNode(div, allowedTags, allowedAttrs);
+    sanitizeNode(div, allowedTags, allowedAttrs, allowedUrlSchemes);
     return div.innerHTML;
   }
-  function sanitizeNode(node, allowedTags, allowedAttrs) {
-    const children = Array.from(node.childNodes);
-    for (const child of children) {
+  function isUrlSchemeAllowed(url, allowedSchemes) {
+    if (url == null) return true;
+    const match = URL_SCHEME_RE.exec(url);
+    if (!match) return true;
+    const scheme = match[1].toLowerCase();
+    return allowedSchemes.includes(scheme);
+  }
+  function sanitizeAttributes(element, allowedAttrs, allowedUrlSchemes) {
+    const tag2 = element.tagName.toLowerCase();
+    const allowedNames = allowedAttrs[tag2] || [];
+    const schemes = allowedUrlSchemes[tag2];
+    const attrs = Array.from(element.attributes);
+    for (const attr of attrs) {
+      if (!allowedNames.includes(attr.name)) {
+        element.removeAttribute(attr.name);
+        continue;
+      }
+      if (schemes && (tag2 === "a" && attr.name === "href" || tag2 === "img" && attr.name === "src") && !isUrlSchemeAllowed(attr.value, schemes)) {
+        element.removeAttribute(attr.name);
+      }
+    }
+  }
+  function sanitizeNode(node, allowedTags, allowedAttrs, allowedUrlSchemes) {
+    let child = node.firstChild;
+    while (child) {
+      const next = child.nextSibling;
       if (child.nodeType === Node.ELEMENT_NODE) {
         const tag2 = child.tagName.toLowerCase();
         if (!allowedTags.has(tag2)) {
+          if (RAW_TEXT_ELEMENTS.has(tag2)) {
+            node.removeChild(child);
+            child = next;
+            continue;
+          }
+          const firstHoisted = child.firstChild;
           while (child.firstChild) {
             node.insertBefore(child.firstChild, child);
           }
           node.removeChild(child);
-        } else {
-          const allowed = allowedAttrs[tag2] || [];
-          const attrs = Array.from(child.attributes);
-          for (const attr of attrs) {
-            if (!allowed.includes(attr.name)) {
-              child.removeAttribute(attr.name);
-            }
-          }
-          sanitizeNode(child, allowedTags, allowedAttrs);
+          child = firstHoisted ?? next;
+          continue;
         }
+        sanitizeAttributes(child, allowedAttrs, allowedUrlSchemes);
+        sanitizeNode(child, allowedTags, allowedAttrs, allowedUrlSchemes);
       }
+      child = next;
     }
   }
   function renderDescription(text, config) {
@@ -3643,7 +3681,7 @@ ${text}</tr>
       }
       body.appendChild(tagsEl);
     }
-    if (event.description) {
+    if (event.description?.trim()) {
       const desc = createElement("div", "already-card__description");
       desc.innerHTML = renderDescription(event.description, options2.config);
       body.appendChild(desc);
@@ -3738,7 +3776,7 @@ ${text}</tr>
     const title = createElement("div", "already-card__title");
     title.textContent = event.title;
     body.appendChild(title);
-    if (event.description) {
+    if (event.description?.trim()) {
       const desc = createElement("div", "already-card__description");
       desc.innerHTML = renderDescription(event.description, options2.config);
       body.appendChild(desc);

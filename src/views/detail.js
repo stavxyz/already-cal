@@ -169,7 +169,13 @@ export function renderDetailView(container, event, timezone, onBack, config) {
     content.appendChild(tagsDiv);
   }
 
-  if (event.description) {
+  // Trim-gate symmetric with badge.js + hero.js: avoid emitting an empty
+  // .already-detail-description div for whitespace-only descriptions
+  // (e.g. "   " or "\n\n"), which would otherwise produce a visible empty
+  // block after the renderDescription `<br>` substitution path. Keeps
+  // the cross-layout description-rendering contract uniform — same
+  // class of inconsistency #190 was opened to close.
+  if (event.description?.trim()) {
     const desc = createElement("div", "already-detail-description");
     desc.innerHTML = renderDescription(event.description, config);
     content.appendChild(desc);

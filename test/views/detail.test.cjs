@@ -69,6 +69,20 @@ describe("renderDetailView", () => {
     assert.ok(desc);
   });
 
+  it("omits description block when whitespace-only", () => {
+    // Symmetric trim-gate with badge + hero layouts: a description like
+    // `"   \n  "` should NOT produce an empty `.already-detail-description`
+    // div. Pinning the cross-layout description-rendering contract that
+    // #190 was opened to make uniform.
+    const container = document.createElement("div");
+    const event = { ...baseEvent, description: "   \n  " };
+    renderDetailView(container, event, "UTC", () => {}, {});
+    assert.strictEqual(
+      container.querySelector(".already-detail-description"),
+      null,
+    );
+  });
+
   it("renders scalar tags as pills", () => {
     const container = document.createElement("div");
     const event = {

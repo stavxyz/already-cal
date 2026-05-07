@@ -166,6 +166,37 @@ describe("sanitizeHtml hoisted-children re-examination", () => {
     const out = sanitizeHtml("<form><input type='text'></form>safe");
     assert.strictEqual(out, "safe");
   });
+
+  it("strips <svg onload> + namespaced children entirely (XSS bypass class)", () => {
+    // <svg> is a famous XSS vector via inline event handlers like onload.
+    // Neither <svg> nor <circle> are in DEFAULT_ALLOWED_TAGS, so the walker
+    // hoists <svg>'s children, then re-examines <circle> (also disallowed)
+    // and removes it. The `onload` attribute is stripped because it's not in
+    // the allow-list for any tag. Pin this regression-guard since the live
+    // walker re-examination is what makes it safe — a future refactor that
+    // reverts to snapshot+iterate would silently break this.
+    const out = sanitizeHtml(
+      '<svg onload="alert(1)"><circle r="5"/></svg>safe',
+    );
+    assert.strictEqual(out, "safe");
+    assert.ok(!out.includes("onload"), "onload should be stripped");
+    assert.ok(!out.includes("<svg"), "svg should be hoisted-and-removed");
+    assert.ok(!out.includes("<circle"), "circle should be hoisted-and-removed");
+  });
+
+  it("strips <iframe src=javascript:> entirely", () => {
+    // <iframe> isn't in DEFAULT_ALLOWED_TAGS, so it's hoisted-then-removed.
+    // Its `src` attribute is non-allowed regardless of value (no entry for
+    // iframe in DEFAULT_ALLOWED_ATTRS), but pin a test that the iframe
+    // element itself doesn't survive even with a fallback-content child.
+    const out = sanitizeHtml(
+      '<iframe src="javascript:alert(1)">fallback</iframe>safe',
+    );
+    // Fallback content gets hoisted as text (correct — it's user-visible
+    // fallback, unlike <script>/<style> children which are program text).
+    assert.strictEqual(out, "fallbacksafe");
+    assert.ok(!out.includes("<iframe"));
+  });
 });
 
 describe("sanitizeHtml leading C0 control bypass", () => {

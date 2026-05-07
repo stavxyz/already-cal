@@ -4773,7 +4773,7 @@ ${text}</tr>
       }
       content.appendChild(tagsDiv);
     }
-    if (event.description) {
+    if (event.description?.trim()) {
       const desc = createElement("div", "already-detail-description");
       desc.innerHTML = renderDescription(event.description, config);
       content.appendChild(desc);

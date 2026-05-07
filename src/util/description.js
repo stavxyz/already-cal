@@ -63,8 +63,14 @@ export const DEFAULT_ALLOWED_URL_SCHEMES = deepFreezeRecord({
  * Frozen so consumers can't mutate the shared default at runtime.
  * Exposed as an array (not a Set) so it's truly immutable — `Object.freeze`
  * is a no-op on Set's prototype methods (`add`/`delete`), so freezing a Set
- * doesn't actually prevent mutation. Consumers extending the default should
- * write `new Set([...DEFAULT_RAW_TEXT_ELEMENTS, "mytag"])`.
+ * doesn't actually prevent mutation. Exposed for inspection / re-export
+ * only — there is intentionally no `config.sanitization.rawTextElements`
+ * knob, because dropping these tags whole-element (rather than hoisting
+ * children) is a security invariant: an operator who let `<style>` content
+ * render as text would expose raw CSS source, and an operator who let
+ * `<script>` children render would expose script bodies. The set is
+ * deliberately not extensible at config time. Consumers needing different
+ * behavior should wrap `sanitizeHtml` or fork the helper.
  */
 export const DEFAULT_RAW_TEXT_ELEMENTS = Object.freeze([
   "script",

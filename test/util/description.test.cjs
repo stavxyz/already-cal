@@ -265,10 +265,10 @@ describe("sanitizeHtml config robustness", () => {
       sanitization: { allowedTags: [] },
     });
     // Both <p> and <strong> hoisted to text — element-stripped, content kept.
-    assert.ok(!out.includes("<p>"), "p should be hoisted, got: " + out);
+    assert.ok(!out.includes("<p>"), `p should be hoisted, got: ${out}`);
     assert.ok(
       !out.includes("<strong>"),
-      "strong should be hoisted, got: " + out,
+      `strong should be hoisted, got: ${out}`,
     );
     assert.ok(out.includes("kept"));
     assert.ok(out.includes("bold"));

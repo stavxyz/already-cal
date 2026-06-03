@@ -36,6 +36,14 @@ export const DEFAULT_ALLOWED_TAGS = Object.freeze([
  * value on any `<a target="_blank">` — defense-in-depth against
  * window.opener leaks on older browsers without the modern implicit
  * `noopener` default for `_blank`. See `sanitizeAttributes`.
+ *
+ * The forced rel is UNCONDITIONAL: a consumer who passes a custom
+ * `allowedAttrs.a` that omits `rel` does NOT opt out of the security
+ * guarantee. The post-filter pass in `sanitizeAttributes` writes `rel`
+ * directly on the element after the allow-list strip, so the attribute
+ * survives regardless of the consumer's config. Removing `rel` from a
+ * custom allow-list only prevents author-supplied `rel` hints from
+ * passing through; it cannot disable the noopener/noreferrer force.
  */
 export const DEFAULT_ALLOWED_ATTRS = deepFreezeRecord({
   a: ["href", "target", "rel"],
@@ -248,6 +256,17 @@ function isUrlSchemeAllowed(url, allowedSchemes) {
  * `NOOPENER` and `noopener` in the output. Token order: author tokens
  * first (preserving their intent), then any forced tokens not already
  * present.
+ *
+ * Author casing is preserved on retained tokens (we only lowercase for
+ * dedupe comparison). HTML `rel` tokens are ASCII case-insensitive per
+ * spec, so `NOOPENER noreferrer` and `noopener noreferrer` are
+ * functionally identical to browsers; we don't normalize because it
+ * would silently rewrite author intent.
+ *
+ * An explicit `rel="opener"` from the author is NOT stripped — it
+ * survives alongside the forced `noopener`. Per spec, `noopener` takes
+ * precedence in browsers when both are present, so the security
+ * guarantee still holds (the opened tab cannot reach `window.opener`).
  */
 function mergeRelTokens(existing) {
   const seen = new Set();

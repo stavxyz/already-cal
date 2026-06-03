@@ -327,6 +327,33 @@ describe("sanitizeHtml window.opener defense (rel on target=_blank)", () => {
       '<a href="https://example.com" rel="external">x</a>',
     );
   });
+
+  it("forces tokens cleanly into an empty rel='' on target=_blank", () => {
+    // Templating systems frequently emit `rel=""` placeholders; the merge
+    // must produce a clean `noopener noreferrer` (no leading space, no
+    // empty token) rather than mangling the output.
+    const out = sanitizeHtml(
+      '<a href="https://example.com" target="_blank" rel="">x</a>',
+    );
+    assert.strictEqual(
+      out,
+      '<a href="https://example.com" target="_blank" rel="noopener noreferrer">x</a>',
+    );
+  });
+
+  it("preserves author rel='opener' alongside forced noopener (browsers give noopener precedence)", () => {
+    // `opener` is a real HTML rel token (it explicitly opts INTO the
+    // opener relationship). Per spec, when both `opener` and `noopener`
+    // are present, `noopener` wins — so the security guarantee still
+    // holds even though we don't strip the author's token.
+    const out = sanitizeHtml(
+      '<a href="https://example.com" target="_blank" rel="opener">x</a>',
+    );
+    assert.strictEqual(
+      out,
+      '<a href="https://example.com" target="_blank" rel="opener noopener noreferrer">x</a>',
+    );
+  });
 });
 
 describe("sanitizeHtml config robustness", () => {

@@ -180,7 +180,13 @@ Already.init({
   // --- Sanitization ---
   sanitization: {
     allowedTags: ['p','a','strong','em','ul','ol','li','br','img','blockquote','code','pre','h1','h2','h3','h4','h5','h6'],
-    allowedAttrs: { a: ['href','target'], img: ['src','alt'] },
+    allowedAttrs: { a: ['href','target','rel'], img: ['src','alt'] },
+    // Note: independent of `allowedAttrs`, the sanitizer unconditionally
+    // forces `rel="noopener noreferrer"` onto any `<a target="_blank">`
+    // (merged with author-supplied tokens) as defense-in-depth against
+    // window.opener leaks. Removing `rel` from `allowedAttrs.a` does NOT
+    // disable this — it only prevents author-supplied `rel` hints
+    // (e.g. `external`, `nofollow`) from surviving.
   },
 
   // --- Callbacks ---

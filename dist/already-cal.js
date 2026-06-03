@@ -2540,9 +2540,10 @@ ${text}</tr>
     "h6"
   ]);
   var DEFAULT_ALLOWED_ATTRS = deepFreezeRecord({
-    a: ["href", "target"],
+    a: ["href", "target", "rel"],
     img: ["src", "alt"]
   });
+  var FORCED_BLANK_REL_TOKENS = Object.freeze(["noopener", "noreferrer"]);
   var DEFAULT_ALLOWED_URL_SCHEMES = deepFreezeRecord({
     a: ["http", "https", "mailto", "tel"],
     img: ["http", "https"]
@@ -2607,6 +2608,23 @@ ${text}</tr>
     const scheme = match[1].toLowerCase();
     return allowedSchemes.includes(scheme);
   }
+  function mergeRelTokens(existing) {
+    const seen = /* @__PURE__ */ new Set();
+    const tokens = [];
+    for (const token of (existing || "").split(/\s+/)) {
+      if (!token) continue;
+      const lower = token.toLowerCase();
+      if (seen.has(lower)) continue;
+      seen.add(lower);
+      tokens.push(token);
+    }
+    for (const forced of FORCED_BLANK_REL_TOKENS) {
+      if (seen.has(forced)) continue;
+      seen.add(forced);
+      tokens.push(forced);
+    }
+    return tokens.join(" ");
+  }
   function sanitizeAttributes(element, allowedAttrs, allowedUrlSchemes) {
     const tag2 = element.tagName.toLowerCase();
     const allowedNames = allowedAttrs[tag2] || [];
@@ -2620,6 +2638,9 @@ ${text}</tr>
       if (schemes && (tag2 === "a" && attr.name === "href" || tag2 === "img" && attr.name === "src") && !isUrlSchemeAllowed(attr.value, schemes)) {
         element.removeAttribute(attr.name);
       }
+    }
+    if (tag2 === "a" && (element.getAttribute("target") || "").toLowerCase() === "_blank") {
+      element.setAttribute("rel", mergeRelTokens(element.getAttribute("rel")));
     }
   }
   function sanitizeNode(node, allowedTags, allowedAttrs, allowedUrlSchemes) {

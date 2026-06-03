@@ -29,11 +29,37 @@ export const DEFAULT_ALLOWED_TAGS = Object.freeze([
 /**
  * Default per-tag attribute allow-list. Frozen (including inner arrays) so
  * consumers can't mutate the shared default at runtime.
+ *
+ * `rel` is permitted on `<a>` so authors can opt into hints like
+ * `external` / `nofollow` / `me`. Independent of this allow-list, the
+ * sanitizer additionally FORCES `noopener noreferrer` into the `rel`
+ * value on any `<a target="_blank">` — defense-in-depth against
+ * window.opener leaks on older browsers without the modern implicit
+ * `noopener` default for `_blank`. See `sanitizeAttributes`.
  */
 export const DEFAULT_ALLOWED_ATTRS = deepFreezeRecord({
-  a: ["href", "target"],
+  a: ["href", "target", "rel"],
   img: ["src", "alt"],
 });
+
+/**
+ * `rel` tokens forced onto `<a target="_blank">` regardless of author input.
+ * Merged with any tokens the author already supplied so unrelated hints
+ * (e.g. `external`, `nofollow`) are preserved.
+ *
+ * Both tokens are needed:
+ * - `noopener` — prevents the opened tab from accessing `window.opener`
+ *   and tabnabbing the source page.
+ * - `noreferrer` — additionally suppresses the `Referer` header, which
+ *   is desirable for embed surfaces where the embedding host may not
+ *   want to leak its own URL to outbound destinations.
+ *
+ * Modern Chrome/Firefox/Safari default `_blank` to behave as if
+ * `noopener` were set, but the explicit attribute remains the industry-
+ * standard belt-and-suspenders and survives older browsers / nested
+ * iframe contexts that don't apply the implicit default consistently.
+ */
+const FORCED_BLANK_REL_TOKENS = Object.freeze(["noopener", "noreferrer"]);
 
 /**
  * Default URL-scheme allow-list, applied per-attribute.
@@ -214,10 +240,41 @@ function isUrlSchemeAllowed(url, allowedSchemes) {
 }
 
 /**
+ * Merge author-supplied `rel` tokens with the FORCED_BLANK_REL_TOKENS so
+ * `noopener` and `noreferrer` are always present on `<a target="_blank">`
+ * regardless of what the author wrote. Whitespace-splits per the HTML
+ * spec (rel is a space-delimited token list) and case-insensitively
+ * dedupes so an author who wrote `NOOPENER` doesn't end up with both
+ * `NOOPENER` and `noopener` in the output. Token order: author tokens
+ * first (preserving their intent), then any forced tokens not already
+ * present.
+ */
+function mergeRelTokens(existing) {
+  const seen = new Set();
+  const tokens = [];
+  for (const token of (existing || "").split(/\s+/)) {
+    if (!token) continue;
+    const lower = token.toLowerCase();
+    if (seen.has(lower)) continue;
+    seen.add(lower);
+    tokens.push(token);
+  }
+  for (const forced of FORCED_BLANK_REL_TOKENS) {
+    if (seen.has(forced)) continue;
+    seen.add(forced);
+    tokens.push(forced);
+  }
+  return tokens.join(" ");
+}
+
+/**
  * Strip attributes whose name isn't in `allowedNames`. For `href` on <a> and
  * `src` on <img>, additionally validate the URL scheme — if the scheme isn't
  * on the allow-list, drop the attribute (but keep the element so link text /
  * image alt survive).
+ *
+ * Post-filter, `<a target="_blank">` always gets `rel` forced to include
+ * `noopener noreferrer` — see FORCED_BLANK_REL_TOKENS for rationale.
  */
 function sanitizeAttributes(element, allowedAttrs, allowedUrlSchemes) {
   const tag = element.tagName.toLowerCase();
@@ -238,6 +295,18 @@ function sanitizeAttributes(element, allowedAttrs, allowedUrlSchemes) {
     ) {
       element.removeAttribute(attr.name);
     }
+  }
+
+  // Defense-in-depth: window.opener leak via target="_blank". Force
+  // `noopener noreferrer` into the rel attribute regardless of what the
+  // author wrote. Runs after the allow-list filter so `rel` is already
+  // permitted to survive; merges with author tokens to preserve any
+  // unrelated hints (external/nofollow/etc.).
+  if (
+    tag === "a" &&
+    (element.getAttribute("target") || "").toLowerCase() === "_blank"
+  ) {
+    element.setAttribute("rel", mergeRelTokens(element.getAttribute("rel")));
   }
 }
 

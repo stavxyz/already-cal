@@ -73,11 +73,16 @@ describe("sanitizeHtml URL-scheme allow-list", () => {
     assert.strictEqual(img.getAttribute("src"), null);
   });
 
-  it("preserves other attrs when href is stripped", () => {
+  it("preserves other attrs when href is stripped, and forces rel='noopener noreferrer' on target='_blank'", () => {
     // `target` is in DEFAULT_ALLOWED_ATTRS for <a>; href gets stripped for
-    // javascript: but target should survive.
+    // javascript: but target should survive. The sanitizer also forces
+    // rel="noopener noreferrer" onto any <a target="_blank"> as
+    // defense-in-depth against window.opener leaks (#204).
     const out = sanitizeHtml('<a href="javascript:x" target="_blank">x</a>');
-    assert.strictEqual(out, '<a target="_blank">x</a>');
+    assert.strictEqual(
+      out,
+      '<a target="_blank" rel="noopener noreferrer">x</a>',
+    );
   });
 
   it("honors a custom allowedUrlSchemes config (https-only)", () => {
@@ -228,6 +233,99 @@ describe("sanitizeHtml leading C0 control bypass", () => {
   it("blocks combined leading-C0 + embedded-tab obfuscation", () => {
     const out = sanitizeHtml('<a href="\x01\tjavascript:alert(1)">x</a>');
     assert.strictEqual(out, "<a>x</a>");
+  });
+});
+
+describe("sanitizeHtml window.opener defense (rel on target=_blank)", () => {
+  // #204: Without an explicit rel on <a target="_blank">, older browsers
+  // (or nested-iframe contexts where the modern implicit `noopener`
+  // default doesn't apply consistently) give the opened tab a reference
+  // to `window.opener`, enabling tabnabbing-class attacks. The sanitizer
+  // forces `rel="noopener noreferrer"` regardless of what the author wrote.
+
+  it("forces rel='noopener noreferrer' on bare <a target='_blank'>", () => {
+    const out = sanitizeHtml(
+      '<a href="https://example.com" target="_blank">x</a>',
+    );
+    assert.strictEqual(
+      out,
+      '<a href="https://example.com" target="_blank" rel="noopener noreferrer">x</a>',
+    );
+  });
+
+  it("merges forced tokens into author-supplied rel (preserves external/nofollow)", () => {
+    const out = sanitizeHtml(
+      '<a href="https://example.com" target="_blank" rel="external nofollow">x</a>',
+    );
+    assert.strictEqual(
+      out,
+      '<a href="https://example.com" target="_blank" rel="external nofollow noopener noreferrer">x</a>',
+    );
+  });
+
+  it("does not duplicate when author already supplied noopener noreferrer", () => {
+    const out = sanitizeHtml(
+      '<a href="https://example.com" target="_blank" rel="noopener noreferrer">x</a>',
+    );
+    assert.strictEqual(
+      out,
+      '<a href="https://example.com" target="_blank" rel="noopener noreferrer">x</a>',
+    );
+  });
+
+  it("dedupes case-insensitively (NOOPENER doesn't double-add)", () => {
+    const out = sanitizeHtml(
+      '<a href="https://example.com" target="_blank" rel="NOOPENER">x</a>',
+    );
+    assert.strictEqual(
+      out,
+      '<a href="https://example.com" target="_blank" rel="NOOPENER noreferrer">x</a>',
+    );
+  });
+
+  it("does NOT add rel when target is _self (no opener leak risk)", () => {
+    const out = sanitizeHtml(
+      '<a href="https://example.com" target="_self">x</a>',
+    );
+    assert.strictEqual(
+      out,
+      '<a href="https://example.com" target="_self">x</a>',
+    );
+  });
+
+  it("does NOT add rel when target attribute is absent", () => {
+    const out = sanitizeHtml('<a href="https://example.com">x</a>');
+    assert.strictEqual(out, '<a href="https://example.com">x</a>');
+  });
+
+  it("does NOT add rel when target is a named frame (not _blank)", () => {
+    const out = sanitizeHtml(
+      '<a href="https://example.com" target="results">x</a>',
+    );
+    assert.strictEqual(
+      out,
+      '<a href="https://example.com" target="results">x</a>',
+    );
+  });
+
+  it("matches target='_blank' case-insensitively (HTML spec)", () => {
+    const out = sanitizeHtml(
+      '<a href="https://example.com" target="_BLANK">x</a>',
+    );
+    assert.strictEqual(
+      out,
+      '<a href="https://example.com" target="_BLANK" rel="noopener noreferrer">x</a>',
+    );
+  });
+
+  it("permits author-supplied rel even without target (rel is in allow-list)", () => {
+    const out = sanitizeHtml(
+      '<a href="https://example.com" rel="external">x</a>',
+    );
+    assert.strictEqual(
+      out,
+      '<a href="https://example.com" rel="external">x</a>',
+    );
   });
 });
 

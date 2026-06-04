@@ -571,9 +571,17 @@ export function init(userConfig) {
     // that wants to send config via postMessage can gate its first send
     // on a real ready signal instead of inferring it from the iframe's
     // load event. See src/util/ready-handshake.js for the why + the
-    // no-op cases. Fired AFTER the first view renders so the
-    // postMessage listener (registered just below in init's outer
-    // scope) is wired and the bundle's instance state is complete.
+    // no-op cases.
+    //
+    // Fires AFTER `renderView(initial)` succeeds, so the bundle is
+    // painted before the consumer's gate opens. Note on ordering with
+    // the inbound `already:config` listener (`window.addEventListener
+    // ("message", handleMessage)` further down in init's body, after
+    // start() is invoked): start() is async and yields at
+    // `await loadData(config)` above; the synchronous code after the
+    // start() invocation — including the message listener registration
+    // — runs before the awaited promise resolves, so the inbound
+    // listener is reliably wired before this postMessage fires.
     //
     // __ALREADY_VERSION__ is replaced at build time via esbuild's
     // `define` — see build.cjs. Falls back to "unknown" if a consumer

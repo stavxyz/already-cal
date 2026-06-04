@@ -4486,6 +4486,24 @@ ${text}</tr>
     container.appendChild(bar);
   }
 
+  // src/util/ready-handshake.js
+  function postReadyToParent(version) {
+    if (typeof window === "undefined") return;
+    if (window.parent === window) return;
+    if (!document.referrer) return;
+    let parentOrigin;
+    try {
+      parentOrigin = new URL(document.referrer).origin;
+    } catch {
+      return;
+    }
+    if (!parentOrigin || parentOrigin === "null") return;
+    try {
+      window.parent.postMessage({ type: "already:ready", version }, parentOrigin);
+    } catch {
+    }
+  }
+
   // src/views/day.js
   function renderDayView(container, events, timezone, currentDate, config) {
     config = config || {};
@@ -5522,6 +5540,9 @@ ${text}</tr>
       removeHashListener = onHashChange((viewState) => {
         renderView(viewState);
       });
+      postReadyToParent(
+        true ? "0.3.0" : "unknown"
+      );
     }
     function setConfig2(newConfig) {
       if (destroyed) return;

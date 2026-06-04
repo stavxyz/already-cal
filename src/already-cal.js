@@ -22,6 +22,7 @@ import {
   DEFAULT_RAW_TEXT_ELEMENTS,
 } from "./util/description.js";
 import { DEFAULT_PLATFORMS } from "./util/links.js";
+import { postReadyToParent } from "./util/ready-handshake.js";
 import { renderDayView } from "./views/day.js";
 import { renderDetailView } from "./views/detail.js";
 import { renderGridView } from "./views/grid.js";
@@ -565,6 +566,23 @@ export function init(userConfig) {
     removeHashListener = onHashChange((viewState) => {
       renderView(viewState);
     });
+
+    // Signal "I'm initialized" to the parent window so a framing host
+    // that wants to send config via postMessage can gate its first send
+    // on a real ready signal instead of inferring it from the iframe's
+    // load event. See src/util/ready-handshake.js for the why + the
+    // no-op cases. Fired AFTER the first view renders so the
+    // postMessage listener (registered just below in init's outer
+    // scope) is wired and the bundle's instance state is complete.
+    //
+    // __ALREADY_VERSION__ is replaced at build time via esbuild's
+    // `define` — see build.cjs. Falls back to "unknown" if a consumer
+    // imports a source file directly without the build step.
+    postReadyToParent(
+      typeof __ALREADY_VERSION__ !== "undefined"
+        ? __ALREADY_VERSION__
+        : "unknown",
+    );
   }
 
   function setConfig(newConfig) {

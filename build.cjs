@@ -1,6 +1,15 @@
 const esbuild = require("esbuild");
+const pkg = require("./package.json");
 
 const watch = process.argv.includes("--watch");
+
+// Inject the package version as a build-time constant. Consumed by
+// src/util/ready-handshake.js to include the version in the
+// `already:ready` postMessage payload — so a framing host can branch
+// on bundle capability if the handshake's message shape evolves.
+const define = {
+  __ALREADY_VERSION__: JSON.stringify(pkg.version),
+};
 
 async function build() {
   const ctx = await esbuild.context({
@@ -11,6 +20,7 @@ async function build() {
     outfile: "dist/already-cal.js",
     minify: false,
     sourcemap: true,
+    define,
   });
 
   const ctxMin = await esbuild.context({
@@ -20,6 +30,7 @@ async function build() {
     globalName: "Already",
     outfile: "dist/already-cal.min.js",
     minify: true,
+    define,
   });
 
   const ctxCss = await esbuild.context({

@@ -104,20 +104,33 @@ describe("postReadyToParent — no-op contexts", () => {
     assert.deepStrictEqual(calls, []);
   });
 
-  it('is a no-op when referrer origin parses to "null" (e.g. sandboxed parent)', () => {
-    // `new URL("about:blank").origin` returns "null" per WHATWG URL —
-    // postMessage to a parent whose origin is "null" is meaningless
-    // (the wildcard semantics differ across browsers), so we skip.
-    const calls = [];
-    withParent(
-      { postMessage: (msg, origin) => calls.push({ msg, origin }) },
-      () => {
-        withReferrer("about:blank", () => {
-          postReadyToParent("0.3.0");
-        });
-      },
-    );
-    assert.deepStrictEqual(calls, []);
+  it('is a no-op when referrer origin parses to "null" (about:blank, data:, file://)', () => {
+    // Opaque-origin schemes all yield `new URL(...).origin === "null"`
+    // per WHATWG URL. postMessage to a parent whose origin is "null"
+    // is meaningless (cross-browser semantics differ), so we skip.
+    // This pins all three common cases against a future refactor that
+    // narrows the guard to just one scheme.
+    const opaqueReferrers = [
+      "about:blank",
+      "data:text/html,<p>x</p>",
+      "file:///Users/x/page.html",
+    ];
+    for (const referrer of opaqueReferrers) {
+      const calls = [];
+      withParent(
+        { postMessage: (msg, origin) => calls.push({ msg, origin }) },
+        () => {
+          withReferrer(referrer, () => {
+            postReadyToParent("0.3.0");
+          });
+        },
+      );
+      assert.deepStrictEqual(
+        calls,
+        [],
+        `Should be no-op for opaque referrer ${referrer}`,
+      );
+    }
   });
 
   it("swallows parent.postMessage throws (sandbox / CSP edge cases)", () => {

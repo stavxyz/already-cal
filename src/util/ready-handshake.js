@@ -61,6 +61,12 @@ export function postReadyToParent(version) {
   } catch {
     return;
   }
+  // `new URL(...).origin` always returns a non-empty string per WHATWG
+  // URL, so `!parentOrigin` is defense-in-depth against a future spec
+  // drift; the load-bearing guard is `=== "null"` which catches the
+  // opaque-origin schemes (about:blank, data:, file://, sandboxed
+  // iframes) where postMessage to "null" has undefined cross-browser
+  // semantics.
   if (!parentOrigin || parentOrigin === "null") return;
   try {
     window.parent.postMessage({ type: "already:ready", version }, parentOrigin);

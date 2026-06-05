@@ -90,6 +90,22 @@ describe("badge layout", () => {
       "none",
       "image wrapper should be hidden",
     );
+    // Pin: badge content (day/month) survives the move — no shallow re-creation.
+    assert.ok(
+      rescuedBadge.querySelector(".already-card__badge-day")?.textContent,
+      "rescued badge should preserve its day text",
+    );
+    assert.ok(
+      rescuedBadge.querySelector(".already-card__badge-month")?.textContent,
+      "rescued badge should preserve its month text",
+    );
+    // Pin: rescued badge is the first child of body — matches the no-image
+    // inline path (badge.js appends badge first, then title, meta, etc.).
+    assert.strictEqual(
+      body.firstElementChild,
+      rescuedBadge,
+      "rescued badge should be the first child of body (matches no-image inline path)",
+    );
   });
 
   it("includes full date and time", () => {

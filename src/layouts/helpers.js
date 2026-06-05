@@ -52,6 +52,10 @@ export function createCardImage(event) {
       const body = card?.querySelector(".already-card__body");
       if (body) {
         badge.classList.add("already-card__badge--inline");
+        // Insert as the FIRST child of body to match the no-image inline
+        // path (badge.js builds body as: badge, title, meta, ...). Keeping
+        // the same DOM order means the rescued card is visually
+        // indistinguishable from a card that never had an image.
         body.insertBefore(badge, body.firstChild);
       }
     }

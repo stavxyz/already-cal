@@ -41,6 +41,57 @@ describe("badge layout", () => {
     assert.ok(el.querySelector(".already-card__badge"));
   });
 
+  it("(regression already.events#217) badge survives broken image — moved inline into body so it doesn't get hidden with the image wrapper", () => {
+    // Repro: any event with an image URL that 404s / blocks (e.g. a
+    // Google Drive shared-link image where the owner didn't enable
+    // "anyone with the link can view") triggers img.onerror, which
+    // previously did `wrapper.style.display = "none"` and hid the
+    // badge as collateral damage — the badge layout appends its date
+    // badge INSIDE the image wrapper for overlay positioning.
+    //
+    // The fix in src/layouts/helpers.js rescues the badge from
+    // inside the wrapper BEFORE hiding it: moves it to the card's
+    // body with the --inline modifier, so it renders as a sibling
+    // of the title (same shape as the no-image code path).
+    const el = render(
+      createTestEvent({ image: "https://example.com/not-a-real-image.jpg" }),
+      baseOptions,
+    );
+    // Pre-error state: badge is inside the image wrapper.
+    const wrapper = el.querySelector(".already-card__image");
+    assert.ok(wrapper, "image wrapper should exist");
+    assert.ok(
+      wrapper.querySelector(".already-card__badge"),
+      "badge should start inside the image wrapper (overlay positioning)",
+    );
+
+    // Trigger the failure path that real Google Drive 404s hit.
+    const img = wrapper.querySelector("img");
+    img.onerror();
+
+    // Post-error state:
+    //   - badge has been rescued OUT of the wrapper and into the body
+    //   - badge has the --inline modifier so it renders correctly
+    //   - wrapper is hidden (display: none) so no broken-image icon
+    const body = el.querySelector(".already-card__body");
+    const rescuedBadge = body.querySelector(".already-card__badge");
+    assert.ok(rescuedBadge, "badge should be moved into the body");
+    assert.ok(
+      rescuedBadge.classList.contains("already-card__badge--inline"),
+      "rescued badge should have the --inline modifier",
+    );
+    assert.strictEqual(
+      wrapper.querySelector(".already-card__badge"),
+      null,
+      "badge should NOT remain inside the hidden wrapper",
+    );
+    assert.strictEqual(
+      wrapper.style.display,
+      "none",
+      "image wrapper should be hidden",
+    );
+  });
+
   it("includes full date and time", () => {
     const el = render(createTestEvent(), baseOptions);
     assert.ok(el.querySelector(".already-card__meta"));

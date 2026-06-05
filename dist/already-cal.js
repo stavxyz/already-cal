@@ -3644,6 +3644,15 @@ ${text}</tr>
     img.alt = event.title;
     img.setAttribute("loading", "lazy");
     img.onerror = () => {
+      const badge = wrapper.querySelector(".already-card__badge");
+      if (badge) {
+        const card = wrapper.parentElement;
+        const body = card?.querySelector(".already-card__body");
+        if (body) {
+          badge.classList.add("already-card__badge--inline");
+          body.insertBefore(badge, body.firstChild);
+        }
+      }
       wrapper.style.display = "none";
     };
     wrapper.appendChild(img);
@@ -5541,7 +5550,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.3.0" : "unknown"
+        true ? "0.3.1" : "unknown"
       );
     }
     function setConfig2(newConfig) {

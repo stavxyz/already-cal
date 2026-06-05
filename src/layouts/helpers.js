@@ -26,6 +26,17 @@ export function buildCardClasses(
 /**
  * Create a card image wrapper with lazy loading and error fallback.
  * Returns null if the event has no image.
+ *
+ * On `img.onerror` (e.g. the user uploaded a Google Drive image that
+ * wasn't shared publicly — see already.events#168, #217), the wrapper
+ * is hidden so the card doesn't render a broken-image icon. BEFORE
+ * hiding, any `.already-card__badge` element that was appended into
+ * the wrapper by the layout (badge layout overlays its date badge on
+ * the image) is rescued: moved to the card's body with the
+ * `--inline` modifier so it renders as a sibling of the title instead
+ * of disappearing with the image wrapper. Without the rescue, every
+ * card whose image failed to load lost its date badge as collateral
+ * damage — the original symptom of already.events#217.
  */
 export function createCardImage(event) {
   if (!event.image) return null;
@@ -35,6 +46,15 @@ export function createCardImage(event) {
   img.alt = event.title;
   img.setAttribute("loading", "lazy");
   img.onerror = () => {
+    const badge = wrapper.querySelector(".already-card__badge");
+    if (badge) {
+      const card = wrapper.parentElement;
+      const body = card?.querySelector(".already-card__body");
+      if (body) {
+        badge.classList.add("already-card__badge--inline");
+        body.insertBefore(badge, body.firstChild);
+      }
+    }
     wrapper.style.display = "none";
   };
   wrapper.appendChild(img);

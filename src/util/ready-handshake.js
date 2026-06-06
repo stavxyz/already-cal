@@ -52,6 +52,45 @@
  * @returns {void}
  */
 export function postReadyToParent(version) {
+  postToParent({ type: "already:ready", version });
+}
+
+/**
+ * Post a `{ type: 'already:interaction' }` message to the parent
+ * window so a framing host (e.g. an embedding landing-page demo
+ * carousel) can detect user engagement inside the embed without
+ * needing to instrument the iframe's content directly.
+ *
+ * Cross-origin iframes do not bubble inner click / scroll / keypress
+ * events to the parent document; the `window.blur` heuristic catches
+ * clicks but misses scroll-wheel and keyboard activity. This message
+ * is the embed-side complement: the bundle emits it on the first
+ * interaction observed inside the rendered surface. Consumers
+ * listening for it can stop an auto-rotating carousel, surface a
+ * "manual mode" affordance, etc.
+ *
+ * Same no-op contexts + origin-safety guarantees as {@link postReadyToParent}.
+ *
+ * The bundle's caller is responsible for throttling: if a user clicks
+ * 10 times in 5 seconds, the caller emits ONCE (the consumer only
+ * needs to know "engagement started"). The shape of the throttle is
+ * up to the caller; this helper is a thin wrapper around `postMessage`.
+ *
+ * @returns {void}
+ */
+export function postInteractionToParent() {
+  postToParent({ type: "already:interaction" });
+}
+
+/**
+ * Private shared helper. Both public posters derive the same target
+ * origin from `document.referrer`, apply the same no-op guards, and
+ * swallow the same set of postMessage throws.
+ *
+ * @param {object} message - Plain-object payload. Caller guarantees a
+ *   `type` string starting with `already:`.
+ */
+function postToParent(message) {
   if (typeof window === "undefined") return;
   if (window.parent === window) return;
   if (!document.referrer) return;
@@ -69,7 +108,7 @@ export function postReadyToParent(version) {
   // semantics.
   if (!parentOrigin || parentOrigin === "null") return;
   try {
-    window.parent.postMessage({ type: "already:ready", version }, parentOrigin);
+    window.parent.postMessage(message, parentOrigin);
   } catch {
     // Parent in a sandbox, or a CSP that blocks cross-frame
     // postMessage. Silent — consumer's load-event fallback path is

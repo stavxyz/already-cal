@@ -22,7 +22,10 @@ import {
   DEFAULT_RAW_TEXT_ELEMENTS,
 } from "./util/description.js";
 import { DEFAULT_PLATFORMS } from "./util/links.js";
-import { postReadyToParent } from "./util/ready-handshake.js";
+import {
+  postInteractionToParent,
+  postReadyToParent,
+} from "./util/ready-handshake.js";
 import { renderDayView } from "./views/day.js";
 import { renderDetailView } from "./views/detail.js";
 import { renderGridView } from "./views/grid.js";
@@ -530,6 +533,7 @@ export function init(userConfig) {
 
   // Load and render
   let removeHashListener = null;
+  let interactionCleanup = null;
 
   async function start() {
     captureOriginalMeta();
@@ -591,6 +595,41 @@ export function init(userConfig) {
         ? __ALREADY_VERSION__
         : "unknown",
     );
+
+    // Wire interaction signaling so a framing host (e.g. an embedding
+    // landing-page demo carousel) can detect user engagement inside the
+    // embed without having to instrument cross-origin iframe content.
+    // See src/util/ready-handshake.js > postInteractionToParent for
+    // the rationale + no-op contexts. The throttle keeps emits
+    // sparse — the consumer just needs to know "engagement started";
+    // they don't need every click.
+    if (window.parent !== window) {
+      const INTERACTION_THROTTLE_MS = 2000;
+      let lastInteractionAt = 0;
+      const handleInteraction = () => {
+        if (destroyed) return;
+        const now = performance.now();
+        if (now - lastInteractionAt < INTERACTION_THROTTLE_MS) return;
+        lastInteractionAt = now;
+        postInteractionToParent();
+      };
+      // Passive on wheel + touchstart so we never block native scroll.
+      // No `keydown` listener: the embed's keyboard surface is read-
+      // only navigation; keyboard activity is already implied by the
+      // resulting click/focus events that DO bubble to the root.
+      el.addEventListener("click", handleInteraction);
+      el.addEventListener("wheel", handleInteraction, { passive: true });
+      el.addEventListener("touchstart", handleInteraction, { passive: true });
+      // Cleanup: piggyback on destroy() (line ~712). The listeners
+      // attach to `el` which destroy() empties; the GC reclaims them
+      // when the node detaches, but explicit removal is cheaper than
+      // relying on the browser's detach cleanup.
+      interactionCleanup = () => {
+        el.removeEventListener("click", handleInteraction);
+        el.removeEventListener("wheel", handleInteraction);
+        el.removeEventListener("touchstart", handleInteraction);
+      };
+    }
   }
 
   function setConfig(newConfig) {
@@ -712,6 +751,7 @@ export function init(userConfig) {
     window.removeEventListener("resize", handleResize);
     window.removeEventListener("message", handleMessage);
     if (removeHashListener) removeHashListener();
+    if (interactionCleanup) interactionCleanup();
     el.innerHTML = "";
     el.classList.remove("already");
     for (const attr of ["layout", "orientation", "imagePosition", "palette"]) {

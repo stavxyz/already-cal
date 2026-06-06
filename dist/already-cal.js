@@ -4497,6 +4497,12 @@ ${text}</tr>
 
   // src/util/ready-handshake.js
   function postReadyToParent(version) {
+    postToParent({ type: "already:ready", version });
+  }
+  function postInteractionToParent() {
+    postToParent({ type: "already:interaction" });
+  }
+  function postToParent(message) {
     if (typeof window === "undefined") return;
     if (window.parent === window) return;
     if (!document.referrer) return;
@@ -4508,7 +4514,7 @@ ${text}</tr>
     }
     if (!parentOrigin || parentOrigin === "null") return;
     try {
-      window.parent.postMessage({ type: "already:ready", version }, parentOrigin);
+      window.parent.postMessage(message, parentOrigin);
     } catch {
     }
   }
@@ -5522,6 +5528,7 @@ ${text}</tr>
       }
     }
     let removeHashListener = null;
+    let interactionCleanup = null;
     async function start() {
       captureOriginalMeta();
       renderLoading(viewContainer, config);
@@ -5550,8 +5557,27 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.3.1" : "unknown"
+        true ? "0.3.2" : "unknown"
       );
+      if (window.parent !== window) {
+        const INTERACTION_THROTTLE_MS = 2e3;
+        let lastInteractionAt = 0;
+        const handleInteraction = () => {
+          if (destroyed) return;
+          const now = performance.now();
+          if (now - lastInteractionAt < INTERACTION_THROTTLE_MS) return;
+          lastInteractionAt = now;
+          postInteractionToParent();
+        };
+        el.addEventListener("click", handleInteraction);
+        el.addEventListener("wheel", handleInteraction, { passive: true });
+        el.addEventListener("touchstart", handleInteraction, { passive: true });
+        interactionCleanup = () => {
+          el.removeEventListener("click", handleInteraction);
+          el.removeEventListener("wheel", handleInteraction);
+          el.removeEventListener("touchstart", handleInteraction);
+        };
+      }
     }
     function setConfig2(newConfig) {
       if (destroyed) return;
@@ -5644,6 +5670,7 @@ ${text}</tr>
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("message", handleMessage);
       if (removeHashListener) removeHashListener();
+      if (interactionCleanup) interactionCleanup();
       el.innerHTML = "";
       el.classList.remove("already");
       for (const attr of ["layout", "orientation", "imagePosition", "palette"]) {

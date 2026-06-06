@@ -26,6 +26,7 @@ import {
   postInteractionToParent,
   postReadyToParent,
 } from "./util/ready-handshake.js";
+import { makeThrottle } from "./util/throttle.js";
 import { renderDayView } from "./views/day.js";
 import { renderDetailView } from "./views/detail.js";
 import { renderGridView } from "./views/grid.js";
@@ -603,31 +604,51 @@ export function init(userConfig) {
     // the rationale + no-op contexts. The throttle keeps emits
     // sparse — the consumer just needs to know "engagement started";
     // they don't need every click.
-    if (window.parent !== window) {
-      const INTERACTION_THROTTLE_MS = 2000;
-      let lastInteractionAt = 0;
+    // Skip the no-op work if the embed isn't framed at all OR if the
+    // referrer was stripped — `postInteractionToParent` would no-op
+    // internally in both cases, so attaching listeners just to fire
+    // them on every wheel tick would be wasted handler invocations.
+    // Both conditions match the gates inside `postToParent` itself.
+    if (window.parent !== window && document.referrer) {
+      // 2-second throttle on the cross-origin interaction signal.
+      // The consumer just needs to know "engagement started," not
+      // every individual event. `makeThrottle` correctly admits the
+      // first call (its `-Infinity` sentinel prevents the page-load
+      // dead-zone regression where a visitor's first click at
+      // ~700ms post-init was silently dropped). See
+      // test/util/throttle.test.cjs for the pinned contract.
+      const tryAdmitInteraction = makeThrottle({
+        thresholdMs: 2000,
+        now: () => performance.now(),
+      });
       const handleInteraction = () => {
         if (destroyed) return;
-        const now = performance.now();
-        if (now - lastInteractionAt < INTERACTION_THROTTLE_MS) return;
-        lastInteractionAt = now;
+        if (!tryAdmitInteraction()) return;
         postInteractionToParent();
       };
       // Passive on wheel + touchstart so we never block native scroll.
-      // No `keydown` listener: the embed's keyboard surface is read-
-      // only navigation; keyboard activity is already implied by the
-      // resulting click/focus events that DO bubble to the root.
+      // `keydown` is included because not every keyboard-driven
+      // interaction in the bundle produces a bubbling click/focus
+      // event — `views/detail.js` arrow-key gallery navigation calls
+      // `goTo(idx)` directly without dispatching a synthetic click,
+      // and `views/helpers.js` Enter/Space card activation invokes
+      // the click handler as a function reference. A visitor flipping
+      // through gallery images via arrow keys is exactly the
+      // "engaged" signal the consumer needs, and without `keydown`
+      // here that signal would be silent.
       el.addEventListener("click", handleInteraction);
       el.addEventListener("wheel", handleInteraction, { passive: true });
       el.addEventListener("touchstart", handleInteraction, { passive: true });
-      // Cleanup: piggyback on destroy() (line ~712). The listeners
-      // attach to `el` which destroy() empties; the GC reclaims them
-      // when the node detaches, but explicit removal is cheaper than
+      el.addEventListener("keydown", handleInteraction);
+      // Cleanup: piggyback on destroy() below. The listeners attach
+      // to `el` which destroy() empties; the GC reclaims them when
+      // the node detaches, but explicit removal is cheaper than
       // relying on the browser's detach cleanup.
       interactionCleanup = () => {
         el.removeEventListener("click", handleInteraction);
         el.removeEventListener("wheel", handleInteraction);
         el.removeEventListener("touchstart", handleInteraction);
+        el.removeEventListener("keydown", handleInteraction);
       };
     }
   }

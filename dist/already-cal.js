@@ -4519,6 +4519,17 @@ ${text}</tr>
     }
   }
 
+  // src/util/throttle.js
+  function makeThrottle({ thresholdMs, now }) {
+    let lastAdmittedAt = -Infinity;
+    return function tryAdmit() {
+      const t = now();
+      if (t - lastAdmittedAt < thresholdMs) return false;
+      lastAdmittedAt = t;
+      return true;
+    };
+  }
+
   // src/views/day.js
   function renderDayView(container, events, timezone, currentDate, config) {
     config = config || {};
@@ -5559,23 +5570,25 @@ ${text}</tr>
       postReadyToParent(
         true ? "0.3.2" : "unknown"
       );
-      if (window.parent !== window) {
-        const INTERACTION_THROTTLE_MS = 2e3;
-        let lastInteractionAt = 0;
+      if (window.parent !== window && document.referrer) {
+        const tryAdmitInteraction = makeThrottle({
+          thresholdMs: 2e3,
+          now: () => performance.now()
+        });
         const handleInteraction = () => {
           if (destroyed) return;
-          const now = performance.now();
-          if (now - lastInteractionAt < INTERACTION_THROTTLE_MS) return;
-          lastInteractionAt = now;
+          if (!tryAdmitInteraction()) return;
           postInteractionToParent();
         };
         el.addEventListener("click", handleInteraction);
         el.addEventListener("wheel", handleInteraction, { passive: true });
         el.addEventListener("touchstart", handleInteraction, { passive: true });
+        el.addEventListener("keydown", handleInteraction);
         interactionCleanup = () => {
           el.removeEventListener("click", handleInteraction);
           el.removeEventListener("wheel", handleInteraction);
           el.removeEventListener("touchstart", handleInteraction);
+          el.removeEventListener("keydown", handleInteraction);
         };
       }
     }

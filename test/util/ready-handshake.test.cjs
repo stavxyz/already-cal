@@ -3,10 +3,12 @@ const { describe, it, before } = require("node:test");
 const assert = require("node:assert");
 
 let postReadyToParent;
+let postInteractionToParent;
 
 before(async () => {
   const mod = await import("../../src/util/ready-handshake.js");
   postReadyToParent = mod.postReadyToParent;
+  postInteractionToParent = mod.postInteractionToParent;
 });
 
 /**
@@ -203,6 +205,67 @@ describe("postReadyToParent — happy path", () => {
       },
     );
     assert.strictEqual(calls[0].msg.version, "9.9.9-rc.1");
+  });
+
+  it("postInteractionToParent emits the same shape contract — no-ops without a parent", () => {
+    const calls = [];
+    withParent(window, () => {
+      withReferrer("https://parent.example/", () => {
+        postInteractionToParent();
+      });
+    });
+    // window.parent === window → not in an iframe → no postMessage.
+    assert.deepStrictEqual(calls, []);
+  });
+
+  it("postInteractionToParent posts {type:'already:interaction'} to derived parent origin", () => {
+    const calls = [];
+    withParent(
+      { postMessage: (msg, origin) => calls.push({ msg, origin }) },
+      () => {
+        withReferrer("https://parent.example/some/path", () => {
+          postInteractionToParent();
+        });
+      },
+    );
+    assert.strictEqual(calls.length, 1);
+    assert.deepStrictEqual(calls[0].msg, { type: "already:interaction" });
+    assert.strictEqual(calls[0].origin, "https://parent.example");
+  });
+
+  it("postInteractionToParent no-ops on opaque referrer origin", () => {
+    const calls = [];
+    withParent(
+      { postMessage: (msg, origin) => calls.push({ msg, origin }) },
+      () => {
+        // about:blank referrer produces an opaque (null) origin per WHATWG URL.
+        withReferrer("about:blank", () => {
+          postInteractionToParent();
+        });
+      },
+    );
+    assert.deepStrictEqual(calls, []);
+  });
+
+  it("postInteractionToParent swallows postMessage throws (parent in sandbox)", () => {
+    let threw = false;
+    withParent(
+      {
+        postMessage: () => {
+          throw new Error("blocked by sandbox");
+        },
+      },
+      () => {
+        withReferrer("https://parent.example/", () => {
+          try {
+            postInteractionToParent();
+          } catch {
+            threw = true;
+          }
+        });
+      },
+    );
+    assert.strictEqual(threw, false, "helper must swallow postMessage throws");
   });
 
   it("never targets wildcard origin", () => {

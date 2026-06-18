@@ -41,8 +41,24 @@ Provide exactly one data source.
 | `headerDescription` | `string \| null` | `null` | Override calendar description |
 | `headerIcon` | `string \| null` | `null` | URL to icon/logo image displayed in the header |
 | `subscribeUrl` | `string \| null` | `null` | Subscribe button URL. Auto-generated from `google.calendarId` if not set |
+| `shareUrl` | `string \| null` | `null` | Canonical page URL used by the Share buttons. Event shares append `/event/<id>`; calendar shares append `#<view>`. Falls back to the current page URL when unset (in an iframe that's the embed's URL, so set this to the host page for shareable links). |
 
 The subscribe button appears when a URL is available. If the calendar description contains the word "subscribe", it's auto-linked to the subscribe URL.
+
+### Sharing inside an iframe
+
+The Share buttons use the browser's native share sheet (`navigator.share`) and
+fall back to copying the link (`navigator.clipboard`). When the widget is
+embedded cross-origin in an `<iframe>`, both APIs are gated by Permissions
+Policy and must be delegated by the embedding page:
+
+```html
+<iframe src="…" allow="web-share; clipboard-write"></iframe>
+```
+
+Without `web-share`, sharing silently falls back to copy; without
+`clipboard-write`, the copy fallback is unavailable and the button does nothing
+rather than erroring.
 
 ## Theming
 
@@ -538,6 +554,7 @@ The most common options are available as HTML `data-` attributes for zero-JS set
 | `data-calendar-id` | `google.calendarId` | string |
 | `data-max-results` | `google.maxResults` | integer |
 | `data-fetch-url` | `fetchUrl` | string |
+| `data-share-url` | `shareUrl` | string |
 | `data-default-view` | `defaultView` | string |
 | `data-views` | `views` | comma-separated |
 | `data-locale` | `locale` | string |

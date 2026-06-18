@@ -4129,8 +4129,8 @@ ${text}</tr>
       }
     }
     function showCopied() {
-      labelSpan.textContent = copiedLabel;
       clearRevert();
+      labelSpan.textContent = copiedLabel;
       revertTimer = setTimeout(() => {
         labelSpan.textContent = label;
         revertTimer = null;

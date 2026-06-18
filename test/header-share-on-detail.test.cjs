@@ -14,6 +14,7 @@ afterEach(() => {
     instance?.destroy?.();
     container.remove();
   }
+  delete navigator.share;
   delete navigator.clipboard;
 });
 
@@ -66,6 +67,7 @@ describe("header calendar-share visibility by view", () => {
     const container = mount({ initialEvent: "e1" });
     await tick();
     const headerShare = container.querySelector(".already-header-share");
+    assert.ok(headerShare, "header share rendered");
     assert.strictEqual(
       headerShare.hasAttribute("hidden"),
       true,
@@ -82,7 +84,9 @@ describe("header calendar-share visibility by view", () => {
   });
 
   it("header share copy fallback shows the clipboard-emoji label by default", async () => {
-    // No navigator.share → copy path; no i18n.copied → the "📋 Copied!" default
+    // No navigator.share → copy path. The "📋 Copied!" label here comes from
+    // I18N_DEFAULTS.copied (merged by init) — exercising the merged-config path,
+    // not header.js's defensive || fallback (which init makes unreachable).
     Object.defineProperty(navigator, "clipboard", {
       value: { writeText: async () => {} },
       configurable: true,

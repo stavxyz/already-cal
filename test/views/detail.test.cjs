@@ -12,6 +12,9 @@ before(async () => {
 
 afterEach(() => {
   document.querySelector(".already-lightbox-close")?.click();
+  delete navigator.share;
+  delete navigator.clipboard;
+  delete navigator._lastShare;
 });
 
 describe("renderDetailView", () => {
@@ -303,6 +306,5 @@ describe("renderDetailView", () => {
       share.querySelector(".already-share-label").textContent,
       "📋 Copied!",
     );
-    delete navigator.clipboard;
   });
 });

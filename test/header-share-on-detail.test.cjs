@@ -59,4 +59,41 @@ describe("header calendar-share visibility by view", () => {
       "hidden on the event-detail view (the event has its own Share button)",
     );
   });
+
+  it("re-shows the header share button after navigating back from detail", async () => {
+    const container = mount({ initialEvent: "e1" });
+    await tick();
+    const headerShare = container.querySelector(".already-header-share");
+    assert.strictEqual(
+      headerShare.hasAttribute("hidden"),
+      true,
+      "hidden on detail",
+    );
+    // Back button → setView() to a calendar view → renderView re-shows it
+    container.querySelector(".already-detail-back").click();
+    await tick();
+    assert.strictEqual(
+      headerShare.hasAttribute("hidden"),
+      false,
+      "visible again after back-navigation",
+    );
+  });
+
+  it("header share copy fallback shows the clipboard-emoji label by default", async () => {
+    // No navigator.share → copy path; no i18n.copied → the "📋 Copied!" default
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: async () => {} },
+      configurable: true,
+    });
+    const container = mount({});
+    await tick();
+    const headerShare = container.querySelector(".already-header-share");
+    headerShare.click();
+    await headerShare._shareResult;
+    assert.strictEqual(
+      headerShare.querySelector(".already-share-label").textContent,
+      "📋 Copied!",
+    );
+    delete navigator.clipboard;
+  });
 });

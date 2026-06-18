@@ -157,6 +157,14 @@
   cursor: pointer;
 }
 
+/* The button also carries .already-header-subscribe (display:inline-flex), which
+   would otherwise beat the UA [hidden]{display:none} at equal specificity and
+   keep it visible. This class+attribute selector (higher specificity) makes the
+   `hidden` attribute effective when the share button is hidden on the detail view. */
+.already-header-share[hidden] {
+  display: none;
+}
+
 .already-share-label {
   white-space: nowrap;
 }

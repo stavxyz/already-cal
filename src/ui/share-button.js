@@ -31,11 +31,18 @@ export function createShareButton({
   btn.appendChild(labelSpan);
 
   let revertTimer = null;
+  function clearRevert() {
+    if (revertTimer) {
+      clearTimeout(revertTimer);
+      revertTimer = null;
+    }
+  }
   function showCopied() {
     labelSpan.textContent = copiedLabel;
-    if (revertTimer) clearTimeout(revertTimer);
+    clearRevert();
     revertTimer = setTimeout(() => {
       labelSpan.textContent = label;
+      revertTimer = null;
     }, copiedDuration);
   }
 
@@ -46,6 +53,11 @@ export function createShareButton({
       return outcome;
     })();
   });
+
+  // Cancel any pending "Copied!" revert timer. Call when the button is torn
+  // down / removed from the DOM so a stale timer can't fire late or hold its
+  // closure past the button's lifetime.
+  btn.destroy = clearRevert;
 
   return btn;
 }

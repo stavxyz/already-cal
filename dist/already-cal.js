@@ -4122,11 +4122,18 @@ ${text}</tr>
     labelSpan.setAttribute("aria-live", "polite");
     btn.appendChild(labelSpan);
     let revertTimer = null;
+    function clearRevert() {
+      if (revertTimer) {
+        clearTimeout(revertTimer);
+        revertTimer = null;
+      }
+    }
     function showCopied() {
       labelSpan.textContent = copiedLabel;
-      if (revertTimer) clearTimeout(revertTimer);
+      clearRevert();
       revertTimer = setTimeout(() => {
         labelSpan.textContent = label;
+        revertTimer = null;
       }, copiedDuration);
     }
     btn.addEventListener("click", () => {
@@ -4136,6 +4143,7 @@ ${text}</tr>
         return outcome;
       })();
     });
+    btn.destroy = clearRevert;
     return btn;
   }
 
@@ -5506,6 +5514,7 @@ ${text}</tr>
       };
     }
     function renderView(viewState) {
+      viewContainer.querySelector(".already-detail-share")?.destroy?.();
       lastViewState = viewState;
       const allEvents = getFilteredEvents();
       const timezone = data?.calendar?.timezone || "UTC";
@@ -5791,6 +5800,8 @@ ${text}</tr>
       window.removeEventListener("message", handleMessage);
       if (removeHashListener) removeHashListener();
       if (interactionCleanup) interactionCleanup();
+      headerContainer.querySelector(".already-header-share")?.destroy?.();
+      viewContainer.querySelector(".already-detail-share")?.destroy?.();
       el.innerHTML = "";
       el.classList.remove("already");
       for (const attr of ["layout", "orientation", "imagePosition", "palette"]) {

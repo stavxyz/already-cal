@@ -2,6 +2,17 @@
 type: spec
 issue: 49
 status: design
+validated:
+  sha: 9284f2a2de955eb6f7ab76cfaa1140b2d93d82b4
+  date: 2026-06-18T01:15:18Z
+  reviewers: [fact-check, solid-hygiene]
+  findings:
+    critical: 0
+    important: 0
+    medium: 1
+    low: 2
+    nitpick: 0
+  net_negative_remaining: 0
 ---
 
 # Web Share button — design
@@ -45,7 +56,7 @@ src/util/share-url.js     buildShareUrl(base, target) -> string   (pure)
 src/util/share.js         shareOrCopy({ title, url }) -> Promise<"shared"|"copied"|"failed">
 src/ui/header.js          calendar-share button (next to Subscribe)
 src/views/detail.js       event-share button (top row, next to Back)
-src/already-cal.js        owns getShareState(); resolves base; injects accessor
+src/already-cal.js        sets config.shareBase + config.getShareState in init
 ```
 
 ### `buildShareUrl(base, target)` — `src/util/share-url.js`
@@ -83,6 +94,14 @@ isolation (`test/util/share-url.test.cjs`).
 Returns the outcome so the button can render the right feedback. Pure of DOM;
 the button owns the "Copied!" presentation.
 
+> **Design note (2026-06-17):** `shareOrCopy` deliberately bundles share-attempt
+> + clipboard-fallback + outcome classification — appropriately scoped for the
+> single decision tree both buttons need, and pure of DOM so it stays testable.
+> The boundary is a known trade-off: if a future surface needs copy *only* (no
+> native sheet), split the `clipboard.writeText` into its own helper that
+> `shareOrCopy` composes, rather than duplicating the write. The current shape
+> already supports that refactor without rework.
+
 ### `getShareState()` — owned by `src/already-cal.js`
 
 The widget already tracks the current view in `lastView` / `lastViewState`
@@ -96,17 +115,28 @@ getShareState() => { view: lastView }          // for the calendar target
 
 This accessor is the single seam: when date-lifting lands, it starts returning
 `date` and nothing else changes — `buildShareUrl` already accepts it. The widget
-passes `getShareState` (and the resolved `base`) into `renderHeader` for the
-calendar button. The detail view already has the `event` in scope, so its
-event-share target needs no accessor.
+assigns `config.getShareState` and a resolved `config.shareBase` **once during
+config assembly** in `init`; `renderHeader` and `renderDetailView` read them off
+`config` — the same channel that already carries the `onBack` / `onViewChange` /
+`onDataLoad` callbacks. Neither renderer's positional signature changes. The
+detail view already has the `event` in scope, so its event-share target needs no
+accessor (it reads `config.shareBase` for the URL).
+
+> **Design note (2026-06-17):** the share seam rides on the existing `config`
+> channel (`config.shareBase`, `config.getShareState`) rather than new positional
+> parameters on `renderHeader`/`renderDetailView`. This matches the established
+> "widget state + callbacks ride on `config`" convention, keeps both renderer
+> contracts uniform, and confines the blast radius of future share changes to
+> config assembly.
 
 ### Base resolution
 
-`base = config.shareUrl ?? <current page URL>`. When `shareUrl` is unset the
-fallback is the current location (per #49). In an iframe embed the current
-location is the *embed's* URL, not the host page — which is exactly why
-`shareUrl` exists; without it, shared links point at the embed. The builder
-normalizes whatever base it's given.
+`config.shareBase = config.shareUrl ?? <current page URL>`, resolved **once** in
+`init` and read by both buttons (so the location fallback is computed in one
+place, not per click). When `shareUrl` is unset the fallback is the current
+location (per #49). In an iframe embed the current location is the *embed's* URL,
+not the host page — which is exactly why `shareUrl` exists; without it, shared
+links point at the embed. The builder normalizes whatever base it's given.
 
 ## Config
 
@@ -131,16 +161,30 @@ shareUrl: null,   // string | null — canonical host-page URL to share
   (insert without breaking tab order).
 - **Calendar-share button** — in `renderHeader` (`src/ui/header.js`), next to the
   Subscribe button, styled like `.already-header-subscribe` (icon+label).
-  Target: `{ kind:"calendar", ...getShareState() }`. Payload title:
-  `calendarData.name` (the header name), falling back to `document.title` then a
-  generic label.
+  Target: `{ kind:"calendar", ...config.getShareState() }`. Payload title: the
+  **same precedence the header itself uses** — `config.headerTitle ?? calendarData.name`
+  — falling back to `document.title` then a generic label, so the shared title
+  matches the displayed header.
 - **Share icon** — inline SVG string (`currentColor`, 16×16, `aria-hidden="true"`),
   following the only existing icon precedent (`src/ui/header.js` subscribe icon).
   No icon module is introduced.
 
-Only render each button when there is something to share: the calendar button
-always has a base; the event button always has `event.id`. (If a future option
-needs to hide share, that's a config gate — out of scope now.)
+> **Design note (2026-06-17):** this seeds the 2nd/3rd inline-SVG icon instances
+> (one share glyph reused across the two buttons). That's a deliberate YAGNI call
+> at this count — but the threshold is explicit: the moment a share icon is needed
+> in a **third file** (e.g. the deferred card-sharing in "Out of scope"), extract a
+> tiny shared icon helper rather than copy the SVG string a fourth time.
+
+Only render each button when there is something to share: the event button always
+has `event.id`; the calendar button always has a `config.shareBase`. **Note the
+header early-return:** `renderHeader` currently emits nothing when the calendar
+has neither name nor description (`header.js:14-17`), which would also suppress
+the calendar-share button. Since a calendar is shareable regardless of whether it
+has a display title, the implementation must keep the header's action row
+(subscribe + share) rendering in that case — i.e. relax the early-return so the
+actions still emit when there's a share/subscribe action to show, rather than
+gating share behind name/description. (If a future option needs to hide share
+entirely, that's a config gate — out of scope now.)
 
 ## Data flow (event example)
 

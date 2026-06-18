@@ -378,6 +378,9 @@ export function init(userConfig) {
   }
 
   function renderView(viewState) {
+    // Tear down the prior detail-view share button's pending revert timer
+    // before this render replaces it, so a stale timer can't fire late.
+    viewContainer.querySelector(".already-detail-share")?.destroy?.();
     lastViewState = viewState;
     const allEvents = getFilteredEvents();
     const timezone = data?.calendar?.timezone || "UTC";
@@ -780,6 +783,10 @@ export function init(userConfig) {
     window.removeEventListener("message", handleMessage);
     if (removeHashListener) removeHashListener();
     if (interactionCleanup) interactionCleanup();
+    // Cancel any pending share-button revert timers — the header button
+    // persists across renders; the current view may also have one pending.
+    headerContainer.querySelector(".already-header-share")?.destroy?.();
+    viewContainer.querySelector(".already-detail-share")?.destroy?.();
     el.innerHTML = "";
     el.classList.remove("already");
     for (const attr of ["layout", "orientation", "imagePosition", "palette"]) {

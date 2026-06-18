@@ -115,4 +115,21 @@ describe("createShareButton", () => {
     t.mock.timers.tick(60); // past the reset timer (60 + 100) — now it reverts, once
     assert.strictEqual(label(), "Share");
   });
+
+  it("destroy() cancels a pending revert timer", async (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    setClipboard({ writeText: async () => {} });
+    const btn = createShareButton(opts({ copiedDuration: 100 }));
+    const label = () => btn.querySelector(".already-share-label").textContent;
+
+    btn.click();
+    await btn._shareResult;
+    assert.strictEqual(label(), "Copied!");
+
+    btn.destroy(); // tear down before the revert fires
+    t.mock.timers.tick(500); // well past copiedDuration
+    // The timer was cancelled, so the revert callback never ran (label is
+    // left as-is; the button is being removed anyway).
+    assert.strictEqual(label(), "Copied!");
+  });
 });

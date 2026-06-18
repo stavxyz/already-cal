@@ -1313,6 +1313,7 @@
   .already-month-nav button,
   .already-week-nav button,
   .already-day-nav button,
+  .already-header-share,
   .already-detail-back,
   .already-detail-share {
     display: none;

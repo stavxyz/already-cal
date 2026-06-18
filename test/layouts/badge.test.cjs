@@ -41,7 +41,7 @@ describe("badge layout", () => {
     assert.ok(el.querySelector(".already-card__badge"));
   });
 
-  it("(regression already.events#217) badge survives broken image — moved inline into body so it doesn't get hidden with the image wrapper", () => {
+  it("(regression) badge survives broken image — moved inline into body so it doesn't get hidden with the image wrapper", () => {
     // Repro: any event with an image URL that 404s / blocks (e.g. a
     // Google Drive shared-link image where the owner didn't enable
     // "anyone with the link can view") triggers img.onerror, which

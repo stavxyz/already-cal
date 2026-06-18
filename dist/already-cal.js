@@ -4064,6 +4064,81 @@ ${text}</tr>
     return { ...theme, overrideKeys };
   }
 
+  // src/util/share-url.js
+  function buildShareUrl(base, target) {
+    const normalized = normalizeBase(base);
+    if (target.kind === "event") {
+      return `${normalized}/event/${encodeURIComponent(target.eventId)}`;
+    }
+    return target.view ? `${normalized}#${target.view}` : normalized;
+  }
+  function normalizeBase(base) {
+    try {
+      const url = new URL(base);
+      return `${url.origin}${url.pathname}`.replace(/\/$/, "");
+    } catch {
+      return base.split(/[?#]/)[0].replace(/\/$/, "");
+    }
+  }
+
+  // src/util/share.js
+  async function shareOrCopy({ title, url }) {
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title, url });
+        return "shared";
+      } catch (err) {
+        if (err && err.name === "AbortError") return "shared";
+      }
+    }
+    if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      try {
+        await navigator.clipboard.writeText(url);
+        return "copied";
+      } catch {
+        return "failed";
+      }
+    }
+    return "failed";
+  }
+
+  // src/ui/share-button.js
+  var SHARE_ICON = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="3.5" r="1.7" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="8" r="1.7" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12.5" r="1.7" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 7.2l5-2.7M5.5 8.8l5 2.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+  function createShareButton({
+    className,
+    label,
+    copiedLabel,
+    getUrl,
+    getTitle,
+    copiedDuration = 2e3
+  }) {
+    const btn = createElement("button", className, {
+      type: "button",
+      "aria-label": label
+    });
+    btn.innerHTML = SHARE_ICON;
+    const labelSpan = createElement("span", "already-share-label");
+    labelSpan.textContent = label;
+    labelSpan.setAttribute("aria-live", "polite");
+    btn.appendChild(labelSpan);
+    let revertTimer = null;
+    function showCopied() {
+      labelSpan.textContent = copiedLabel;
+      if (revertTimer) clearTimeout(revertTimer);
+      revertTimer = setTimeout(() => {
+        labelSpan.textContent = label;
+      }, copiedDuration);
+    }
+    btn.addEventListener("click", () => {
+      btn._shareResult = (async () => {
+        const outcome = await shareOrCopy({ title: getTitle(), url: getUrl() });
+        if (outcome === "copied") showCopied();
+        return outcome;
+      })();
+    });
+    return btn;
+  }
+
   // src/ui/header.js
   function renderHeader(container, calendarData, config) {
     if (!config.showHeader) {
@@ -4072,10 +4147,6 @@ ${text}</tr>
     }
     const name = config.headerTitle ?? calendarData?.name ?? "";
     const description = config.headerDescription ?? calendarData?.description ?? "";
-    if (!name && !description) {
-      container.innerHTML = "";
-      return;
-    }
     const i18n = config.i18n || {};
     const subscribeLabel = i18n.subscribe || "Subscribe";
     let subscribeUrl = config.subscribeUrl || null;
@@ -4086,6 +4157,20 @@ ${text}</tr>
     if (!subscribeUrl && calendarData?.calendarId) {
       const cid = btoa(calendarData.calendarId).replace(/=+$/, "");
       subscribeUrl = `https://calendar.google.com/calendar/u/0?cid=${cid}`;
+    }
+    const shareButton = config.shareBase ? createShareButton({
+      className: "already-header-subscribe already-header-share",
+      label: i18n.share || "Share",
+      copiedLabel: i18n.copied || "Copied!",
+      getTitle: () => config.headerTitle || calendarData?.name || document.title || "Calendar",
+      getUrl: () => buildShareUrl(config.shareBase, {
+        kind: "calendar",
+        ...config.getShareState ? config.getShareState() : {}
+      })
+    }) : null;
+    if (!name && !description && !subscribeUrl && !shareButton) {
+      container.innerHTML = "";
+      return;
     }
     const header = document.createElement("div");
     header.className = "already-header";
@@ -4119,6 +4204,8 @@ ${text}</tr>
       textCol.appendChild(p);
     }
     header.appendChild(textCol);
+    const actions = document.createElement("div");
+    actions.className = "already-header-actions";
     if (subscribeUrl) {
       const btn = document.createElement("a");
       btn.className = "already-header-subscribe";
@@ -4126,8 +4213,10 @@ ${text}</tr>
       btn.target = "_blank";
       btn.rel = "noopener";
       btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 1v2M11 1v2M2 6h12M3 3h10a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8v4M6 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> ${escapeHtml(subscribeLabel)}`;
-      header.appendChild(btn);
+      actions.appendChild(btn);
     }
+    if (shareButton) actions.appendChild(shareButton);
+    if (actions.childNodes.length > 0) header.appendChild(actions);
     container.innerHTML = "";
     container.appendChild(header);
   }
@@ -4786,10 +4875,22 @@ ${text}</tr>
     const images = event.images && event.images.length > 0 ? event.images : event.image ? [event.image] : [];
     const hasImages = images.length > 0;
     const detail = createElement("div", "already-detail");
+    const actions = createElement("div", "already-detail-actions");
     const backBtn = createElement("button", "already-detail-back");
     backBtn.textContent = backLabel;
     backBtn.addEventListener("click", onBack);
-    detail.appendChild(backBtn);
+    actions.appendChild(backBtn);
+    if (config.shareBase) {
+      const shareBtn = createShareButton({
+        className: "already-detail-share",
+        label: i18n.share || "Share",
+        copiedLabel: i18n.copied || "Copied!",
+        getTitle: () => event.title,
+        getUrl: () => buildShareUrl(config.shareBase, { kind: "event", eventId: event.id })
+      });
+      actions.appendChild(shareBtn);
+    }
+    detail.appendChild(actions);
     const body = createElement(
       "div",
       hasImages ? "already-detail-body already-detail-body--has-image" : "already-detail-body"
@@ -5171,6 +5272,8 @@ ${text}</tr>
     // URL to icon/logo image
     subscribeUrl: null,
     // auto-generated from google.calendarId if not set
+    shareUrl: null,
+    // canonical page URL to share; falls back to current page URL
     renderEmpty: null,
     renderLoading: null,
     renderError: null,
@@ -5197,6 +5300,8 @@ ${text}</tr>
     back: "\u2190 Back",
     moreEvents: "+{count} more",
     subscribe: "Subscribe",
+    share: "Share",
+    copied: "Copied!",
     clearFilter: "Clear",
     loadMore: "Load more",
     showEarlier: "Show earlier"
@@ -5255,6 +5360,7 @@ ${text}</tr>
     }
     config.locale = config.locale || typeof navigator !== "undefined" && navigator.language || "en-US";
     config.pageSize = Number.isFinite(config.pageSize) && config.pageSize > 0 ? config.pageSize : DEFAULTS.pageSize;
+    config.shareBase = config.shareUrl ?? window.location.href;
     const el = typeof config.el === "string" ? document.querySelector(config.el) : config.el;
     if (!el) {
       console.error("already-cal: Element not found:", config.el);
@@ -5312,6 +5418,7 @@ ${text}</tr>
     const currentDate = /* @__PURE__ */ new Date();
     let lastView = null;
     let lastViewState = null;
+    config.getShareState = () => ({ view: lastView });
     let paginationState = { futureCount: 0, pastCount: 0 };
     const tagFilter = createTagFilter(() => {
       paginationState = { futureCount: 0, pastCount: 0 };
@@ -5716,6 +5823,7 @@ ${text}</tr>
           config.google.maxResults = parseInt(dataset.maxResults, 10);
       }
       if (dataset.fetchUrl) config.fetchUrl = dataset.fetchUrl;
+      if (dataset.shareUrl) config.shareUrl = dataset.shareUrl;
       if (dataset.defaultView) config.defaultView = dataset.defaultView;
       if (dataset.locale) config.locale = dataset.locale;
       if (dataset.weekStartDay)

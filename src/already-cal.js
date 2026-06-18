@@ -90,7 +90,7 @@ const I18N_DEFAULTS = {
   moreEvents: "+{count} more",
   subscribe: "Subscribe",
   share: "Share",
-  copied: "Copied!",
+  copied: "📋 Copied!",
   clearFilter: "Clear",
   loadMore: "Load more",
   showEarlier: "Show earlier",
@@ -381,6 +381,12 @@ export function init(userConfig) {
     // Tear down the prior detail-view share button's pending revert timer
     // before this render replaces it, so a stale timer can't fire late.
     viewContainer.querySelector(".already-detail-share")?.destroy?.();
+    // Hide the header's calendar-share button on the event-detail view: the
+    // detail view has its own event-share button, and two identical "Share"
+    // buttons side by side confuse users about what each one shares.
+    headerContainer
+      .querySelector(".already-header-share")
+      ?.toggleAttribute("hidden", viewState.view === "detail");
     lastViewState = viewState;
     const allEvents = getFilteredEvents();
     const timezone = data?.calendar?.timezone || "UTC";

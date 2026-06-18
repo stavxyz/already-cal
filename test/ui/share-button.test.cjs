@@ -42,6 +42,20 @@ describe("createShareButton", () => {
     assert.strictEqual(lbl.getAttribute("aria-live"), "polite");
   });
 
+  it("shows the native share glyph when navigator.share exists", () => {
+    setShare(async () => {});
+    const btn = createShareButton(opts());
+    assert.ok(btn.querySelector("svg"), "has an icon");
+    // the native (platform) share glyph is path-based — no share-nodes circles
+    assert.strictEqual(btn.querySelector("svg circle"), null);
+  });
+
+  it("shows the share-nodes glyph when native share is unavailable (copy path)", () => {
+    // navigator.share absent (jsdom default) → button copies → share-nodes mark
+    const btn = createShareButton(opts());
+    assert.ok(btn.querySelector("svg circle"), "share-nodes circles present");
+  });
+
   it("calls share with click-time url + title; label unchanged on share", async () => {
     let got = null;
     setShare(async (d) => {

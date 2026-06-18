@@ -95,6 +95,7 @@
   background: var(--already-primary);
   color: var(--already-primary-text);
   border-radius: var(--already-radius);
+  border: 1px solid transparent;
   text-decoration: none;
   font-size: 0.8125rem;
   font-weight: 500;
@@ -1069,7 +1070,8 @@
   .already-month-nav button,
   .already-week-nav button,
   .already-day-nav button,
-  .already-detail-back {
+  .already-detail-back,
+  .already-detail-share {
     display: none;
   }
   .already-month-chip {

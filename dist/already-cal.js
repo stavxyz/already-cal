@@ -4103,6 +4103,7 @@ ${text}</tr>
   }
 
   // src/ui/share-button.js
+  var NATIVE_SHARE_ICON = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8 2v8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M5.25 4.25 8 1.5l2.75 2.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 6.5H4A1.5 1.5 0 0 0 2.5 8v5A1.5 1.5 0 0 0 4 14.5h8a1.5 1.5 0 0 0 1.5-1.5V8A1.5 1.5 0 0 0 12 6.5h-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   var SHARE_ICON = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="3.5" r="1.7" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="8" r="1.7" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12.5" r="1.7" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 7.2l5-2.7M5.5 8.8l5 2.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
   function createShareButton({
     className,
@@ -4116,7 +4117,8 @@ ${text}</tr>
       type: "button",
       "aria-label": label
     });
-    btn.innerHTML = SHARE_ICON;
+    const hasNativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
+    btn.innerHTML = hasNativeShare ? NATIVE_SHARE_ICON : SHARE_ICON;
     const labelSpan = createElement("span", "already-share-label");
     labelSpan.textContent = label;
     labelSpan.setAttribute("aria-live", "polite");
@@ -4169,7 +4171,7 @@ ${text}</tr>
     const shareButton = config.shareBase ? createShareButton({
       className: "already-header-subscribe already-header-share",
       label: i18n.share || "Share",
-      copiedLabel: i18n.copied || "Copied!",
+      copiedLabel: i18n.copied || "\u{1F4CB} Copied!",
       getTitle: () => config.headerTitle || calendarData?.name || document.title || "Calendar",
       getUrl: () => buildShareUrl(config.shareBase, {
         kind: "calendar",
@@ -4892,7 +4894,7 @@ ${text}</tr>
       const shareBtn = createShareButton({
         className: "already-detail-share",
         label: i18n.share || "Share",
-        copiedLabel: i18n.copied || "Copied!",
+        copiedLabel: i18n.copied || "\u{1F4CB} Copied!",
         getTitle: () => event.title,
         getUrl: () => buildShareUrl(config.shareBase, { kind: "event", eventId: event.id })
       });
@@ -5309,7 +5311,7 @@ ${text}</tr>
     moreEvents: "+{count} more",
     subscribe: "Subscribe",
     share: "Share",
-    copied: "Copied!",
+    copied: "\u{1F4CB} Copied!",
     clearFilter: "Clear",
     loadMore: "Load more",
     showEarlier: "Show earlier"
@@ -5515,6 +5517,7 @@ ${text}</tr>
     }
     function renderView(viewState) {
       viewContainer.querySelector(".already-detail-share")?.destroy?.();
+      headerContainer.querySelector(".already-header-share")?.toggleAttribute("hidden", viewState.view === "detail");
       lastViewState = viewState;
       const allEvents = getFilteredEvents();
       const timezone = data?.calendar?.timezone || "UTC";
@@ -5684,7 +5687,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.4.0" : "unknown"
+        true ? "0.4.1" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

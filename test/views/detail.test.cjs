@@ -222,4 +222,66 @@ describe("renderDetailView", () => {
     const lightboxImg = document.querySelector(".already-lightbox-img");
     assert.strictEqual(lightboxImg.src, "https://a.com/2.jpg");
   });
+
+  it("renders an event-share button when shareBase is set", () => {
+    const container = document.createElement("div");
+    renderDetailView(container, baseEvent, "UTC", () => {}, {
+      shareBase: "https://host.example/cal",
+      i18n: { share: "Share" },
+    });
+    const share = container.querySelector(".already-detail-share");
+    assert.ok(share, "share button present");
+    assert.strictEqual(share.getAttribute("aria-label"), "Share");
+  });
+
+  it("omits the event-share button when shareBase is absent", () => {
+    const container = document.createElement("div");
+    renderDetailView(container, baseEvent, "UTC", () => {}, {});
+    assert.strictEqual(container.querySelector(".already-detail-share"), null);
+  });
+
+  it("event-share builds a per-event path URL", async () => {
+    Object.defineProperty(navigator, "share", {
+      value: async (d) => {
+        navigator._lastShare = d;
+      },
+      configurable: true,
+    });
+    const container = document.createElement("div");
+    const event = { ...baseEvent, id: "evt-9", title: "Gig" };
+    renderDetailView(container, event, "UTC", () => {}, {
+      shareBase: "https://host.example/cal",
+      i18n: { share: "Share" },
+    });
+    const share = container.querySelector(".already-detail-share");
+    share.click();
+    await share._shareResult;
+    assert.strictEqual(
+      navigator._lastShare.url,
+      "https://host.example/cal/event/evt-9",
+    );
+    assert.strictEqual(navigator._lastShare.title, "Gig");
+    delete navigator.share;
+    delete navigator._lastShare;
+  });
+
+  it("keeps the Back button working alongside share", () => {
+    const container = document.createElement("div");
+    let backCalled = false;
+    renderDetailView(
+      container,
+      baseEvent,
+      "UTC",
+      () => {
+        backCalled = true;
+      },
+      {
+        shareBase: "https://host.example/cal",
+      },
+    );
+    const back = container.querySelector(".already-detail-back");
+    assert.ok(back);
+    back.click();
+    assert.strictEqual(backCalled, true);
+  });
 });

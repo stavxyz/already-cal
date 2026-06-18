@@ -61,6 +61,7 @@ const DEFAULTS = {
   headerDescription: null, // override calendar description
   headerIcon: null, // URL to icon/logo image
   subscribeUrl: null, // auto-generated from google.calendarId if not set
+  shareUrl: null, // canonical page URL to share; falls back to current page URL
   renderEmpty: null,
   renderLoading: null,
   renderError: null,
@@ -88,6 +89,8 @@ const I18N_DEFAULTS = {
   back: "\u2190 Back",
   moreEvents: "+{count} more",
   subscribe: "Subscribe",
+  share: "Share",
+  copied: "Copied!",
   clearFilter: "Clear",
   loadMore: "Load more",
   showEarlier: "Show earlier",
@@ -194,6 +197,7 @@ export function init(userConfig) {
     Number.isFinite(config.pageSize) && config.pageSize > 0
       ? config.pageSize
       : DEFAULTS.pageSize;
+  config.shareBase = config.shareUrl ?? window.location.href;
 
   const el =
     typeof config.el === "string"
@@ -265,6 +269,9 @@ export function init(userConfig) {
   const currentDate = new Date();
   let lastView = null;
   let lastViewState = null;
+  // Single seam for share targets: returns the live view today; a future
+  // date-window feature adds `date` here without touching call sites.
+  config.getShareState = () => ({ view: lastView });
   let paginationState = { futureCount: 0, pastCount: 0 };
   const tagFilter = createTagFilter(() => {
     paginationState = { futureCount: 0, pastCount: 0 };
@@ -813,6 +820,7 @@ function autoInit() {
         config.google.maxResults = parseInt(dataset.maxResults, 10);
     }
     if (dataset.fetchUrl) config.fetchUrl = dataset.fetchUrl;
+    if (dataset.shareUrl) config.shareUrl = dataset.shareUrl;
     if (dataset.defaultView) config.defaultView = dataset.defaultView;
     if (dataset.locale) config.locale = dataset.locale;
     if (dataset.weekStartDay)

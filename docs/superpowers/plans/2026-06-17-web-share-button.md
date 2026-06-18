@@ -1,3 +1,17 @@
+---
+validated:
+  sha: 6527678a37b8ffb9b5c633fc1fe932ede2654c7f
+  date: 2026-06-18T02:28:59Z
+  reviewers: [fact-check, solid-hygiene]
+  findings:
+    critical: 1
+    important: 0
+    medium: 2
+    low: 4
+    nitpick: 1
+  net_negative_remaining: 0
+---
+
 # Web Share Button Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -346,6 +360,8 @@ EOF
 - Consumes: `createElement` (`src/views/helpers.js`), `shareOrCopy` (`src/util/share.js`).
 - Produces: `createShareButton({className:string, label:string, copiedLabel:string, getUrl:()=>string, getTitle:()=>string, copiedDuration?:number}) -> HTMLButtonElement`. The returned `<button type="button">` carries the share icon + a `.already-share-label` span (with `aria-live="polite"`). On click it stores its in-flight promise on `btn._shareResult` (for tests), calls `shareOrCopy({title:getTitle(), url:getUrl()})`, and on a `"copied"` outcome swaps the label to `copiedLabel` for `copiedDuration` ms (default 2000) then reverts. `getUrl`/`getTitle` are thunks so values reflect click-time state.
 
+> **Design note (2026-06-17):** `btn._shareResult` exposes the in-flight click promise solely so the async outcome is awaitable in tests (vanilla JS has no test renderer to flush microtasks). It's a deliberate, contained test seam used by three test files. Threshold: if it spreads further, switch tests to a microtask-flush / fake-timer strategy rather than widening the production surface — keep the factory's contract "returns a button."
+
 - [ ] **Step 1: Write the failing test**
 
 ```js
@@ -515,6 +531,8 @@ EOF
 **Interfaces:**
 - Produces (on the runtime `config` object, set in `init`): `config.shareBase: string` = `config.shareUrl ?? window.location.href`; `config.getShareState: () => {view: string|null}` (returns the live current view). Consumed by Tasks 5 (header) and 6 (detail). `DEFAULTS.shareUrl = null` (exported via the existing `DEFAULTS` export). `I18N_DEFAULTS.share = "Share"`, `I18N_DEFAULTS.copied = "Copied!"`.
 
+> **Design note (2026-06-17):** `config.getShareState` is an *internal live-state accessor* installed on `config` (which otherwise holds declarative data). This is the blessed `config`-threaded seam — it avoids positional-parameter growth on `renderHeader`/`renderDetailView`. Threshold to revisit: if a second internal state port appears (the deferred `date` window, a selected-tag accessor), promote these ad-hoc `config.*` accessors into one explicit view-state-port object so `config` stays purely declarative.
+
 - [ ] **Step 1: Write the failing test**
 
 ```js
@@ -618,6 +636,8 @@ EOF
 - Consumes: `createShareButton` (`src/ui/share-button.js`), `buildShareUrl` (`src/util/share-url.js`), `config.shareBase`, `config.getShareState` (Task 4).
 - Behavior: when `config.showHeader` and `config.shareBase`, `renderHeader` appends a calendar-share button (`class="already-header-subscribe already-header-share"`) into a `.already-header-actions` row alongside the optional subscribe button. The no-name/no-description early-return is relaxed so the action row still renders when there's a share or subscribe action. Calendar-share title = `config.headerTitle || calendarData?.name || document.title || "Calendar"`; URL = `buildShareUrl(config.shareBase, {kind:"calendar", ...config.getShareState()})`.
 
+> **Design note (2026-06-17):** relaxing the guard to `!name && !description && !subscribeUrl && !shareButton` widens `renderHeader` from "render the titled header" to "render the header OR a standalone action row," and changes output for existing name-less/description-less embeds (they gain an action row) — the one behavior change, flagged in the Task 9 PR body. Threshold: if a *fourth* header action ever lands, compute an `actions` collection and gate on "has text OR `actions.length`" instead of extending the hand-maintained boolean chain.
+
 - [ ] **Step 1: Write the failing test**
 
 ```js
@@ -693,7 +713,7 @@ Expected: FAIL — no `.already-header-share` element.
 
 - [ ] **Step 3: Implement — imports + share button + relaxed early-return**
 
-In `src/ui/header.js`, replace the import line and the body down through the early-returns + subscribe block. First, update the top:
+In `src/ui/header.js`, first add the two new imports **above** the existing `import { escapeHtml } from "../util/sanitize.js";` (which is already line 1 — do NOT duplicate it). The import block becomes exactly:
 
 ```js
 import { buildShareUrl } from "../util/share-url.js";
@@ -701,7 +721,7 @@ import { createShareButton } from "./share-button.js";
 import { escapeHtml } from "../util/sanitize.js";
 ```
 
-Then change the early-return / subscribe / append logic. Replace from `const i18n = config.i18n || {};` down to the end of the subscribe `if (subscribeUrl) { ... }` block and the final `container.appendChild(header);` with:
+Then change the early-return / subscribe / append logic. **Replace from the existing `if (!name && !description) {` early-return block (lines 14-17, directly below the `name`/`description` computation) down to and including the final `container.appendChild(header);` (line 86)** with the block below. This replacement **deletes** the `if (!name && !description) { container.innerHTML = ""; return; }` early-return — the new action-aware guard takes its place. (The new block starts at `const i18n = ...`, i.e. the line that currently follows the deleted early-return.):
 
 ```js
   const i18n = config.i18n || {};
@@ -798,7 +818,7 @@ Then change the early-return / subscribe / append logic. Replace from `const i18
   container.appendChild(header);
 ```
 
-Note: the two existing early-returns at the top of the function (`if (!config.showHeader)` and the `name`/`description` computation) stay as-is above this block; only the `if (!name && !description)` *return* is the one being relaxed (it's removed from the top and folded into the action-aware guard above).
+Note: the `if (!config.showHeader)` early-return (lines 5-8) and the `name`/`description` computation (lines 10-13) stay as-is **above** the replaced range. The `if (!name && !description)` *return* (lines 14-17) is the one being relaxed — it falls **inside** the replaced range and is therefore deleted, folded into the action-aware guard in the new block. After the edit, `grep -n "container.innerHTML" src/ui/header.js` should show only the two `container.innerHTML = ""` sites that remain (the `!showHeader` guard and the new action-aware guard) — not three.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -1068,13 +1088,11 @@ In `docs/configuration.md`, add directly after the `subscribeUrl` table row (lin
 
 - [ ] **Step 2: Document the `data-share-url` attribute**
 
-In `docs/configuration.md`, in the data-attributes table (the section above line 532), add a row following the existing format:
+In `docs/configuration.md`, in the data-attributes table (header `| Attribute | Maps to | Type |` at line 533, data rows below it — e.g. `| `data-fetch-url` | `fetchUrl` | string |`), add a **3-column** row matching that shape:
 
 ```markdown
-| `data-share-url` | `shareUrl` — canonical page URL for the Share buttons |
+| `data-share-url` | `shareUrl` | string |
 ```
-
-(Match the exact column shape of the surrounding rows in that table.)
 
 - [ ] **Step 3: Add the iframe permissions note**
 

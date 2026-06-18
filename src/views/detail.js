@@ -1,5 +1,7 @@
+import { createShareButton } from "../ui/share-button.js";
 import { formatDate, formatDatetime } from "../util/dates.js";
 import { renderDescription } from "../util/description.js";
+import { buildShareUrl } from "../util/share-url.js";
 import { createElement } from "./helpers.js";
 import { openLightbox } from "./lightbox.js";
 
@@ -101,10 +103,26 @@ export function renderDetailView(container, event, timezone, onBack, config) {
 
   const detail = createElement("div", "already-detail");
 
+  const actions = createElement("div", "already-detail-actions");
+
   const backBtn = createElement("button", "already-detail-back");
   backBtn.textContent = backLabel;
   backBtn.addEventListener("click", onBack);
-  detail.appendChild(backBtn);
+  actions.appendChild(backBtn);
+
+  if (config.shareBase) {
+    const shareBtn = createShareButton({
+      className: "already-detail-share",
+      label: i18n.share || "Share",
+      copiedLabel: i18n.copied || "Copied!",
+      getTitle: () => event.title,
+      getUrl: () =>
+        buildShareUrl(config.shareBase, { kind: "event", eventId: event.id }),
+    });
+    actions.appendChild(shareBtn);
+  }
+
+  detail.appendChild(actions);
 
   // Two-column layout: gallery left, content right
   const body = createElement(

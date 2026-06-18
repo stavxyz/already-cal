@@ -15,7 +15,7 @@
  * origin — before the embed-origin navigation actually completes.
  * A `postMessage` fired in that window targets the embed origin but
  * the recipient is still parent-origin, throwing `SecurityError` and
- * dropping the message. See parent-repo issue stavxyz/already.events#245.
+ * dropping the message.
  *
  * The handshake replaces the implicit timing inference with an
  * explicit "ready" signal that the parent's `message` listener can

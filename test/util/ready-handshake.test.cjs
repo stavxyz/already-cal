@@ -166,7 +166,7 @@ describe("postReadyToParent — happy path", () => {
     withParent(
       { postMessage: (msg, origin) => calls.push({ msg, origin }) },
       () => {
-        withReferrer("https://dev-app.already.events/views/edit/abc", () => {
+        withReferrer("https://app.example.com/views/edit/abc", () => {
           postReadyToParent("0.3.0");
         });
       },
@@ -178,7 +178,7 @@ describe("postReadyToParent — happy path", () => {
     });
     // Origin is the referrer's origin, NOT "*" — defense against
     // broadcast to hostile parents.
-    assert.strictEqual(calls[0].origin, "https://dev-app.already.events");
+    assert.strictEqual(calls[0].origin, "https://app.example.com");
   });
 
   it("derives origin from a referrer with port + path", () => {
@@ -276,7 +276,7 @@ describe("postReadyToParent — happy path", () => {
     const inputs = [
       "https://parent.example/",
       "http://localhost:5173/",
-      "https://dev-app.already.events/views/edit/abc",
+      "https://app.example.com/views/edit/abc",
     ];
     for (const referrer of inputs) {
       const calls = [];

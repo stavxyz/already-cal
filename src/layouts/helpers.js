@@ -28,7 +28,7 @@ export function buildCardClasses(
  * Returns null if the event has no image.
  *
  * On `img.onerror` (e.g. the user uploaded a Google Drive image that
- * wasn't shared publicly — see already.events#168, #217), the wrapper
+ * wasn't shared publicly), the wrapper
  * is hidden so the card doesn't render a broken-image icon. BEFORE
  * hiding, any `.already-card__badge` element that was appended into
  * the wrapper by the layout (badge layout overlays its date badge on
@@ -36,7 +36,7 @@ export function buildCardClasses(
  * `--inline` modifier so it renders as a sibling of the title instead
  * of disappearing with the image wrapper. Without the rescue, every
  * card whose image failed to load lost its date badge as collateral
- * damage — the original symptom of already.events#217.
+ * damage — the original symptom this rescue prevents.
  */
 export function createCardImage(event) {
   if (!event.image) return null;

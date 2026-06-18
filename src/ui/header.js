@@ -32,7 +32,7 @@ export function renderHeader(container, calendarData, config) {
     ? createShareButton({
         className: "already-header-subscribe already-header-share",
         label: i18n.share || "Share",
-        copiedLabel: i18n.copied || "Copied!",
+        copiedLabel: i18n.copied || "📋 Copied!",
         getTitle: () =>
           config.headerTitle ||
           calendarData?.name ||

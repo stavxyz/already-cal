@@ -114,7 +114,7 @@ export function renderDetailView(container, event, timezone, onBack, config) {
     const shareBtn = createShareButton({
       className: "already-detail-share",
       label: i18n.share || "Share",
-      copiedLabel: i18n.copied || "Copied!",
+      copiedLabel: i18n.copied || "📋 Copied!",
       getTitle: () => event.title,
       getUrl: () =>
         buildShareUrl(config.shareBase, { kind: "event", eventId: event.id }),

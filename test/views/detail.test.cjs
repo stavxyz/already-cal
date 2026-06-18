@@ -284,4 +284,25 @@ describe("renderDetailView", () => {
     back.click();
     assert.strictEqual(backCalled, true);
   });
+
+  it("copy fallback shows the clipboard-emoji label by default", async () => {
+    // No navigator.share (jsdom default) → copy path. No i18n.copied passed, so
+    // the default "📋 Copied!" applies.
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: async () => {} },
+      configurable: true,
+    });
+    const container = document.createElement("div");
+    renderDetailView(container, baseEvent, "UTC", () => {}, {
+      shareBase: "https://host.example/cal",
+    });
+    const share = container.querySelector(".already-detail-share");
+    share.click();
+    await share._shareResult;
+    assert.strictEqual(
+      share.querySelector(".already-share-label").textContent,
+      "📋 Copied!",
+    );
+    delete navigator.clipboard;
+  });
 });

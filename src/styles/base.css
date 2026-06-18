@@ -139,6 +139,25 @@
   flex-shrink: 0;
 }
 
+.already-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Share reuses the subscribe sizing but reads as a secondary (outline) action */
+.already-header-share {
+  background: transparent;
+  color: var(--already-primary);
+  border: 1px solid var(--already-primary);
+  cursor: pointer;
+}
+
+.already-share-label {
+  white-space: nowrap;
+}
+
 .already-header-icon {
   width: 3.5rem;
   height: 3.5rem;
@@ -591,7 +610,6 @@
   color: var(--already-primary);
   cursor: pointer;
   padding: 0.25rem 0;
-  margin-bottom: 1rem;
   font-weight: 500;
   font-family: var(--already-font-family);
   transition: opacity 0.15s;
@@ -604,6 +622,42 @@
 .already-detail-back:focus-visible {
   outline: 2px solid var(--already-primary);
   outline-offset: 2px;
+}
+
+.already-detail-share {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  color: var(--already-primary);
+  cursor: pointer;
+  padding: 0.25rem 0;
+  font-weight: 500;
+  font-family: var(--already-font-family);
+  transition: opacity 0.15s;
+}
+
+.already-detail-share:hover {
+  opacity: 0.7;
+}
+
+.already-detail-share:focus-visible {
+  outline: 2px solid var(--already-primary);
+  outline-offset: 2px;
+}
+
+.already-detail-share svg {
+  flex-shrink: 0;
+}
+
+.already-detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 /* Two-column layout */

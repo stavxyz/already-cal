@@ -132,4 +132,10 @@ describe("createShareButton", () => {
     // left as-is; the button is being removed anyway).
     assert.strictEqual(label(), "Copied!");
   });
+
+  it("destroy() is safe with no pending timer (and is idempotent)", () => {
+    const btn = createShareButton(opts());
+    assert.doesNotThrow(() => btn.destroy()); // never clicked → no timer
+    assert.doesNotThrow(() => btn.destroy()); // double-destroy
+  });
 });

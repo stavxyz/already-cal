@@ -94,4 +94,25 @@ describe("createShareButton", () => {
       "Share",
     );
   });
+
+  it("resets the revert timer when clicked again before it fires", async (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    setClipboard({ writeText: async () => {} });
+    const btn = createShareButton(opts({ copiedDuration: 100 }));
+    const label = () => btn.querySelector(".already-share-label").textContent;
+
+    btn.click();
+    await btn._shareResult;
+    assert.strictEqual(label(), "Copied!");
+
+    t.mock.timers.tick(60); // first revert (due at 100) has not fired yet
+    btn.click(); // re-click clears the first timer, schedules a fresh 100ms
+    await btn._shareResult;
+
+    t.mock.timers.tick(60); // 120 total: the original timer was cleared, so still "Copied!"
+    assert.strictEqual(label(), "Copied!");
+
+    t.mock.timers.tick(60); // past the reset timer (60 + 100) — now it reverts, once
+    assert.strictEqual(label(), "Share");
+  });
 });

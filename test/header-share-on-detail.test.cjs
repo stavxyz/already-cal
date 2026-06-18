@@ -14,6 +14,7 @@ afterEach(() => {
     instance?.destroy?.();
     container.remove();
   }
+  delete navigator.clipboard;
 });
 
 function mount(extra) {
@@ -21,6 +22,7 @@ function mount(extra) {
   document.body.appendChild(container);
   const instance = init({
     el: container,
+    // shareUrl is normalised to config.shareBase inside init() → share buttons render
     shareUrl: "https://host.example/cal",
     data: {
       events: [createTestEvent({ id: "e1", title: "Gig" })],
@@ -94,6 +96,5 @@ describe("header calendar-share visibility by view", () => {
       headerShare.querySelector(".already-share-label").textContent,
       "📋 Copied!",
     );
-    delete navigator.clipboard;
   });
 });

@@ -89,7 +89,7 @@ export function renderHeader(container, calendarData, config) {
       a.className = "already-header-name-link";
       a.href = linkUrl;
       a.target = "_blank";
-      a.rel = "noopener";
+      a.rel = "noopener noreferrer";
       a.textContent = name;
       h.appendChild(a);
     } else {
@@ -104,7 +104,7 @@ export function renderHeader(container, calendarData, config) {
     if (subscribeUrl && /subscribe/i.test(description)) {
       p.innerHTML = description.replace(
         /(subscribe)/i,
-        `<a href="${subscribeUrl}" target="_blank" rel="noopener" class="already-header-description-link">$1</a>`,
+        `<a href="${subscribeUrl}" target="_blank" rel="noopener noreferrer" class="already-header-description-link">$1</a>`,
       );
     } else {
       p.textContent = description;
@@ -122,7 +122,7 @@ export function renderHeader(container, calendarData, config) {
     btn.className = "already-header-subscribe";
     btn.href = subscribeUrl;
     btn.target = "_blank";
-    btn.rel = "noopener";
+    btn.rel = "noopener noreferrer";
     btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 1v2M11 1v2M2 6h12M3 3h10a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8v4M6 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> ${escapeHtml(subscribeLabel)}`;
     actions.appendChild(btn);
   }

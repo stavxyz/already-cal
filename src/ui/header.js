@@ -2,6 +2,19 @@ import { escapeHtml } from "../util/sanitize.js";
 import { buildShareUrl } from "../util/share-url.js";
 import { createShareButton } from "./share-button.js";
 
+// Accept a header-link URL only if it parses and uses an http(s) scheme.
+// Render-side defense-in-depth: the embed host validates at write time, but
+// the widget must never emit an <a href> for javascript:/data:/etc.
+function safeHttpUrl(raw) {
+  if (typeof raw !== "string" || raw === "") return null;
+  try {
+    const u = new URL(raw);
+    return u.protocol === "http:" || u.protocol === "https:" ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Render the calendar header: name, description, icon, and subscribe button. */
 export function renderHeader(container, calendarData, config) {
   if (!config.showHeader) {
@@ -70,7 +83,18 @@ export function renderHeader(container, calendarData, config) {
   if (name) {
     const h = document.createElement("h2");
     h.className = "already-header-name";
-    h.textContent = name;
+    const linkUrl = safeHttpUrl(config.headerUrl);
+    if (linkUrl) {
+      const a = document.createElement("a");
+      a.className = "already-header-name-link";
+      a.href = linkUrl;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = name;
+      h.appendChild(a);
+    } else {
+      h.textContent = name;
+    }
     textCol.appendChild(h);
   }
 

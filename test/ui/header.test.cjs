@@ -69,3 +69,58 @@ describe("renderHeader share button", () => {
     assert.strictEqual(c.innerHTML, "");
   });
 });
+
+describe("renderHeader header link", () => {
+  it("links the title when headerUrl is a valid https URL", () => {
+    const c = document.createElement("div");
+    renderHeader(
+      c,
+      { name: "No Big Bend Wall" },
+      baseConfig({
+        headerUrl: "https://nobigbendwall.org/",
+      }),
+    );
+    const link = c.querySelector(
+      ".already-header-name a.already-header-name-link",
+    );
+    assert.ok(link, "title is wrapped in an anchor");
+    assert.strictEqual(link.getAttribute("href"), "https://nobigbendwall.org/");
+    assert.strictEqual(link.getAttribute("target"), "_blank");
+    assert.strictEqual(link.getAttribute("rel"), "noopener");
+    assert.strictEqual(link.textContent, "No Big Bend Wall");
+  });
+
+  it("leaves the title as plain text when headerUrl is unset", () => {
+    const c = document.createElement("div");
+    renderHeader(c, { name: "No Big Bend Wall" }, baseConfig());
+    const h = c.querySelector(".already-header-name");
+    assert.ok(h, "title rendered");
+    assert.strictEqual(h.querySelector("a"), null, "no anchor");
+    assert.strictEqual(h.textContent, "No Big Bend Wall");
+  });
+
+  it("ignores a non-http(s) headerUrl scheme (renders plain text)", () => {
+    const c = document.createElement("div");
+    renderHeader(
+      c,
+      { name: "Evil" },
+      baseConfig({ headerUrl: "javascript:alert(1)" }),
+    );
+    const h = c.querySelector(".already-header-name");
+    assert.strictEqual(
+      h.querySelector("a"),
+      null,
+      "javascript: scheme rejected",
+    );
+    assert.strictEqual(h.textContent, "Evil");
+  });
+
+  it("ignores an unparseable headerUrl (renders plain text)", () => {
+    const c = document.createElement("div");
+    renderHeader(c, { name: "Cal" }, baseConfig({ headerUrl: "not a url" }));
+    assert.strictEqual(
+      c.querySelector(".already-header-name").querySelector("a"),
+      null,
+    );
+  });
+});

@@ -91,6 +91,15 @@
   line-height: 1.3;
 }
 
+.already-header-name-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.already-header-name-link:hover {
+  text-decoration: underline;
+}
+
 .already-header-description {
   font-size: 0.875rem;
   color: var(--already-text-secondary);

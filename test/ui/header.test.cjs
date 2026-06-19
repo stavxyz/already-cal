@@ -86,8 +86,22 @@ describe("renderHeader header link", () => {
     assert.ok(link, "title is wrapped in an anchor");
     assert.strictEqual(link.getAttribute("href"), "https://nobigbendwall.org/");
     assert.strictEqual(link.getAttribute("target"), "_blank");
-    assert.strictEqual(link.getAttribute("rel"), "noopener");
+    assert.strictEqual(link.getAttribute("rel"), "noopener noreferrer");
     assert.strictEqual(link.textContent, "No Big Bend Wall");
+  });
+
+  it("links the title for a valid http URL too", () => {
+    const c = document.createElement("div");
+    renderHeader(
+      c,
+      { name: "Plain HTTP" },
+      baseConfig({ headerUrl: "http://example.com/" }),
+    );
+    const link = c.querySelector(
+      ".already-header-name a.already-header-name-link",
+    );
+    assert.ok(link, "title is wrapped in an anchor");
+    assert.strictEqual(link.getAttribute("href"), "http://example.com/");
   });
 
   it("leaves the title as plain text when headerUrl is unset", () => {
@@ -118,9 +132,8 @@ describe("renderHeader header link", () => {
   it("ignores an unparseable headerUrl (renders plain text)", () => {
     const c = document.createElement("div");
     renderHeader(c, { name: "Cal" }, baseConfig({ headerUrl: "not a url" }));
-    assert.strictEqual(
-      c.querySelector(".already-header-name").querySelector("a"),
-      null,
-    );
+    const h = c.querySelector(".already-header-name");
+    assert.strictEqual(h.querySelector("a"), null);
+    assert.strictEqual(h.textContent, "Cal");
   });
 });

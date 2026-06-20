@@ -1,8 +1,21 @@
+/** A bare calendar date with no time component, e.g. an all-day event's
+ *  `start.date` ("2026-08-19"). `new Date("YYYY-MM-DD")` parses as UTC
+ *  midnight, so these absolute dates must be formatted in UTC to render on the
+ *  entered day regardless of the viewer/calendar timezone — without this they
+ *  shift back a day in negative-offset zones (Aug 19 → Aug 18 in the Americas). */
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Format zone for `isoString`: UTC for all-day (date-only) values so they
+ *  don't cross a timezone boundary; the given `timezone` for timed values. */
+function zoneFor(isoString, timezone) {
+  return DATE_ONLY_RE.test(isoString) ? "UTC" : timezone;
+}
+
 /** Format an ISO date string as a full date (e.g. "Monday, April 14, 2026"). */
 export function formatDate(isoString, timezone, locale) {
   locale = locale || "en-US";
   return new Intl.DateTimeFormat(locale, {
-    timeZone: timezone,
+    timeZone: zoneFor(isoString, timezone),
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -14,7 +27,7 @@ export function formatDate(isoString, timezone, locale) {
 export function formatDateShort(isoString, timezone, locale) {
   locale = locale || "en-US";
   return new Intl.DateTimeFormat(locale, {
-    timeZone: timezone,
+    timeZone: zoneFor(isoString, timezone),
     month: "short",
     day: "numeric",
   }).format(new Date(isoString));
@@ -80,7 +93,7 @@ export function getDatePartsInTz(isoString, timezone, locale) {
   locale = locale || "en-US";
   const d = new Date(isoString);
   const fmt = new Intl.DateTimeFormat(locale, {
-    timeZone: timezone,
+    timeZone: zoneFor(isoString, timezone),
     year: "numeric",
     month: "numeric",
     day: "numeric",

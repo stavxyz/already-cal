@@ -3447,10 +3447,14 @@ ${text}</tr>
   }
 
   // src/util/dates.js
+  var DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+  function zoneFor(isoString, timezone) {
+    return DATE_ONLY_RE.test(isoString) ? "UTC" : timezone;
+  }
   function formatDate(isoString, timezone, locale) {
     locale = locale || "en-US";
     return new Intl.DateTimeFormat(locale, {
-      timeZone: timezone,
+      timeZone: zoneFor(isoString, timezone),
       weekday: "long",
       month: "long",
       day: "numeric",
@@ -3460,7 +3464,7 @@ ${text}</tr>
   function formatDateShort(isoString, timezone, locale) {
     locale = locale || "en-US";
     return new Intl.DateTimeFormat(locale, {
-      timeZone: timezone,
+      timeZone: zoneFor(isoString, timezone),
       month: "short",
       day: "numeric"
     }).format(new Date(isoString));
@@ -3504,7 +3508,7 @@ ${text}</tr>
     locale = locale || "en-US";
     const d = new Date(isoString);
     const fmt = new Intl.DateTimeFormat(locale, {
-      timeZone: timezone,
+      timeZone: zoneFor(isoString, timezone),
       year: "numeric",
       month: "numeric",
       day: "numeric"
@@ -3592,13 +3596,14 @@ ${text}</tr>
   }
   function applyEventClasses(el, event, baseClass) {
     let cls = baseClass;
-    if (isPast(event.start)) cls += ` ${baseClass}--past`;
+    if (isPast(event.end || event.start)) cls += ` ${baseClass}--past`;
     if (event.featured) cls += ` ${baseClass}--featured`;
     el.className = cls;
   }
   function decorateCard(card, event, viewName, config) {
     if (card.classList.contains("already-card--error")) return;
-    if (isPast(event.start)) card.classList.add("already-card--past");
+    if (isPast(event.end || event.start))
+      card.classList.add("already-card--past");
     if (event.featured) card.classList.add("already-card--featured");
     card.dataset.eventId = event.id;
     bindEventClick(card, event, viewName, config);
@@ -4683,7 +4688,7 @@ ${text}</tr>
     });
     nav.appendChild(nextBtn);
     day.appendChild(nav);
-    const parseEventDate = (start) => /^\d{4}-\d{2}-\d{2}$/.test(start) ? /* @__PURE__ */ new Date(`${start}T00:00:00`) : new Date(start);
+    const parseEventDate = (start) => DATE_ONLY_RE.test(start) ? /* @__PURE__ */ new Date(`${start}T00:00:00`) : new Date(start);
     let dayEvents = events.filter(
       (e) => isSameDay(parseEventDate(e.start), currentDate)
     );
@@ -5707,7 +5712,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.5.0" : "unknown"
+        true ? "0.5.1" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

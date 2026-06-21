@@ -172,6 +172,33 @@ describe("applyEventClasses", () => {
     assert.ok(el.className.includes("already-card--past"));
     assert.ok(el.className.includes("already-card--featured"));
   });
+
+  it("does not mark an ongoing event (past start, future end) as past", () => {
+    // --past means "the event is over", so it keys off the end, not the start.
+    const el = document.createElement("div");
+    applyEventClasses(
+      el,
+      {
+        start: "2020-01-01T00:00:00Z",
+        end: "2099-01-01T00:00:00Z",
+        featured: false,
+      },
+      "already-card",
+    );
+    assert.ok(!el.className.includes("already-card--past"));
+  });
+
+  it("does not mark an ongoing all-day event as past (uses the exclusive end)", () => {
+    // Date-only all-day span: a past start through a future (exclusive) end is
+    // still ongoing and must not be greyed out.
+    const el = document.createElement("div");
+    applyEventClasses(
+      el,
+      { start: "2020-01-01", end: "2099-01-01", allDay: true, featured: false },
+      "already-card",
+    );
+    assert.ok(!el.className.includes("already-card--past"));
+  });
 });
 
 describe("filterHidden", () => {

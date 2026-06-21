@@ -76,6 +76,14 @@ export function isToday(date) {
 
 /** Check whether an ISO date string is in the past. */
 export function isPast(isoString) {
+  if (DATE_ONLY_RE.test(isoString)) {
+    // All-day (date-only) values are "past" once the viewer's local day passes
+    // the date. Parse as LOCAL midnight (not UTC) so an all-day event leaves
+    // "upcoming" / gains --past at local midnight after its (exclusive) end —
+    // not in the evening of its last day in negative-offset zones. The displayed
+    // date stays absolute (UTC, see zoneFor); "is it past" is viewer-local.
+    return new Date(`${isoString}T00:00:00`) < new Date();
+  }
   return new Date(isoString) < new Date();
 }
 

@@ -2,8 +2,10 @@
  * Build a shareable URL from a base URL and a share target.
  *
  * The base is normalized to origin + pathname (any existing query/hash is
- * dropped, trailing slash trimmed) so a messy current-page-URL fallback can't
- * produce a broken link. Then a suffix is appended per kind:
+ * dropped, trailing slash trimmed, and a trailing `/event/<id>` deep-link
+ * segment collapsed back to the view root) so a messy current-page-URL or
+ * already-deep-linked fallback can't produce a broken/doubled link. Then a
+ * suffix is appended per kind:
  *
  *   { kind: "event", eventId }   ->  `<base>/event/<eventId>`   (path form)
  *   { kind: "calendar", view }   ->  `<base>#<view>`            (hash form)
@@ -25,11 +27,18 @@ export function buildShareUrl(base, target) {
 }
 
 function normalizeBase(base) {
+  let result;
   try {
     const url = new URL(base);
-    return `${url.origin}${url.pathname}`.replace(/\/$/, "");
+    result = `${url.origin}${url.pathname}`;
   } catch {
-    // Not an absolute URL — best-effort: strip query/hash + trailing slash.
-    return base.split(/[?#]/)[0].replace(/\/$/, "");
+    // Not an absolute URL — best-effort: strip query/hash.
+    result = base.split(/[?#]/)[0];
   }
+  // Trim trailing slash(es), then collapse a trailing `/event/<id>` back to the
+  // view root. The base is often a canonical *page* URL (or a window.location
+  // fallback) that is itself an event deep-link; without this, appending the
+  // event suffix in buildShareUrl would double it (`…/event/<id>/event/<id>`),
+  // a path the router can't resolve.
+  return result.replace(/\/+$/, "").replace(/\/event\/[^/]+$/, "");
 }

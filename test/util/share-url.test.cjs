@@ -58,4 +58,49 @@ describe("buildShareUrl", () => {
       "https://ex.com/event/e1",
     );
   });
+
+  // Regression: when the base is itself an event deep-link (the canonical page
+  // URL a host emits, or the window.location fallback, while viewing an event),
+  // the trailing `/event/<id>` must collapse to the view root before the suffix
+  // is appended — otherwise the share button doubles it into
+  // `…/event/<id>/event/<id>`, which the router can't resolve.
+  it("event target whose base is already a deep-link → no doubled /event/", () => {
+    assert.strictEqual(
+      buildShareUrl("https://ex.com/cal/event/abc", {
+        kind: "event",
+        eventId: "abc",
+      }),
+      "https://ex.com/cal/event/abc",
+    );
+  });
+
+  it("deep-link base re-targets a different event cleanly", () => {
+    assert.strictEqual(
+      buildShareUrl("https://ex.com/cal/event/abc", {
+        kind: "event",
+        eventId: "xyz",
+      }),
+      "https://ex.com/cal/event/xyz",
+    );
+  });
+
+  it("calendar target from a deep-link base → view root (no stale /event/)", () => {
+    assert.strictEqual(
+      buildShareUrl("https://ex.com/cal/event/abc", {
+        kind: "calendar",
+        view: "month",
+      }),
+      "https://ex.com/cal#month",
+    );
+  });
+
+  it("deep-link base with trailing slash also collapses", () => {
+    assert.strictEqual(
+      buildShareUrl("https://ex.com/cal/event/abc/", {
+        kind: "event",
+        eventId: "abc",
+      }),
+      "https://ex.com/cal/event/abc",
+    );
+  });
 });

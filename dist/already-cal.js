@@ -3451,6 +3451,9 @@ ${text}</tr>
   function zoneFor(isoString, timezone) {
     return DATE_ONLY_RE.test(isoString) ? "UTC" : timezone;
   }
+  function parseEventDate(value) {
+    return DATE_ONLY_RE.test(value) ? /* @__PURE__ */ new Date(`${value}T00:00:00`) : new Date(value);
+  }
   function formatDate(isoString, timezone, locale) {
     locale = locale || "en-US";
     return new Intl.DateTimeFormat(locale, {
@@ -3495,7 +3498,7 @@ ${text}</tr>
     return isSameDay(date, /* @__PURE__ */ new Date());
   }
   function isPast(isoString) {
-    return new Date(isoString) < /* @__PURE__ */ new Date();
+    return parseEventDate(isoString) < /* @__PURE__ */ new Date();
   }
   function getMonthName(year, month, locale) {
     locale = locale || "en-US";
@@ -4688,7 +4691,6 @@ ${text}</tr>
     });
     nav.appendChild(nextBtn);
     day.appendChild(nav);
-    const parseEventDate = (start) => DATE_ONLY_RE.test(start) ? /* @__PURE__ */ new Date(`${start}T00:00:00`) : new Date(start);
     let dayEvents = events.filter(
       (e) => isSameDay(parseEventDate(e.start), currentDate)
     );
@@ -5712,7 +5714,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.5.1" : "unknown"
+        true ? "0.5.2" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

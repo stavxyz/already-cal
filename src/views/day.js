@@ -1,4 +1,9 @@
-import { formatDate, formatTime, isSameDay } from "../util/dates.js";
+import {
+  DATE_ONLY_RE,
+  formatDate,
+  formatTime,
+  isSameDay,
+} from "../util/dates.js";
 import {
   applyEventClasses,
   bindEventClick,
@@ -58,7 +63,7 @@ export function renderDayView(
 
   // Parse date-only strings (e.g. '2026-04-15') as local dates to avoid UTC midnight offset issues.
   const parseEventDate = (start) =>
-    /^\d{4}-\d{2}-\d{2}$/.test(start)
+    DATE_ONLY_RE.test(start)
       ? new Date(`${start}T00:00:00`)
       : new Date(start);
   let dayEvents = events.filter((e) =>

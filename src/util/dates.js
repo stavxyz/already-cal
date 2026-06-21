@@ -3,7 +3,7 @@
  *  midnight, so these absolute dates must be formatted in UTC to render on the
  *  entered day regardless of the viewer/calendar timezone — without this they
  *  shift back a day in negative-offset zones (Aug 19 → Aug 18 in the Americas). */
-const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+export const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Format zone for `isoString`: UTC for all-day (date-only) values so they
  *  don't cross a timezone boundary; the given `timezone` for timed values. */

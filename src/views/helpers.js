@@ -44,7 +44,7 @@ export function bindEventClick(
 /** Apply base class plus --past and --featured modifier classes to an event element. */
 export function applyEventClasses(el, event, baseClass) {
   let cls = baseClass;
-  if (isPast(event.start)) cls += ` ${baseClass}--past`;
+  if (isPast(event.end || event.start)) cls += ` ${baseClass}--past`;
   if (event.featured) cls += ` ${baseClass}--featured`;
   el.className = cls;
 }
@@ -55,7 +55,7 @@ export function applyEventClasses(el, event, baseClass) {
  */
 export function decorateCard(card, event, viewName, config) {
   if (card.classList.contains("already-card--error")) return;
-  if (isPast(event.start)) card.classList.add("already-card--past");
+  if (isPast(event.end || event.start)) card.classList.add("already-card--past");
   if (event.featured) card.classList.add("already-card--featured");
   card.dataset.eventId = event.id;
   bindEventClick(card, event, viewName, config);

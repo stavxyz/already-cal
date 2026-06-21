@@ -4081,12 +4081,14 @@ ${text}</tr>
     return target.view ? `${normalized}#${target.view}` : normalized;
   }
   function normalizeBase(base) {
+    let result;
     try {
       const url = new URL(base);
-      return `${url.origin}${url.pathname}`.replace(/\/$/, "");
+      result = `${url.origin}${url.pathname}`;
     } catch {
-      return base.split(/[?#]/)[0].replace(/\/$/, "");
+      result = base.split(/[?#]/)[0];
     }
+    return result.replace(/\/+$/, "").replace(/\/event\/[^/]+$/, "");
   }
 
   // src/util/share.js
@@ -5714,7 +5716,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.5.2" : "unknown"
+        true ? "0.5.3" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

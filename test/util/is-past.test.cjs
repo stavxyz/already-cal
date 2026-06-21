@@ -56,6 +56,18 @@ describe("isPast — all-day (date-only) values key off the viewer's local day",
     });
   });
 
+  it("crosses the DST spring-forward boundary at local midnight, not UTC", () => {
+    // 2026-03-08 is US spring-forward. An all-day event ending exclusive
+    // 2026-03-09 is still upcoming late on Mar 8 (local) and past once the
+    // viewer's local Mar 9 begins — the local-midnight parse handles the DST day.
+    at("2026-03-09T03:00:00Z", () => {
+      assert.strictEqual(isPast("2026-03-09"), false); // ~10pm Mar 8, Chicago
+    });
+    at("2026-03-09T12:00:00Z", () => {
+      assert.strictEqual(isPast("2026-03-09"), true); // morning Mar 9, Chicago
+    });
+  });
+
   it("timed events still use instant comparison (unchanged)", () => {
     at("2026-08-20T18:00:00Z", () => {
       assert.strictEqual(isPast("2026-08-20T16:00:00Z"), true); // 2h ago

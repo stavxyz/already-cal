@@ -11,6 +11,23 @@ function zoneFor(isoString, timezone) {
   return DATE_ONLY_RE.test(isoString) ? "UTC" : timezone;
 }
 
+/**
+ * Parse an event's `start`/`end` value into a Date for TEMPORAL logic ("which
+ * day is it", "is it past"). The two-axis rule for date-only (all-day) values:
+ * DISPLAY/placement is absolute — formatted in UTC (see `zoneFor`) so a date
+ * renders on the entered day in every zone — whereas TEMPORAL logic is
+ * viewer-local: an all-day value is parsed as LOCAL midnight so the event
+ * belongs to, and stays current through, the viewer's calendar day. Do NOT make
+ * the date-only branch UTC, or all-day events flip to past in the evening of
+ * their last day in negative-offset (US) zones. Timed values parse to their
+ * instant. Shared by `isPast` and the day view.
+ */
+export function parseEventDate(value) {
+  return DATE_ONLY_RE.test(value)
+    ? new Date(`${value}T00:00:00`)
+    : new Date(value);
+}
+
 /** Format an ISO date string as a full date (e.g. "Monday, April 14, 2026"). */
 export function formatDate(isoString, timezone, locale) {
   locale = locale || "en-US";
@@ -76,15 +93,11 @@ export function isToday(date) {
 
 /** Check whether an ISO date string is in the past. */
 export function isPast(isoString) {
-  if (DATE_ONLY_RE.test(isoString)) {
-    // All-day (date-only) values are "past" once the viewer's local day passes
-    // the date. Parse as LOCAL midnight (not UTC) so an all-day event leaves
-    // "upcoming" / gains --past at local midnight after its (exclusive) end —
-    // not in the evening of its last day in negative-offset zones. The displayed
-    // date stays absolute (UTC, see zoneFor); "is it past" is viewer-local.
-    return new Date(`${isoString}T00:00:00`) < new Date();
-  }
-  return new Date(isoString) < new Date();
+  // Date-only (all-day) values compare by viewer-local day; timed values by
+  // instant — see parseEventDate for the two-axis (display=UTC / temporal=local)
+  // rationale. Using UTC here would flip all-day events to past in the evening
+  // of their last day in negative-offset zones.
+  return parseEventDate(isoString) < new Date();
 }
 
 /** Format a month and year as a localized string (e.g. "April 2026"). */

@@ -3392,6 +3392,9 @@ ${text}</tr>
     }
   }
 
+  // src/util/event-path.js
+  var EVENT_PATH_RE = /\/event\/([^/]+)\/?$/;
+
   // src/router.js
   var VALID_VIEWS = ["month", "week", "day", "grid", "list"];
   function storageKey(config) {
@@ -3399,7 +3402,7 @@ ${text}</tr>
     return `${prefix}-view`;
   }
   function parseHash() {
-    const pathMatch = window.location.pathname.match(/\/event\/([^/]+)\/?$/);
+    const pathMatch = window.location.pathname.match(EVENT_PATH_RE);
     if (pathMatch) {
       return { view: "detail", eventId: decodeURIComponent(pathMatch[1]) };
     }
@@ -4088,7 +4091,7 @@ ${text}</tr>
     } catch {
       result = base.split(/[?#]/)[0];
     }
-    return result.replace(/\/+$/, "").replace(/\/event\/[^/]+$/, "");
+    return result.replace(/\/+$/, "").replace(EVENT_PATH_RE, "");
   }
 
   // src/util/share.js

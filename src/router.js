@@ -1,3 +1,5 @@
+import { EVENT_PATH_RE } from "./util/event-path.js";
+
 const VALID_VIEWS = ["month", "week", "day", "grid", "list"];
 
 function storageKey(config) {
@@ -7,8 +9,9 @@ function storageKey(config) {
 
 /** Parse the current URL hash or path into a view state object. */
 export function parseHash() {
-  // Check path for /event/{id} (allows server-side routing)
-  const pathMatch = window.location.pathname.match(/\/event\/([^/]+)\/?$/);
+  // Check path for /event/{id} (allows server-side routing). EVENT_PATH_RE is
+  // shared with share-url.js's collapse so parse + collapse stay inverses.
+  const pathMatch = window.location.pathname.match(EVENT_PATH_RE);
   if (pathMatch) {
     return { view: "detail", eventId: decodeURIComponent(pathMatch[1]) };
   }

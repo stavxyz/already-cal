@@ -103,4 +103,24 @@ describe("buildShareUrl", () => {
       "https://ex.com/cal/event/abc",
     );
   });
+
+  it("deep-link base with a percent-encoded id still collapses", () => {
+    assert.strictEqual(
+      buildShareUrl("https://ex.com/cal/event/abc%20123", {
+        kind: "event",
+        eventId: "abc 123",
+      }),
+      "https://ex.com/cal/event/abc%20123",
+    );
+  });
+
+  it("deep-link base carrying query/hash collapses (query + hash dropped)", () => {
+    assert.strictEqual(
+      buildShareUrl("https://ex.com/cal/event/abc?utm=x#frag", {
+        kind: "event",
+        eventId: "abc",
+      }),
+      "https://ex.com/cal/event/abc",
+    );
+  });
 });

@@ -126,9 +126,59 @@
 }
 .already-header-actions {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
   flex-shrink: 0;
+}
+.already-subscribe-menu {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.already-subscribe-list {
+  margin-top: 0.25rem;
+  margin-right: 0;
+  margin-bottom: 0;
+  margin-left: 0;
+  min-width: 12rem;
+  display: flex;
+  flex-direction: column;
+  background: var(--already-surface);
+  border: 1px solid var(--already-border);
+  border-radius: var(--already-radius);
+  padding: 0.25rem;
+  list-style: none;
+}
+.already-subscribe-list[hidden] {
+  display: none;
+}
+.already-subscribe-list li {
+  display: block;
+}
+.already-subscribe-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: none;
+  background: transparent;
+  border-radius: var(--already-radius);
+  color: var(--already-text);
+  font-family: var(--already-font-family);
+  font-size: 0.8125rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  width: 100%;
+}
+.already-subscribe-item:hover {
+  background: var(--already-highlight);
+}
+.already-subscribe-item:focus-visible {
+  background: var(--already-highlight);
+  outline: 2px solid var(--already-primary);
+  outline-offset: -2px;
 }
 .already-header-share {
   background: transparent;

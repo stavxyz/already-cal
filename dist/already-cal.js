@@ -4162,6 +4162,160 @@ ${text}</tr>
     return btn;
   }
 
+  // src/util/subscribe-targets.js
+  var GCAL_ICAL_RE = /^https?:\/\/calendar\.google\.com\/calendar\/ical\/([^/]+)\/public\/basic\.ics/i;
+  function googleCalIdToCid(calendarId) {
+    return btoa(calendarId).replace(/=+$/, "");
+  }
+  function swapScheme(url, scheme) {
+    return url.replace(/^[a-z]+:/i, scheme);
+  }
+  function buildSubscribeTargets(subscribeUrl) {
+    if (typeof subscribeUrl !== "string" || subscribeUrl === "") return null;
+    let scheme;
+    try {
+      scheme = new URL(subscribeUrl).protocol;
+    } catch {
+      return null;
+    }
+    if (scheme !== "webcal:" && scheme !== "https:") return null;
+    const webcalUrl = swapScheme(subscribeUrl, "webcal:");
+    const httpsUrl = swapScheme(subscribeUrl, "https:");
+    const m = httpsUrl.match(GCAL_ICAL_RE);
+    let googleCid;
+    if (m) {
+      try {
+        googleCid = googleCalIdToCid(decodeURIComponent(m[1]));
+      } catch {
+        googleCid = encodeURIComponent(webcalUrl);
+      }
+    } else {
+      googleCid = encodeURIComponent(webcalUrl);
+    }
+    return [
+      { id: "apple", kind: "link", url: webcalUrl },
+      {
+        id: "google",
+        kind: "link",
+        url: `https://calendar.google.com/calendar/r?cid=${googleCid}`
+      },
+      {
+        id: "outlook",
+        kind: "link",
+        url: "https://outlook.office.com/calendar/0/addfromweb?url=" + encodeURIComponent(webcalUrl)
+      },
+      { id: "copy", kind: "copy", url: httpsUrl }
+    ];
+  }
+
+  // src/ui/subscribe-menu.js
+  var CAL_ICON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 1v2M11 1v2M2 6h12M3 3h10a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function targetLabel(id, i18n) {
+    if (id === "apple") return i18n.subscribeApple || "Apple Calendar";
+    if (id === "google") return i18n.subscribeGoogle || "Google Calendar";
+    if (id === "outlook") return i18n.subscribeOutlook || "Outlook";
+    if (id === "copy") return i18n.subscribeCopy || "Copy iCal link";
+    return "";
+  }
+  function createSubscribeMenu({ subscribeUrl, label, i18n = {} }) {
+    const targets = buildSubscribeTargets(subscribeUrl);
+    if (!targets) return null;
+    const LIST_ID = "already-subscribe-list";
+    const wrap = createElement("div", "already-subscribe-menu");
+    const btn = createElement("button", "already-header-subscribe", {
+      type: "button",
+      "aria-expanded": "false",
+      "aria-controls": LIST_ID
+    });
+    btn.innerHTML = CAL_ICON;
+    btn.appendChild(document.createTextNode(` ${label || "Subscribe"}`));
+    const list2 = createElement("ul", "already-subscribe-list");
+    list2.id = LIST_ID;
+    list2.hidden = true;
+    let revertTimer = null;
+    const copiedLabel = i18n.copied || "\u{1F4CB} Copied!";
+    for (const t of targets) {
+      const text = targetLabel(t.id, i18n);
+      const li = document.createElement("li");
+      if (t.kind === "copy") {
+        const item = createElement("button", "already-subscribe-item", {
+          type: "button"
+        });
+        const lbl = createElement("span", "already-subscribe-item-label", {
+          "aria-live": "polite"
+        });
+        lbl.textContent = text;
+        item.appendChild(lbl);
+        item.addEventListener("click", () => {
+          item._copyResult = (async () => {
+            if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+              try {
+                await navigator.clipboard.writeText(t.url);
+                lbl.textContent = copiedLabel;
+                if (revertTimer) clearTimeout(revertTimer);
+                revertTimer = setTimeout(() => {
+                  lbl.textContent = text;
+                  revertTimer = null;
+                }, 2e3);
+                return "copied";
+              } catch {
+                return "failed";
+              }
+            }
+            return "failed";
+          })();
+        });
+        li.appendChild(item);
+      } else {
+        const item = createElement("a", "already-subscribe-item", {
+          href: t.url
+        });
+        if (t.url.startsWith("https:")) {
+          item.setAttribute("target", "_blank");
+          item.setAttribute("rel", "noopener noreferrer");
+        }
+        item.textContent = text;
+        li.appendChild(item);
+      }
+      list2.appendChild(li);
+    }
+    function close() {
+      list2.hidden = true;
+      btn.setAttribute("aria-expanded", "false");
+    }
+    function open() {
+      list2.hidden = false;
+      btn.setAttribute("aria-expanded", "true");
+    }
+    function cleanup() {
+      if (revertTimer) clearTimeout(revertTimer);
+      document.removeEventListener("click", onDocClick);
+      document.removeEventListener("keydown", onKeydown);
+    }
+    function onDocClick(e) {
+      if (!document.contains(wrap)) return cleanup();
+      if (!wrap.contains(e.target)) close();
+    }
+    function onKeydown(e) {
+      if (!document.contains(wrap)) return cleanup();
+      if (e.key === "Escape" && !list2.hidden) {
+        close();
+        btn.focus();
+      }
+    }
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (list2.hidden) open();
+      else close();
+    });
+    document.addEventListener("click", onDocClick);
+    document.addEventListener("keydown", onKeydown);
+    wrap.appendChild(btn);
+    wrap.appendChild(list2);
+    wrap.destroy = cleanup;
+    return wrap;
+  }
+
   // src/ui/header.js
   function safeHttpUrl(raw) {
     if (typeof raw !== "string" || raw === "") return null;
@@ -4174,6 +4328,7 @@ ${text}</tr>
   }
   function renderHeader(container, calendarData, config) {
     if (!config.showHeader) {
+      container.querySelector(".already-subscribe-menu")?.destroy?.();
       container.innerHTML = "";
       return;
     }
@@ -4183,12 +4338,10 @@ ${text}</tr>
     const subscribeLabel = i18n.subscribe || "Subscribe";
     let subscribeUrl = config.subscribeUrl || null;
     if (!subscribeUrl && config.google?.calendarId) {
-      const cid = btoa(config.google.calendarId).replace(/=+$/, "");
-      subscribeUrl = `https://calendar.google.com/calendar/u/0?cid=${cid}`;
+      subscribeUrl = `https://calendar.google.com/calendar/ical/${encodeURIComponent(config.google.calendarId)}/public/basic.ics`;
     }
     if (!subscribeUrl && calendarData?.calendarId) {
-      const cid = btoa(calendarData.calendarId).replace(/=+$/, "");
-      subscribeUrl = `https://calendar.google.com/calendar/u/0?cid=${cid}`;
+      subscribeUrl = `https://calendar.google.com/calendar/ical/${encodeURIComponent(calendarData.calendarId)}/public/basic.ics`;
     }
     const shareButton = config.shareBase ? createShareButton({
       className: "already-header-subscribe already-header-share",
@@ -4201,6 +4354,7 @@ ${text}</tr>
       })
     }) : null;
     if (!name && !description && !subscribeUrl && !shareButton) {
+      container.querySelector(".already-subscribe-menu")?.destroy?.();
       container.innerHTML = "";
       return;
     }
@@ -4236,30 +4390,36 @@ ${text}</tr>
     if (description) {
       const p = document.createElement("p");
       p.className = "already-header-description";
-      if (subscribeUrl && /subscribe/i.test(description)) {
-        p.innerHTML = description.replace(
-          /(subscribe)/i,
-          `<a href="${subscribeUrl}" target="_blank" rel="noopener noreferrer" class="already-header-description-link">$1</a>`
-        );
-      } else {
-        p.textContent = description;
-      }
+      p.textContent = description;
       textCol.appendChild(p);
     }
     header.appendChild(textCol);
     const actions = document.createElement("div");
     actions.className = "already-header-actions";
     if (subscribeUrl) {
-      const btn = document.createElement("a");
-      btn.className = "already-header-subscribe";
-      btn.href = subscribeUrl;
-      btn.target = "_blank";
-      btn.rel = "noopener noreferrer";
-      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 1v2M11 1v2M2 6h12M3 3h10a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8v4M6 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> ${escapeHtml(subscribeLabel)}`;
-      actions.appendChild(btn);
+      const menu = createSubscribeMenu({
+        subscribeUrl,
+        label: subscribeLabel,
+        i18n
+      });
+      if (menu) {
+        actions.appendChild(menu);
+      } else {
+        const safeUrl = safeHttpUrl(subscribeUrl);
+        if (safeUrl) {
+          const btn = document.createElement("a");
+          btn.className = "already-header-subscribe";
+          btn.href = safeUrl;
+          btn.target = "_blank";
+          btn.rel = "noopener noreferrer";
+          btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 1v2M11 1v2M2 6h12M3 3h10a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8v4M6 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> ${escapeHtml(subscribeLabel)}`;
+          actions.appendChild(btn);
+        }
+      }
     }
     if (shareButton) actions.appendChild(shareButton);
     if (actions.childNodes.length > 0) header.appendChild(actions);
+    container.querySelector(".already-subscribe-menu")?.destroy?.();
     container.innerHTML = "";
     container.appendChild(header);
   }
@@ -5342,6 +5502,10 @@ ${text}</tr>
     back: "\u2190 Back",
     moreEvents: "+{count} more",
     subscribe: "Subscribe",
+    subscribeApple: "Apple Calendar",
+    subscribeGoogle: "Google Calendar",
+    subscribeOutlook: "Outlook",
+    subscribeCopy: "Copy iCal link",
     share: "Share",
     copied: "\u{1F4CB} Copied!",
     clearFilter: "Clear",
@@ -5719,7 +5883,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.5.3" : "unknown"
+        true ? "0.6.0" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({
@@ -5836,6 +6000,7 @@ ${text}</tr>
       if (removeHashListener) removeHashListener();
       if (interactionCleanup) interactionCleanup();
       headerContainer.querySelector(".already-header-share")?.destroy?.();
+      headerContainer.querySelector(".already-subscribe-menu")?.destroy?.();
       viewContainer.querySelector(".already-detail-share")?.destroy?.();
       el.innerHTML = "";
       el.classList.remove("already");

@@ -170,6 +170,9 @@
 }
 .already-subscribe-list {
   margin-top: 0.25rem;
+  margin-right: 0;
+  margin-bottom: 0;
+  margin-left: 0;
   min-width: 12rem;
   display: flex;
   flex-direction: column;
@@ -177,9 +180,13 @@
   border: 1px solid var(--already-border);
   border-radius: var(--already-radius);
   padding: 0.25rem;
+  list-style: none;
 }
 .already-subscribe-list[hidden] {
   display: none;
+}
+.already-subscribe-list li {
+  display: block;
 }
 .already-subscribe-item {
   display: flex;
@@ -196,11 +203,15 @@
   text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
+  width: 100%;
 }
-.already-subscribe-item:hover,
+.already-subscribe-item:hover {
+  background: var(--already-highlight);
+}
 .already-subscribe-item:focus-visible {
   background: var(--already-highlight);
-  outline: none;
+  outline: 2px solid var(--already-primary);
+  outline-offset: -2px;
 }
 
 /* Share reuses the subscribe sizing but reads as a secondary (outline) action */

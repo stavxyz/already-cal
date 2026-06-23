@@ -1,6 +1,5 @@
 import { escapeHtml } from "../util/sanitize.js";
 import { buildShareUrl } from "../util/share-url.js";
-import { googleCalIdToCid } from "../util/subscribe-targets.js";
 import { createShareButton } from "./share-button.js";
 import { createSubscribeMenu } from "./subscribe-menu.js";
 
@@ -35,10 +34,10 @@ export function renderHeader(container, calendarData, config) {
   // Build subscribe URL: explicit config, or auto-generate from Google Calendar ID
   let subscribeUrl = config.subscribeUrl || null;
   if (!subscribeUrl && config.google?.calendarId) {
-    subscribeUrl = `https://calendar.google.com/calendar/u/0?cid=${googleCalIdToCid(config.google.calendarId)}`;
+    subscribeUrl = `https://calendar.google.com/calendar/ical/${encodeURIComponent(config.google.calendarId)}/public/basic.ics`;
   }
   if (!subscribeUrl && calendarData?.calendarId) {
-    subscribeUrl = `https://calendar.google.com/calendar/u/0?cid=${googleCalIdToCid(calendarData.calendarId)}`;
+    subscribeUrl = `https://calendar.google.com/calendar/ical/${encodeURIComponent(calendarData.calendarId)}/public/basic.ics`;
   }
 
   // Calendar-share button (always available when a base is configured).
@@ -122,14 +121,18 @@ export function renderHeader(container, calendarData, config) {
       actions.appendChild(menu);
     } else {
       // Fallback: an override that isn't an ICS feed — keep the single link
-      // unchanged. Intentional, covered by header.test.cjs (not dead code).
-      const btn = document.createElement("a");
-      btn.className = "already-header-subscribe";
-      btn.href = subscribeUrl;
-      btn.target = "_blank";
-      btn.rel = "noopener noreferrer";
-      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 1v2M11 1v2M2 6h12M3 3h10a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8v4M6 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> ${escapeHtml(subscribeLabel)}`;
-      actions.appendChild(btn);
+      // unchanged. Only render when the URL is http(s) to prevent
+      // non-http(s) schemes (e.g. javascript:) from reaching the DOM.
+      const safeUrl = safeHttpUrl(subscribeUrl);
+      if (safeUrl) {
+        const btn = document.createElement("a");
+        btn.className = "already-header-subscribe";
+        btn.href = safeUrl;
+        btn.target = "_blank";
+        btn.rel = "noopener noreferrer";
+        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 1v2M11 1v2M2 6h12M3 3h10a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8v4M6 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> ${escapeHtml(subscribeLabel)}`;
+        actions.appendChild(btn);
+      }
     }
   }
 

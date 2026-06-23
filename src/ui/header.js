@@ -20,6 +20,7 @@ function safeHttpUrl(raw) {
 /** Render the calendar header: name, description, icon, and subscribe button. */
 export function renderHeader(container, calendarData, config) {
   if (!config.showHeader) {
+    container.querySelector(".already-subscribe-menu")?.destroy?.();
     container.innerHTML = "";
     return;
   }
@@ -61,6 +62,7 @@ export function renderHeader(container, calendarData, config) {
 
   // Render the header if there's a title, a description, OR an action to show.
   if (!name && !description && !subscribeUrl && !shareButton) {
+    container.querySelector(".already-subscribe-menu")?.destroy?.();
     container.innerHTML = "";
     return;
   }
@@ -130,6 +132,7 @@ export function renderHeader(container, calendarData, config) {
   if (shareButton) actions.appendChild(shareButton);
   if (actions.childNodes.length > 0) header.appendChild(actions);
 
+  container.querySelector(".already-subscribe-menu")?.destroy?.();
   container.innerHTML = "";
   container.appendChild(header);
 }

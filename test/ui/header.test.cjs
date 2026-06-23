@@ -172,6 +172,19 @@ describe("subscribe menu wiring", () => {
     assert.strictEqual(el.querySelector(".already-header-subscribe"), null);
   });
 
+  it("renders a subscribe menu when subscribeUrl is derived from calendarData.calendarId", () => {
+    const el = document.createElement("div");
+    renderHeader(
+      el,
+      { name: "Cal", calendarId: "c_abc@group.calendar.google.com" },
+      { showHeader: true }
+    );
+    assert.ok(
+      el.querySelector(".already-subscribe-menu"),
+      "menu present when derived from calendarData.calendarId"
+    );
+  });
+
   it("does NOT auto-link the word 'subscribe' in the description", () => {
     const el = document.createElement("div");
     renderHeader(el, { name: "Cal", description: "Click subscribe to follow" }, {

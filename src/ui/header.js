@@ -1,8 +1,8 @@
 import { escapeHtml } from "../util/sanitize.js";
 import { buildShareUrl } from "../util/share-url.js";
+import { googleCalIdToCid } from "../util/subscribe-targets.js";
 import { createShareButton } from "./share-button.js";
 import { createSubscribeMenu } from "./subscribe-menu.js";
-import { googleCalIdToCid } from "../util/subscribe-targets.js";
 
 // Accept a header-link URL only if it parses and uses an http(s) scheme.
 // Render-side defense-in-depth: the embed host validates at write time, but
@@ -113,7 +113,11 @@ export function renderHeader(container, calendarData, config) {
   actions.className = "already-header-actions";
 
   if (subscribeUrl) {
-    const menu = createSubscribeMenu({ subscribeUrl, label: subscribeLabel, i18n });
+    const menu = createSubscribeMenu({
+      subscribeUrl,
+      label: subscribeLabel,
+      i18n,
+    });
     if (menu) {
       actions.appendChild(menu);
     } else {

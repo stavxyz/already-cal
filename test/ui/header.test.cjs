@@ -149,7 +149,7 @@ describe("subscribe menu wiring", () => {
     assert.ok(el.querySelector(".already-subscribe-menu"), "menu present");
     assert.strictEqual(
       el.querySelectorAll(".already-subscribe-item").length,
-      4
+      4,
     );
   });
 
@@ -157,10 +157,14 @@ describe("subscribe menu wiring", () => {
     // buildSubscribeTargets returns null for schemes other than webcal:/https:,
     // so createSubscribeMenu returns null and the single-link fallback fires.
     const el = document.createElement("div");
-    renderHeader(el, { name: "Cal" }, {
-      showHeader: true,
-      subscribeUrl: "ftp://example.com/landing.ics",
-    });
+    renderHeader(
+      el,
+      { name: "Cal" },
+      {
+        showHeader: true,
+        subscribeUrl: "ftp://example.com/landing.ics",
+      },
+    );
     assert.strictEqual(el.querySelector(".already-subscribe-menu"), null);
     const a = el.querySelector("a.already-header-subscribe");
     assert.strictEqual(a.getAttribute("href"), "ftp://example.com/landing.ics");
@@ -177,22 +181,30 @@ describe("subscribe menu wiring", () => {
     renderHeader(
       el,
       { name: "Cal", calendarId: "c_abc@group.calendar.google.com" },
-      { showHeader: true }
+      { showHeader: true },
     );
     assert.ok(
       el.querySelector(".already-subscribe-menu"),
-      "menu present when derived from calendarData.calendarId"
+      "menu present when derived from calendarData.calendarId",
     );
   });
 
   it("does NOT auto-link the word 'subscribe' in the description", () => {
     const el = document.createElement("div");
-    renderHeader(el, { name: "Cal", description: "Click subscribe to follow" }, {
-      showHeader: true,
-      subscribeUrl: feed,
-    });
+    renderHeader(
+      el,
+      { name: "Cal", description: "Click subscribe to follow" },
+      {
+        showHeader: true,
+        subscribeUrl: feed,
+      },
+    );
     const p = el.querySelector(".already-header-description");
-    assert.strictEqual(p.querySelector("a"), null, "no inline link in description");
+    assert.strictEqual(
+      p.querySelector("a"),
+      null,
+      "no inline link in description",
+    );
     assert.strictEqual(p.textContent, "Click subscribe to follow");
   });
 });

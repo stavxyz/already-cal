@@ -16,7 +16,9 @@ describe("googleCalIdToCid", () => {
   it("base64-encodes the id and strips padding", () => {
     // btoa("c_abc@group.calendar.google.com") ends in '=' padding
     assert.strictEqual(googleCalIdToCid("a"), "YQ"); // btoa('a') === 'YQ=='
-    assert.ok(!googleCalIdToCid("c_abc@group.calendar.google.com").endsWith("="));
+    assert.ok(
+      !googleCalIdToCid("c_abc@group.calendar.google.com").endsWith("="),
+    );
   });
 });
 
@@ -33,7 +35,7 @@ describe("buildSubscribeTargets", () => {
     const t = buildSubscribeTargets(GFEED);
     assert.deepStrictEqual(
       t.map((x) => x.id),
-      ["apple", "google", "outlook", "copy"]
+      ["apple", "google", "outlook", "copy"],
     );
     const by = Object.fromEntries(t.map((x) => [x.id, x]));
     // Apple: the webcal:// feed unchanged
@@ -43,20 +45,20 @@ describe("buildSubscribeTargets", () => {
     assert.strictEqual(
       by.google.url,
       "https://calendar.google.com/calendar/r?cid=" +
-        googleCalIdToCid("c_abc@group.calendar.google.com")
+        googleCalIdToCid("c_abc@group.calendar.google.com"),
     );
     // Outlook: addfromweb with the encoded webcal feed
     assert.strictEqual(
       by.outlook.url,
       "https://outlook.office.com/calendar/0/addfromweb?url=" +
-        encodeURIComponent(GFEED)
+        encodeURIComponent(GFEED),
     );
     // Copy: the https form of the feed
     assert.strictEqual(by.copy.kind, "copy");
     assert.strictEqual(
       by.copy.url,
       "https://calendar.google.com/calendar/ical/" +
-        "c_abc%40group.calendar.google.com/public/basic.ics"
+        "c_abc%40group.calendar.google.com/public/basic.ics",
     );
   });
 
@@ -65,7 +67,7 @@ describe("buildSubscribeTargets", () => {
       "https://calendar.google.com/calendar/ical/" +
       "c_abc%40group.calendar.google.com/public/basic.ics";
     const by = Object.fromEntries(
-      buildSubscribeTargets(https).map((x) => [x.id, x])
+      buildSubscribeTargets(https).map((x) => [x.id, x]),
     );
     assert.ok(by.apple.url.startsWith("webcal://"));
     assert.strictEqual(by.copy.url, https);
@@ -81,25 +83,25 @@ describe("buildSubscribeTargets", () => {
     assert.strictEqual(targets.length, 4);
     assert.deepStrictEqual(
       targets.map((x) => x.id),
-      ["apple", "google", "outlook", "copy"]
+      ["apple", "google", "outlook", "copy"],
     );
     const by = Object.fromEntries(targets.map((x) => [x.id, x]));
     assert.strictEqual(
       by.google.url,
       "https://calendar.google.com/calendar/r?cid=" +
-        encodeURIComponent(malformed)
+        encodeURIComponent(malformed),
     );
   });
 
   it("uses the feed-form Google cid for a non-Google feed", () => {
     const feed = "webcal://example.com/cal/feed.ics";
     const by = Object.fromEntries(
-      buildSubscribeTargets(feed).map((x) => [x.id, x])
+      buildSubscribeTargets(feed).map((x) => [x.id, x]),
     );
     assert.strictEqual(
       by.google.url,
       "https://calendar.google.com/calendar/r?cid=" +
-        encodeURIComponent("webcal://example.com/cal/feed.ics")
+        encodeURIComponent("webcal://example.com/cal/feed.ics"),
     );
     assert.strictEqual(by.apple.url, "webcal://example.com/cal/feed.ics");
     assert.strictEqual(by.copy.url, "https://example.com/cal/feed.ics");

@@ -42,13 +42,20 @@ export function createSubscribeMenu({ subscribeUrl, label, i18n = {} }) {
   for (const t of targets) {
     const text = targetLabel(t.id, i18n);
     if (t.kind === "copy") {
-      const item = createElement("button", "already-subscribe-item", { type: "button" });
-      const lbl = createElement("span", "already-subscribe-item-label", { "aria-live": "polite" });
+      const item = createElement("button", "already-subscribe-item", {
+        type: "button",
+      });
+      const lbl = createElement("span", "already-subscribe-item-label", {
+        "aria-live": "polite",
+      });
       lbl.textContent = text;
       item.appendChild(lbl);
       item.addEventListener("click", () => {
         item._copyResult = (async () => {
-          if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+          if (
+            navigator.clipboard &&
+            typeof navigator.clipboard.writeText === "function"
+          ) {
             try {
               await navigator.clipboard.writeText(t.url);
               lbl.textContent = copiedLabel;
@@ -67,7 +74,9 @@ export function createSubscribeMenu({ subscribeUrl, label, i18n = {} }) {
       });
       list.appendChild(item);
     } else {
-      const item = createElement("a", "already-subscribe-item", { href: t.url });
+      const item = createElement("a", "already-subscribe-item", {
+        href: t.url,
+      });
       if (t.url.startsWith("https:")) {
         item.setAttribute("target", "_blank");
         item.setAttribute("rel", "noopener noreferrer");

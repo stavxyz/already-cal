@@ -1,6 +1,8 @@
 import { escapeHtml } from "../util/sanitize.js";
 import { buildShareUrl } from "../util/share-url.js";
 import { createShareButton } from "./share-button.js";
+import { createSubscribeMenu } from "./subscribe-menu.js";
+import { googleCalIdToCid } from "../util/subscribe-targets.js";
 
 // Accept a header-link URL only if it parses and uses an http(s) scheme.
 // Render-side defense-in-depth: the embed host validates at write time, but
@@ -32,12 +34,10 @@ export function renderHeader(container, calendarData, config) {
   // Build subscribe URL: explicit config, or auto-generate from Google Calendar ID
   let subscribeUrl = config.subscribeUrl || null;
   if (!subscribeUrl && config.google?.calendarId) {
-    const cid = btoa(config.google.calendarId).replace(/=+$/, "");
-    subscribeUrl = `https://calendar.google.com/calendar/u/0?cid=${cid}`;
+    subscribeUrl = `https://calendar.google.com/calendar/u/0?cid=${googleCalIdToCid(config.google.calendarId)}`;
   }
   if (!subscribeUrl && calendarData?.calendarId) {
-    const cid = btoa(calendarData.calendarId).replace(/=+$/, "");
-    subscribeUrl = `https://calendar.google.com/calendar/u/0?cid=${cid}`;
+    subscribeUrl = `https://calendar.google.com/calendar/u/0?cid=${googleCalIdToCid(calendarData.calendarId)}`;
   }
 
   // Calendar-share button (always available when a base is configured).
@@ -101,14 +101,7 @@ export function renderHeader(container, calendarData, config) {
   if (description) {
     const p = document.createElement("p");
     p.className = "already-header-description";
-    if (subscribeUrl && /subscribe/i.test(description)) {
-      p.innerHTML = description.replace(
-        /(subscribe)/i,
-        `<a href="${subscribeUrl}" target="_blank" rel="noopener noreferrer" class="already-header-description-link">$1</a>`,
-      );
-    } else {
-      p.textContent = description;
-    }
+    p.textContent = description;
     textCol.appendChild(p);
   }
 
@@ -118,13 +111,20 @@ export function renderHeader(container, calendarData, config) {
   actions.className = "already-header-actions";
 
   if (subscribeUrl) {
-    const btn = document.createElement("a");
-    btn.className = "already-header-subscribe";
-    btn.href = subscribeUrl;
-    btn.target = "_blank";
-    btn.rel = "noopener noreferrer";
-    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 1v2M11 1v2M2 6h12M3 3h10a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8v4M6 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> ${escapeHtml(subscribeLabel)}`;
-    actions.appendChild(btn);
+    const menu = createSubscribeMenu({ subscribeUrl, label: subscribeLabel, i18n });
+    if (menu) {
+      actions.appendChild(menu);
+    } else {
+      // Fallback: an override that isn't an ICS feed — keep the single link
+      // unchanged. Intentional, covered by header.test.cjs (not dead code).
+      const btn = document.createElement("a");
+      btn.className = "already-header-subscribe";
+      btn.href = subscribeUrl;
+      btn.target = "_blank";
+      btn.rel = "noopener noreferrer";
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 1v2M11 1v2M2 6h12M3 3h10a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 8v4M6 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> ${escapeHtml(subscribeLabel)}`;
+      actions.appendChild(btn);
+    }
   }
 
   if (shareButton) actions.appendChild(shareButton);

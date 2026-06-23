@@ -2,6 +2,12 @@ require("../setup-dom.cjs");
 const { describe, it, before } = require("node:test");
 const assert = require("node:assert");
 
+// Derive the expected Google cid the same way subscribe-targets.js does:
+// base64(calendarId), padding stripped.
+function expectedCid(calendarId) {
+  return Buffer.from(calendarId).toString("base64").replace(/=+$/, "");
+}
+
 let renderHeader;
 before(async () => {
   ({ renderHeader } = await import("../../src/ui/header.js"));
@@ -153,21 +159,29 @@ describe("subscribe menu wiring", () => {
     );
   });
 
-  it("falls back to a single subscribe link when the menu returns null", () => {
-    // buildSubscribeTargets returns null for schemes other than webcal:/https:,
-    // so createSubscribeMenu returns null and the single-link fallback fires.
-    const el = document.createElement("div");
-    renderHeader(
-      el,
-      { name: "Cal" },
-      {
-        showHeader: true,
-        subscribeUrl: "ftp://example.com/landing.ics",
-      },
-    );
-    assert.strictEqual(el.querySelector(".already-subscribe-menu"), null);
-    const a = el.querySelector("a.already-header-subscribe");
-    assert.strictEqual(a.getAttribute("href"), "ftp://example.com/landing.ics");
+  it("renders no subscribe control for non-http(s) schemes (ftp, javascript)", () => {
+    // ftp:// / javascript: are blocked by the scheme guard — no link is rendered.
+    for (const url of [
+      "ftp://example.com/landing.ics",
+      "javascript:alert(1)",
+    ]) {
+      const el = document.createElement("div");
+      renderHeader(
+        el,
+        { name: "Cal" },
+        { showHeader: true, subscribeUrl: url },
+      );
+      assert.strictEqual(
+        el.querySelector("a.already-header-subscribe"),
+        null,
+        `${url} must not produce a subscribe link`,
+      );
+      assert.strictEqual(
+        el.querySelector(".already-subscribe-menu"),
+        null,
+        `${url} must not produce a subscribe menu`,
+      );
+    }
   });
 
   it("renders no subscribe control when there is no subscribeUrl", () => {
@@ -186,6 +200,51 @@ describe("subscribe menu wiring", () => {
     assert.ok(
       el.querySelector(".already-subscribe-menu"),
       "menu present when derived from calendarData.calendarId",
+    );
+  });
+
+  it("derives correct ICS feed targets from calendarData.calendarId", () => {
+    const calId = "c_abc@group.calendar.google.com";
+    const el = document.createElement("div");
+    renderHeader(el, { name: "Cal", calendarId: calId }, { showHeader: true });
+
+    const items = [...el.querySelectorAll("a.already-subscribe-item")];
+    const apple = items.find((a) => a.href.startsWith("webcal:"));
+    const google = items.find((a) => a.href.includes("calendar/r?cid="));
+
+    const encodedId = encodeURIComponent(calId);
+    assert.ok(apple, "Apple Calendar link present");
+    assert.strictEqual(
+      apple.getAttribute("href"),
+      `webcal://calendar.google.com/calendar/ical/${encodedId}/public/basic.ics`,
+      "Apple href is the ICS feed (webcal scheme)",
+    );
+
+    assert.ok(google, "Google Calendar link present");
+    const cid = expectedCid(calId);
+    assert.ok(
+      google.getAttribute("href").includes(`calendar/r?cid=${cid}`),
+      `Google href contains cid=${cid}`,
+    );
+  });
+
+  it("derives correct ICS feed targets from config.google.calendarId", () => {
+    const calId = "c_xyz@group.calendar.google.com";
+    const el = document.createElement("div");
+    renderHeader(
+      el,
+      { name: "Cal" },
+      { showHeader: true, google: { calendarId: calId } },
+    );
+
+    const items = [...el.querySelectorAll("a.already-subscribe-item")];
+    const apple = items.find((a) => a.href.startsWith("webcal:"));
+    assert.ok(apple, "Apple Calendar link present");
+    const encodedId = encodeURIComponent(calId);
+    assert.strictEqual(
+      apple.getAttribute("href"),
+      `webcal://calendar.google.com/calendar/ical/${encodedId}/public/basic.ics`,
+      "Apple href is the ICS feed (webcal scheme) from config.google.calendarId",
     );
   });
 

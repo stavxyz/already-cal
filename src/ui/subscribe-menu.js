@@ -27,20 +27,26 @@ export function createSubscribeMenu({ subscribeUrl, label, i18n = {} }) {
   const targets = buildSubscribeTargets(subscribeUrl);
   if (!targets) return null;
 
+  const LIST_ID = "already-subscribe-list";
+
   const wrap = createElement("div", "already-subscribe-menu");
   const btn = createElement("button", "already-header-subscribe", {
     type: "button",
     "aria-expanded": "false",
+    "aria-controls": LIST_ID,
   });
   btn.innerHTML = CAL_ICON;
   btn.appendChild(document.createTextNode(` ${label || "Subscribe"}`));
 
-  const list = createElement("div", "already-subscribe-list", { hidden: "" });
+  const list = createElement("ul", "already-subscribe-list");
+  list.id = LIST_ID;
+  list.hidden = true;
   let revertTimer = null;
   const copiedLabel = i18n.copied || "📋 Copied!";
 
   for (const t of targets) {
     const text = targetLabel(t.id, i18n);
+    const li = document.createElement("li");
     if (t.kind === "copy") {
       const item = createElement("button", "already-subscribe-item", {
         type: "button",
@@ -72,7 +78,7 @@ export function createSubscribeMenu({ subscribeUrl, label, i18n = {} }) {
           return "failed";
         })();
       });
-      list.appendChild(item);
+      li.appendChild(item);
     } else {
       const item = createElement("a", "already-subscribe-item", {
         href: t.url,
@@ -82,8 +88,9 @@ export function createSubscribeMenu({ subscribeUrl, label, i18n = {} }) {
         item.setAttribute("rel", "noopener noreferrer");
       }
       item.textContent = text;
-      list.appendChild(item);
+      li.appendChild(item);
     }
+    list.appendChild(li);
   }
 
   function close() {

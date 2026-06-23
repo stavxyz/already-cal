@@ -33,9 +33,17 @@ export function buildSubscribeTargets(subscribeUrl) {
   // Native Google form when the feed is a public Google calendar ICS URL;
   // otherwise subscribe Google to the external feed (cid carries webcal://).
   const m = httpsUrl.match(GCAL_ICAL_RE);
-  const googleCid = m
-    ? googleCalIdToCid(decodeURIComponent(m[1]))
-    : encodeURIComponent(webcalUrl);
+  let googleCid;
+  if (m) {
+    try {
+      googleCid = googleCalIdToCid(decodeURIComponent(m[1]));
+    } catch {
+      // malformed percent-encoding in the calendar id — fall back to the feed-form cid
+      googleCid = encodeURIComponent(webcalUrl);
+    }
+  } else {
+    googleCid = encodeURIComponent(webcalUrl);
+  }
 
   return [
     { id: "apple", kind: "link", url: webcalUrl },

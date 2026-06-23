@@ -71,6 +71,26 @@ describe("buildSubscribeTargets", () => {
     assert.strictEqual(by.copy.url, https);
   });
 
+  it("does not throw on a malformed-percent Google ICS URL and returns 4 targets", () => {
+    const malformed =
+      "webcal://calendar.google.com/calendar/ical/%E0%A4%A/public/basic.ics";
+    let targets;
+    assert.doesNotThrow(() => {
+      targets = buildSubscribeTargets(malformed);
+    });
+    assert.strictEqual(targets.length, 4);
+    assert.deepStrictEqual(
+      targets.map((x) => x.id),
+      ["apple", "google", "outlook", "copy"]
+    );
+    const by = Object.fromEntries(targets.map((x) => [x.id, x]));
+    assert.strictEqual(
+      by.google.url,
+      "https://calendar.google.com/calendar/r?cid=" +
+        encodeURIComponent(malformed)
+    );
+  });
+
   it("uses the feed-form Google cid for a non-Google feed", () => {
     const feed = "webcal://example.com/cal/feed.ics";
     const by = Object.fromEntries(

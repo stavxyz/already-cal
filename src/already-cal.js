@@ -796,6 +796,7 @@ export function init(userConfig) {
     // Cancel any pending share-button revert timers — the header button
     // persists across renders; the current view may also have one pending.
     headerContainer.querySelector(".already-header-share")?.destroy?.();
+    headerContainer.querySelector(".already-subscribe-menu")?.destroy?.();
     viewContainer.querySelector(".already-detail-share")?.destroy?.();
     el.innerHTML = "";
     el.classList.remove("already");

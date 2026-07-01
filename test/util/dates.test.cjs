@@ -1,11 +1,10 @@
 const { describe, it, before } = require("node:test");
 const assert = require("node:assert");
 
-let formatDate, formatDateShort, getDatePartsInTz;
+let formatDate, formatDateShort, getDatePartsInTz, formatDateRange;
 before(async () => {
-  ({ formatDate, formatDateShort, getDatePartsInTz } = await import(
-    "../../src/util/dates.js"
-  ));
+  ({ formatDate, formatDateShort, getDatePartsInTz, formatDateRange } =
+    await import("../../src/util/dates.js"));
 });
 
 describe("all-day (date-only) dates render on the entered calendar date regardless of timezone", () => {
@@ -56,6 +55,102 @@ describe("all-day (date-only) dates render on the entered calendar date regardle
     assert.strictEqual(
       formatDate("2026-04-05T00:30:00Z", "America/Chicago"),
       "Saturday, April 4, 2026",
+    );
+  });
+});
+
+describe("formatDateRange — smart-collapse event date ranges (Intl.formatRange)", () => {
+  const CT = "America/Chicago"; // UTC-5 in July (CDT)
+
+  it("timed same-day collapses to one date with a time range", () => {
+    assert.strictEqual(
+      formatDateRange("2026-07-03T20:00:00Z", "2026-07-03T22:00:00Z", {
+        timeZone: CT,
+      }),
+      "Jul 3, 3:00 – 5:00 PM",
+    );
+  });
+
+  it("timed multi-day shows both date+time endpoints", () => {
+    assert.strictEqual(
+      formatDateRange("2026-07-03T20:00:00Z", "2026-07-05T18:00:00Z", {
+        timeZone: CT,
+      }),
+      "Jul 3, 3:00 PM – Jul 5, 1:00 PM",
+    );
+  });
+
+  it("all-day single day (exclusive end −1 collapses) renders one date", () => {
+    // Google end.date "2026-07-04" is exclusive → last day is Jul 3.
+    assert.strictEqual(
+      formatDateRange("2026-07-03", "2026-07-04", { allDay: true }),
+      "Jul 3",
+    );
+  });
+
+  it("all-day multi-day uses the inclusive last day (exclusive end −1)", () => {
+    // end.date "2026-07-06" exclusive → last day Jul 5.
+    assert.strictEqual(
+      formatDateRange("2026-07-03", "2026-07-06", { allDay: true }),
+      "Jul 3 – 5",
+    );
+  });
+
+  it("missing end renders the start alone", () => {
+    assert.strictEqual(
+      formatDateRange("2026-07-03T20:00:00Z", "", { timeZone: CT }),
+      "Jul 3, 3:00 PM",
+    );
+  });
+
+  it("withTime:false forces a date-only range even for timed events", () => {
+    assert.strictEqual(
+      formatDateRange("2026-07-03T20:00:00Z", "2026-07-05T18:00:00Z", {
+        timeZone: CT,
+        withTime: false,
+      }),
+      "Jul 3 – 5",
+    );
+  });
+
+  it("end before start (malformed) falls back to start-only", () => {
+    assert.strictEqual(
+      formatDateRange("2026-07-05T20:00:00Z", "2026-07-03T18:00:00Z", {
+        timeZone: CT,
+      }),
+      "Jul 5, 3:00 PM",
+    );
+  });
+
+  it("dateStyle:'time' renders a time range only (day-view cell)", () => {
+    assert.strictEqual(
+      formatDateRange("2026-07-03T20:00:00Z", "2026-07-03T22:00:00Z", {
+        timeZone: CT,
+        dateStyle: "time",
+      }),
+      "3:00 – 5:00 PM",
+    );
+  });
+
+  it("dateStyle:'full' includes both endpoints and a range dash", () => {
+    // Full style connects with locale-specific punctuation ("at"/comma) that
+    // varies by ICU version, so assert structure, not the exact connector.
+    const s = formatDateRange("2026-07-03T20:00:00Z", "2026-07-05T18:00:00Z", {
+      timeZone: CT,
+      dateStyle: "full",
+    });
+    assert.ok(s.includes("July 3"), s);
+    assert.ok(s.includes("July 5"), s);
+    assert.ok(s.includes(" – "), s);
+  });
+
+  it("all-day dates render in UTC (no negative-offset −1 shift)", () => {
+    assert.strictEqual(
+      formatDateRange("2026-08-19", "2026-08-20", {
+        allDay: true,
+        timeZone: "Pacific/Honolulu", // UTC-10; must NOT shift to Aug 18
+      }),
+      "Aug 19",
     );
   });
 });

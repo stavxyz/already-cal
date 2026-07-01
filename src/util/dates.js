@@ -119,6 +119,7 @@ export function formatDateRange(start, end, opts = {}) {
   });
 
   const startDate = new Date(start);
+  if (Number.isNaN(startDate.getTime())) return ""; // malformed start → degrade, don't throw
   let endDate = end ? new Date(end) : null;
   // Google's all-day end.date is EXCLUSIVE; render the inclusive last day.
   if (endDate && allDay) endDate = new Date(endDate.getTime() - 86_400_000);

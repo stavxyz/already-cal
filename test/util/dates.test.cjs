@@ -153,4 +153,8 @@ describe("formatDateRange — smart-collapse event date ranges (Intl.formatRange
       "Aug 19",
     );
   });
+
+  it("returns empty string for an invalid start date (degrades, no throw)", () => {
+    assert.strictEqual(formatDateRange("not-a-date", "2026-07-05", {}), "");
+  });
 });

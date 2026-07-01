@@ -1,6 +1,6 @@
 import {
   formatDate,
-  formatTime,
+  formatDateRange,
   isSameDay,
   parseEventDate,
 } from "../util/dates.js";
@@ -79,7 +79,11 @@ export function renderDayView(
       const timeEl = createElement("div", "already-day-event-time");
       timeEl.textContent = event.allDay
         ? allDayLabel
-        : formatTime(event.start, timezone, locale);
+        : formatDateRange(event.start, event.end, {
+            timeZone: timezone,
+            locale,
+            dateStyle: "time",
+          });
       item.appendChild(timeEl);
 
       const info = createElement("div", "already-day-event-info");

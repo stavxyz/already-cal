@@ -14,7 +14,7 @@ import {
 } from "./ui/sticky.js";
 import { createTagFilter } from "./ui/tag-filter.js";
 import { renderViewSelector } from "./ui/view-selector.js";
-import { formatDate, formatDatetime, isPast } from "./util/dates.js";
+import { formatDateRange, isPast } from "./util/dates.js";
 import {
   DEFAULT_ALLOWED_ATTRS,
   DEFAULT_ALLOWED_TAGS,
@@ -307,9 +307,12 @@ export function init(userConfig) {
 
   function setEventMeta(event) {
     const tz = data?.calendar?.timezone || "UTC";
-    const dateStr = event.allDay
-      ? formatDate(event.start, tz, config.locale)
-      : formatDatetime(event.start, tz, config.locale);
+    const dateStr = formatDateRange(event.start, event.end, {
+      allDay: event.allDay,
+      timeZone: tz,
+      locale: config.locale,
+      dateStyle: "full",
+    });
     const descParts = [dateStr];
     if (event.location) descParts.push(event.location);
 

@@ -157,4 +157,16 @@ describe("formatDateRange — smart-collapse event date ranges (Intl.formatRange
   it("returns empty string for an invalid start date (degrades, no throw)", () => {
     assert.strictEqual(formatDateRange("not-a-date", "2026-07-05", {}), "");
   });
+
+  it("handles a timed multi-day range that crosses a DST transition", () => {
+    // US spring-forward is 2026-03-08 02:00 local. The start is CST (UTC-6) and
+    // the end is CDT (UTC-5); formatRange operates on instants, so each endpoint
+    // renders in its own correct wall-clock time across the transition.
+    assert.strictEqual(
+      formatDateRange("2026-03-07T20:00:00Z", "2026-03-09T18:00:00Z", {
+        timeZone: "America/Chicago",
+      }),
+      "Mar 7, 2:00 PM – Mar 9, 1:00 PM",
+    );
+  });
 });

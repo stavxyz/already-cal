@@ -1,6 +1,6 @@
 {
   "name": "already-cal",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Open-source Google Calendar event display widget",
   "type": "module",
   "main": "dist/already-cal.js",

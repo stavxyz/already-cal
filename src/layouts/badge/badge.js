@@ -1,4 +1,4 @@
-import { formatDate, formatTime } from "../../util/dates.js";
+import { formatDateRange } from "../../util/dates.js";
 import { renderDescription } from "../../util/description.js";
 import { createElement } from "../../views/helpers.js";
 import { buildBadge, buildCardClasses, createCardImage } from "../helpers.js";
@@ -37,17 +37,14 @@ export function render(event, options) {
   title.textContent = event.title;
   body.appendChild(title);
 
-  // Full date + time
-  const dateStr = formatDate(event.start, timezone, locale);
-  const timeStr = event.allDay
-    ? ""
-    : ` \u00b7 ${formatTime(event.start, timezone, locale)}`;
-  const endTimeStr =
-    !event.allDay && event.end
-      ? ` \u2013 ${formatTime(event.end, timezone, locale)}`
-      : "";
+  // Full date + time span
   const meta = createElement("div", "already-card__meta");
-  meta.textContent = `${dateStr}${timeStr}${endTimeStr}`;
+  meta.textContent = formatDateRange(event.start, event.end, {
+    allDay: event.allDay,
+    timeZone: timezone,
+    locale,
+    dateStyle: "full",
+  });
   body.appendChild(meta);
 
   // Location

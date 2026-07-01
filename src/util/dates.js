@@ -50,21 +50,6 @@ export function formatDateShort(isoString, timezone, locale) {
   }).format(new Date(isoString));
 }
 
-/** Format an ISO date string as a time (e.g. "7:00 PM"). */
-export function formatTime(isoString, timezone, locale) {
-  locale = locale || "en-US";
-  return new Intl.DateTimeFormat(locale, {
-    timeZone: timezone,
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(isoString));
-}
-
-/** Format an ISO date string as full date + time (e.g. "Monday, April 14, 2026 · 7:00 PM"). */
-export function formatDatetime(isoString, timezone, locale) {
-  return `${formatDate(isoString, timezone, locale)} · ${formatTime(isoString, timezone, locale)}`;
-}
-
 /**
  * Format an event's start→end span as one localized string via
  * `Intl.DateTimeFormat.prototype.formatRange` (smart collapse). The four

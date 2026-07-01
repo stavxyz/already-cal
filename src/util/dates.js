@@ -65,6 +65,78 @@ export function formatDatetime(isoString, timezone, locale) {
   return `${formatDate(isoString, timezone, locale)} · ${formatTime(isoString, timezone, locale)}`;
 }
 
+/**
+ * Format an event's start→end span as one localized string via
+ * `Intl.DateTimeFormat.prototype.formatRange` (smart collapse). The four
+ * shapes below are a stable public contract — keep them consistent if the
+ * formatter changes.
+ *
+ * Shapes: timed same-day "Jul 3, 3:00 – 5:00 PM"; timed multi-day
+ * "Jul 3, 3:00 PM – Jul 5, 1:00 PM"; all-day single "Jul 3"; all-day multi-day
+ * "Jul 3 – 5".
+ *
+ * @param {string} start ISO start ("2026-07-03T20:00:00Z" or all-day "2026-07-03")
+ * @param {string} [end] ISO end; an all-day `end` is Google's EXCLUSIVE end.date
+ * @param {object} [opts]
+ * @param {boolean} [opts.allDay=false] date-only event (no times; exclusive end −1)
+ * @param {string} [opts.timeZone] IANA zone for TIMED values (all-day is UTC)
+ * @param {string} [opts.locale="en-US"]
+ * @param {boolean} [opts.withTime=true] include the time for timed events
+ * @param {"short"|"full"|"time"} [opts.dateStyle="short"] date presentation;
+ *   "time" = time range only (day-view cell)
+ * @returns {string}
+ */
+export function formatDateRange(start, end, opts = {}) {
+  const {
+    allDay = false,
+    timeZone,
+    locale = "en-US",
+    withTime = true,
+    dateStyle = "short",
+  } = opts;
+  if (!start) return "";
+
+  // All-day values are absolute — format in UTC (see zoneFor / DATE_ONLY_RE) so
+  // they don't cross a timezone boundary; timed values use the given zone.
+  const zone = zoneFor(start, timeZone);
+  const showTime = withTime && !allDay;
+
+  const dateOpts =
+    dateStyle === "time"
+      ? {}
+      : dateStyle === "full"
+        ? { weekday: "long", month: "long", day: "numeric", year: "numeric" }
+        : { month: "short", day: "numeric" };
+  const timeOpts =
+    showTime || dateStyle === "time"
+      ? { hour: "numeric", minute: "2-digit" }
+      : {};
+
+  const fmt = new Intl.DateTimeFormat(locale || "en-US", {
+    timeZone: zone,
+    ...dateOpts,
+    ...timeOpts,
+  });
+
+  const startDate = new Date(start);
+  let endDate = end ? new Date(end) : null;
+  // Google's all-day end.date is EXCLUSIVE; render the inclusive last day.
+  if (endDate && allDay) endDate = new Date(endDate.getTime() - 86_400_000);
+
+  // Missing / invalid / backwards end → single instant (formatRange(d,d) also
+  // collapses, but format(d) is unambiguous).
+  const raw =
+    !endDate || Number.isNaN(endDate.getTime()) || endDate <= startDate
+      ? fmt.format(startDate)
+      : fmt.formatRange(startDate, endDate);
+  // ICU inserts typographic spaces — a thin space (U+2009) around range
+  // dashes and a narrow no-break space (U+202F) before AM/PM — and which
+  // character it uses varies by ICU/CLDR (Node) version. Collapse every
+  // whitespace run to a plain space so the output is deterministic across the
+  // Node matrix and renders predictably.
+  return raw.replace(/\s+/g, " ");
+}
+
 /** Return the number of days in a given month (1-indexed result). */
 export function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();

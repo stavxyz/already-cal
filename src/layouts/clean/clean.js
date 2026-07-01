@@ -1,4 +1,4 @@
-import { formatDateShort, formatTime } from "../../util/dates.js";
+import { formatDateRange } from "../../util/dates.js";
 import { createElement } from "../../views/helpers.js";
 import { buildCardClasses, createCardImage } from "../helpers.js";
 
@@ -19,12 +19,13 @@ export function render(event, options) {
   title.textContent = event.title;
   body.appendChild(title);
 
-  const dateStr = formatDateShort(event.start, timezone, locale);
-  const timeStr = event.allDay
-    ? ""
-    : ` \u00b7 ${formatTime(event.start, timezone, locale)}`;
   const meta = createElement("div", "already-card__meta");
-  meta.textContent = `${dateStr}${timeStr}`;
+  meta.textContent = formatDateRange(event.start, event.end, {
+    allDay: event.allDay,
+    timeZone: timezone,
+    locale,
+    dateStyle: "short",
+  });
   body.appendChild(meta);
 
   if (event.location) {

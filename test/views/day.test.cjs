@@ -59,6 +59,36 @@ describe("renderDayView", () => {
     );
   });
 
+  it("shows the time range for a same-day timed event", () => {
+    const container = document.createElement("div");
+    const events = [
+      createTestEvent({
+        start: "2026-04-15T10:00:00Z",
+        end: "2026-04-15T12:00:00Z",
+      }),
+    ];
+    renderDayView(container, events, "UTC", targetDate, {});
+    assert.strictEqual(
+      container.querySelector(".already-day-event-time").textContent,
+      "10:00 AM – 12:00 PM",
+    );
+  });
+
+  it("shows only the start time for a multi-day timed event (no numeric date)", () => {
+    const container = document.createElement("div");
+    const events = [
+      createTestEvent({
+        start: "2026-04-15T10:00:00Z",
+        end: "2026-04-16T12:00:00Z",
+      }),
+    ];
+    renderDayView(container, events, "UTC", targetDate, {});
+    assert.strictEqual(
+      container.querySelector(".already-day-event-time").textContent,
+      "10:00 AM",
+    );
+  });
+
   it("renders navigation buttons", () => {
     const container = document.createElement("div");
     renderDayView(container, [], "UTC", targetDate, {});

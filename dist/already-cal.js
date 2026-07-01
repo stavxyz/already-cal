@@ -3475,16 +3475,30 @@ ${text}</tr>
       day: "numeric"
     }).format(new Date(isoString));
   }
-  function formatTime(isoString, timezone, locale) {
-    locale = locale || "en-US";
-    return new Intl.DateTimeFormat(locale, {
-      timeZone: timezone,
-      hour: "numeric",
-      minute: "2-digit"
-    }).format(new Date(isoString));
-  }
-  function formatDatetime(isoString, timezone, locale) {
-    return `${formatDate(isoString, timezone, locale)} \xB7 ${formatTime(isoString, timezone, locale)}`;
+  function formatDateRange(start, end, opts = {}) {
+    const {
+      allDay = false,
+      timeZone,
+      locale = "en-US",
+      withTime = true,
+      dateStyle = "short"
+    } = opts;
+    if (!start) return "";
+    const zone = zoneFor(start, timeZone);
+    const showTime = withTime && !allDay;
+    const dateOpts = dateStyle === "time" ? {} : dateStyle === "full" ? { weekday: "long", month: "long", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" };
+    const timeOpts = showTime || dateStyle === "time" ? { hour: "numeric", minute: "2-digit" } : {};
+    const fmt = new Intl.DateTimeFormat(locale || "en-US", {
+      timeZone: zone,
+      ...dateOpts,
+      ...timeOpts
+    });
+    const startDate = new Date(start);
+    if (Number.isNaN(startDate.getTime())) return "";
+    let endDate = end ? new Date(end) : null;
+    if (endDate && allDay) endDate = new Date(endDate.getTime() - 864e5);
+    const raw = !endDate || Number.isNaN(endDate.getTime()) || endDate <= startDate ? fmt.format(startDate) : fmt.formatRange(startDate, endDate);
+    return raw.replace(/\s+/g, " ");
   }
   function getDaysInMonth(year, month) {
     return new Date(year, month + 1, 0).getDate();
@@ -3731,11 +3745,13 @@ ${text}</tr>
     const title = createElement("div", "already-card__title");
     title.textContent = event.title;
     body.appendChild(title);
-    const dateStr = formatDate(event.start, timezone, locale);
-    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
-    const endTimeStr = !event.allDay && event.end ? ` \u2013 ${formatTime(event.end, timezone, locale)}` : "";
     const meta = createElement("div", "already-card__meta");
-    meta.textContent = `${dateStr}${timeStr}${endTimeStr}`;
+    meta.textContent = formatDateRange(event.start, event.end, {
+      allDay: event.allDay,
+      timeZone: timezone,
+      locale,
+      dateStyle: "full"
+    });
     body.appendChild(meta);
     if (event.location) {
       const loc = createElement("div", "already-card__location");
@@ -3782,10 +3798,13 @@ ${text}</tr>
     const title = createElement("div", "already-card__title");
     title.textContent = event.title;
     body.appendChild(title);
-    const dateStr = formatDateShort(event.start, timezone, locale);
-    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
     const meta = createElement("div", "already-card__meta");
-    meta.textContent = `${dateStr}${timeStr}`;
+    meta.textContent = formatDateRange(event.start, event.end, {
+      allDay: event.allDay,
+      timeZone: timezone,
+      locale,
+      dateStyle: "short"
+    });
     body.appendChild(meta);
     if (event.location) {
       const loc = createElement("div", "already-card__location");
@@ -3807,10 +3826,13 @@ ${text}</tr>
     const title = createElement("div", "already-card__title");
     title.textContent = event.title;
     info.appendChild(title);
-    const dateStr = formatDateShort(event.start, timezone, locale);
-    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
     const meta = createElement("div", "already-card__meta");
-    meta.textContent = `${dateStr}${timeStr}`;
+    meta.textContent = formatDateRange(event.start, event.end, {
+      allDay: event.allDay,
+      timeZone: timezone,
+      locale,
+      dateStyle: "short"
+    });
     info.appendChild(meta);
     if (event.location) {
       const loc = createElement("div", "already-card__location");
@@ -3857,11 +3879,13 @@ ${text}</tr>
       loc.textContent = event.location;
       footer.appendChild(loc);
     }
-    const dateStr = formatDateShort(event.start, timezone, locale);
-    const timeStr = event.allDay ? "" : ` \xB7 ${formatTime(event.start, timezone, locale)}`;
-    const endTimeStr = !event.allDay && event.end ? ` \u2013 ${formatTime(event.end, timezone, locale)}` : "";
     const meta = createElement("span", "already-card__meta");
-    meta.textContent = `${dateStr}${timeStr}${endTimeStr}`;
+    meta.textContent = formatDateRange(event.start, event.end, {
+      allDay: event.allDay,
+      timeZone: timezone,
+      locale,
+      dateStyle: "short"
+    });
     footer.appendChild(meta);
     body.appendChild(footer);
     card.appendChild(body);
@@ -4869,8 +4893,13 @@ ${text}</tr>
         const item = createElement("div");
         applyEventClasses(item, event, "already-day-event");
         bindEventClick(item, event, "day", config);
+        const sameDay = event.end && isSameDay(parseEventDate(event.start), parseEventDate(event.end));
         const timeEl = createElement("div", "already-day-event-time");
-        timeEl.textContent = event.allDay ? allDayLabel : formatTime(event.start, timezone, locale);
+        timeEl.textContent = event.allDay ? allDayLabel : formatDateRange(event.start, sameDay ? event.end : void 0, {
+          timeZone: timezone,
+          locale,
+          dateStyle: "time"
+        });
         item.appendChild(timeEl);
         const info = createElement("div", "already-day-event-info");
         const titleEl = createElement("div", "already-day-event-title");
@@ -5107,7 +5136,12 @@ ${text}</tr>
     titleEl.textContent = event.title;
     content.appendChild(titleEl);
     const meta = createElement("div", "already-detail-meta");
-    const dateStr = event.allDay ? formatDate(event.start, timezone, locale) : formatDatetime(event.start, timezone, locale);
+    const dateStr = formatDateRange(event.start, event.end, {
+      allDay: event.allDay,
+      timeZone: timezone,
+      locale,
+      dateStyle: "full"
+    });
     const dateDiv = createElement("div", "already-detail-date");
     dateDiv.textContent = dateStr;
     meta.appendChild(dateDiv);
@@ -5650,7 +5684,12 @@ ${text}</tr>
     }
     function setEventMeta(event) {
       const tz = data?.calendar?.timezone || "UTC";
-      const dateStr = event.allDay ? formatDate(event.start, tz, config.locale) : formatDatetime(event.start, tz, config.locale);
+      const dateStr = formatDateRange(event.start, event.end, {
+        allDay: event.allDay,
+        timeZone: tz,
+        locale: config.locale,
+        dateStyle: "full"
+      });
       const descParts = [dateStr];
       if (event.location) descParts.push(event.location);
       setMetaTag("og:title", event.title);
@@ -5883,7 +5922,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.6.0" : "unknown"
+        true ? "0.7.0" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

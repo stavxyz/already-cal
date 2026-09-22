@@ -1502,7 +1502,11 @@
 .already-event-popover {
   position: absolute;
   z-index: 20;
-  width: 300px;
+  /* 420 rather than 300: a theme with orientation:horizontal puts the image
+     beside the text, and at 300 the image took 180px and left the title 82px,
+     wrapping a real event title to five lines. max-width keeps the box inside
+     a narrow embed; it does not change the card's orientation. */
+  width: 420px;
   max-width: calc(100% - 1rem);
   background: var(--already-surface);
   border: 1px solid var(--already-border-control);

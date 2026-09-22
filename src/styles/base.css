@@ -1510,6 +1510,16 @@
   box-shadow: var(--already-shadow-hover);
 }
 
+/* A horizontal card fixes its image at 180px (200px for hero) beside the
+   text, so the popover width sets the title column. 420 leaves the title about
+   200px at the widest built-in spacing. Vertical cards stack the image above
+   the text and keep 300, since widening them only enlarges a 16:9 image.
+   max-width still caps the box on a narrow embed; it does not change the card's
+   orientation there. */
+.already[data-orientation="horizontal"] .already-event-popover {
+  width: 420px;
+}
+
 /* The cue that clicking the card opens the detail view: pointer cursor, a
    lift, and a chevron that nudges right on hover. No instructional text. */
 .already-event-popover__card {

@@ -1226,6 +1226,9 @@
   border-radius: var(--already-radius);
   box-shadow: var(--already-shadow-hover);
 }
+.already[data-orientation=horizontal] .already-event-popover {
+  width: 420px;
+}
 .already-event-popover__card {
   cursor: pointer;
   position: relative;

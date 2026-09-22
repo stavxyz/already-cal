@@ -6152,7 +6152,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.10.0" : "unknown"
+        true ? "0.10.1" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

@@ -1219,12 +1219,15 @@
 .already-event-popover {
   position: absolute;
   z-index: 20;
-  width: 420px;
+  width: 300px;
   max-width: calc(100% - 1rem);
   background: var(--already-surface);
   border: 1px solid var(--already-border-control);
   border-radius: var(--already-radius);
   box-shadow: var(--already-shadow-hover);
+}
+.already[data-orientation=horizontal] .already-event-popover {
+  width: 420px;
 }
 .already-event-popover__card {
   cursor: pointer;

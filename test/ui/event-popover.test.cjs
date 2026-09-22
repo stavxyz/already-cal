@@ -294,3 +294,74 @@ describe("two calendars on one page", () => {
     assert.equal(root.querySelector(".already-event-popover"), null);
   });
 });
+
+// position() returns early in jsdom because every rect is zero, so nothing
+// exercised the clamp or the flip. Stub the three rects it reads.
+describe("popover placement", () => {
+  let restore;
+  function stubRects({ root: r, anchor: a, popover: p }) {
+    const proto = window.HTMLElement.prototype;
+    const original = proto.getBoundingClientRect;
+    proto.getBoundingClientRect = function () {
+      const box = this.classList.contains("already-event-popover")
+        ? p
+        : this === anchor
+          ? a
+          : this === root
+            ? r
+            : { top: 0, left: 0, width: 0, height: 0 };
+      return {
+        ...box,
+        right: box.left + box.width,
+        bottom: box.top + box.height,
+      };
+    };
+    restore = () => {
+      proto.getBoundingClientRect = original;
+    };
+  }
+  afterEach(() => restore?.());
+
+  it("places the card below its anchor when it fits", () => {
+    stubRects({
+      root: { top: 0, left: 0, width: 800, height: 600 },
+      anchor: { top: 100, left: 50, width: 80, height: 20 },
+      popover: { top: 0, left: 0, width: 300, height: 200 },
+    });
+    openEventPopover(anchor, event, root, {});
+    assert.equal(find().style.top, "120px");
+    assert.equal(find().style.left, "50px");
+  });
+
+  it("clamps at the right edge with a gap instead of sitting flush", () => {
+    stubRects({
+      root: { top: 0, left: 0, width: 600, height: 600 },
+      anchor: { top: 100, left: 400, width: 80, height: 20 },
+      popover: { top: 0, left: 0, width: 420, height: 200 },
+    });
+    openEventPopover(anchor, event, root, {});
+    // 600 - 420 - 8
+    assert.equal(find().style.left, "172px");
+  });
+
+  it("centres a card that max-width has capped to the root", () => {
+    stubRects({
+      root: { top: 0, left: 0, width: 360, height: 600 },
+      anchor: { top: 100, left: 200, width: 80, height: 20 },
+      popover: { top: 0, left: 0, width: 344, height: 200 },
+    });
+    openEventPopover(anchor, event, root, {});
+    assert.equal(find().style.left, "8px");
+  });
+
+  it("flips above the anchor when it would overflow the bottom", () => {
+    stubRects({
+      root: { top: 0, left: 0, width: 800, height: 300 },
+      anchor: { top: 230, left: 50, width: 80, height: 20 },
+      popover: { top: 0, left: 0, width: 300, height: 200 },
+    });
+    openEventPopover(anchor, event, root, {});
+    // 230 - 200
+    assert.equal(find().style.top, "30px");
+  });
+});

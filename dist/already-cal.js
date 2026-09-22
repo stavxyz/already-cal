@@ -4183,6 +4183,7 @@ ${text}</tr>
   // src/ui/event-popover.js
   var OPEN_DELAY_MS = 150;
   var CLOSE_GRACE_MS = 120;
+  var EDGE_GAP_PX = 8;
   var active = null;
   var openTimer = null;
   var closeTimer = null;
@@ -4274,8 +4275,8 @@ ${text}</tr>
       top = flipped >= 0 ? flipped : Math.max(0, rootRect.height - elRect.height);
     }
     let left = anchorRect.left - rootRect.left;
-    if (left + elRect.width > usableWidth) {
-      left = Math.max(0, usableWidth - elRect.width);
+    if (left + elRect.width > usableWidth - EDGE_GAP_PX) {
+      left = Math.max(EDGE_GAP_PX, usableWidth - elRect.width - EDGE_GAP_PX);
     }
     el.style.top = `${top}px`;
     el.style.left = `${left}px`;

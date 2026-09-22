@@ -30,6 +30,8 @@ const OPEN_DELAY_MS = 150;
 // Covers the gap between the anchor and the card so travelling to it does not
 // close the card en route.
 const CLOSE_GRACE_MS = 120;
+// Half of the 1rem that `.already-event-popover`'s max-width reserves.
+const EDGE_GAP_PX = 8;
 
 let active = null;
 let openTimer = null;
@@ -171,9 +173,11 @@ function position(el, anchorEl, root) {
     top = flipped >= 0 ? flipped : Math.max(0, rootRect.height - elRect.height);
   }
 
+  // max-width leaves a 1rem gap in total when the card is capped; splitting it
+  // across both sides keeps a capped card centred instead of flush right.
   let left = anchorRect.left - rootRect.left;
-  if (left + elRect.width > usableWidth) {
-    left = Math.max(0, usableWidth - elRect.width);
+  if (left + elRect.width > usableWidth - EDGE_GAP_PX) {
+    left = Math.max(EDGE_GAP_PX, usableWidth - elRect.width - EDGE_GAP_PX);
   }
 
   el.style.top = `${top}px`;

@@ -67,8 +67,8 @@ export function createTagFilter(onFilterChange, config) {
     if (selectedTags.size === 0) return null;
     return (event) => {
       for (const tag of event.tags || []) {
-        const label = tagLabel(tag);
-        if (selectedTags.has(label)) return true;
+        if (!isCategoryTag(tag)) continue;
+        if (selectedTags.has(tagLabel(tag))) return true;
       }
       return false;
     };

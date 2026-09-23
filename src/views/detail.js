@@ -2,7 +2,7 @@ import { createShareButton } from "../ui/share-button.js";
 import { formatEventWhen } from "../util/dates.js";
 import { renderDescription } from "../util/description.js";
 import { buildShareUrl } from "../util/share-url.js";
-import { isCategoryTag, tagLabel } from "../util/tags.js";
+import { isCategoryTag, isLinkTag, tagLabel } from "../util/tags.js";
 import { createElement } from "./helpers.js";
 import { openLightbox } from "./lightbox.js";
 
@@ -212,9 +212,7 @@ export function renderDetailView(container, event, timezone, onBack, config) {
   }
 
   // Collect key-value URL tags to render alongside links
-  const urlTags = (event.tags || []).filter(
-    (t) => t.key !== "tag" && t.value && t.value.startsWith("http"),
-  );
+  const urlTags = (event.tags || []).filter(isLinkTag);
   const titleCase = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const allLinks = [
     ...(event.links || []),

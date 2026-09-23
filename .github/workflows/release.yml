@@ -30,6 +30,7 @@ jobs:
             dist/already-cal.css \
             dist/already-cal.min.css \
             dist/already-cal.js.map \
+            dist/already-cal-core.mjs \
             --generate-notes \
             --title "${{ github.ref_name }}"
         env:

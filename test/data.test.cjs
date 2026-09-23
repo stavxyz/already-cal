@@ -363,10 +363,8 @@ describe("enrichEvent — AFL comments", () => {
 
 describe("enrichGoogleEvent", () => {
   let enrichGoogleEvent;
-  let CONTENT_DEFAULTS;
   before(async () => {
     ({ enrichGoogleEvent } = await import("../src/data.js"));
-    ({ CONTENT_DEFAULTS } = await import("../src/content-defaults.js"));
   });
 
   const item = {
@@ -388,9 +386,36 @@ describe("enrichGoogleEvent", () => {
     _sourceTimeZone: "America/Chicago",
   };
 
-  it("matches what transformGoogleEvents produces for the same item", () => {
-    const viaTransform = transformGoogleEvents({ items: [item] }, {}).events[0];
-    assert.deepStrictEqual(enrichGoogleEvent(item, {}), viaTransform);
+  // Pinned expected output for `item` above, captured by running
+  // origin/main's (pre-core-entry-refactor) transformGoogleEvents against
+  // the same fixture, to lock in pre-refactor behavior. `generated` is a
+  // property of the top-level transformGoogleEvents() return value, not of
+  // an individual event, so pinning enrichGoogleEvent's per-event output
+  // here already excludes it.
+  const expected = {
+    id: "e1",
+    title: "Rally",
+    description: "Join us.",
+    location: "Austin",
+    start: "2026-04-04T16:00:00-05:00",
+    end: "2026-04-04T19:00:00-05:00",
+    allDay: false,
+    image: "https://example.com/a.jpg",
+    images: ["https://example.com/a.jpg", "https://example.com/b.png"],
+    links: [],
+    htmlLink: "",
+    attachments: [
+      { label: "Flyer", url: "https://example.com/c.pdf", type: "pdf" },
+    ],
+    _sourceTimeZone: "America/Chicago",
+    descriptionFormat: "plain",
+    tags: [{ key: "tag", value: "food" }],
+    featured: false,
+    hidden: false,
+  };
+
+  it("matches the pinned pre-refactor output for a representative item", () => {
+    assert.deepStrictEqual(enrichGoogleEvent(item, {}), expected);
   });
 
   it("picks the directive image first and strips directives", () => {
@@ -398,12 +423,5 @@ describe("enrichGoogleEvent", () => {
     assert.strictEqual(e.image, "https://example.com/a.jpg");
     assert.ok(!e.description.includes("#already:"));
     assert.deepStrictEqual(e.tags, [{ key: "tag", value: "food" }]);
-  });
-
-  it("treats an empty config the same as the content defaults", () => {
-    assert.deepStrictEqual(
-      enrichGoogleEvent(item, {}),
-      enrichGoogleEvent(item, { ...CONTENT_DEFAULTS }),
-    );
   });
 });

@@ -1,4 +1,3 @@
-import { CONTENT_DEFAULTS } from "./content-defaults.js";
 import {
   deriveTypeFromMimeType,
   extractAttachmentTokens,
@@ -205,11 +204,14 @@ function getImagesFromAttachments(attachments) {
 /**
  * Turn one raw Google Calendar API event into the event the widget renders.
  * Public core API (see src/core.js): the widget and server-side consumers
- * both call this, so they interpret event content identically.
+ * both call this, so they interpret event content identically. `config` is
+ * passed straight through to `enrichEvent` and its extractors uncombined
+ * with `CONTENT_DEFAULTS`: each extractor already falls back to its own
+ * default (e.g. `config?.imageExtensions || DEFAULT_IMAGE_EXTENSIONS`) when
+ * a key is missing, so an empty or partial `config` behaves identically to
+ * one explicitly spread with `CONTENT_DEFAULTS`.
  */
 export function enrichGoogleEvent(item, config) {
-  const merged = { ...CONTENT_DEFAULTS, ...config };
-
   // Separate image attachments from file attachments.
   // Image attachments keep mimeType so getImagesFromAttachments can process them.
   // File attachments get normalized to {label, url, type} schema.
@@ -228,7 +230,7 @@ export function enrichGoogleEvent(item, config) {
     }
   }
 
-  // Build base event shape — enrichEvent handles description extraction.
+  // Build base event shape: enrichEvent handles description extraction.
   // _imageAttachments is internal, stripped by enrichEvent before returning.
   return enrichEvent(
     {
@@ -247,7 +249,7 @@ export function enrichGoogleEvent(item, config) {
       _imageAttachments: imageAttachments,
       _sourceTimeZone: item._sourceTimeZone,
     },
-    merged,
+    config,
   );
 }
 

@@ -4,11 +4,15 @@ function decodeAmp(text) {
 }
 var NAMED_ENTITIES = {
   amp: "&",
+  AMP: "&",
   lt: "<",
+  LT: "<",
   gt: ">",
+  GT: ">",
   quot: '"',
+  QUOT: '"',
   apos: "'",
-  nbsp: " ",
+  nbsp: "\xA0",
   rsquo: "\u2019",
   lsquo: "\u2018",
   rdquo: "\u201D",
@@ -17,38 +21,81 @@ var NAMED_ENTITIES = {
   ndash: "\u2013",
   hellip: "\u2026",
   eacute: "\xE9",
+  Eacute: "\xC9",
   egrave: "\xE8",
+  Egrave: "\xC8",
   aacute: "\xE1",
+  Aacute: "\xC1",
   iacute: "\xED",
+  Iacute: "\xCD",
   oacute: "\xF3",
+  Oacute: "\xD3",
   uacute: "\xFA",
+  Uacute: "\xDA",
   ntilde: "\xF1",
+  Ntilde: "\xD1",
   uuml: "\xFC",
+  Uuml: "\xDC",
   ouml: "\xF6",
+  Ouml: "\xD6",
   auml: "\xE4",
+  Auml: "\xC4",
   ccedil: "\xE7",
+  Ccedil: "\xC7",
   copy: "\xA9",
+  COPY: "\xA9",
   reg: "\xAE",
+  REG: "\xAE",
   trade: "\u2122",
   deg: "\xB0"
 };
 var ENTITY_RE = /&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi;
+var WIN1252_C1_REPLACEMENTS = /* @__PURE__ */ new Map([
+  [128, 8364],
+  [130, 8218],
+  [131, 402],
+  [132, 8222],
+  [133, 8230],
+  [134, 8224],
+  [135, 8225],
+  [136, 710],
+  [137, 8240],
+  [138, 352],
+  [139, 8249],
+  [140, 338],
+  [142, 381],
+  [145, 8216],
+  [146, 8217],
+  [147, 8220],
+  [148, 8221],
+  [149, 8226],
+  [150, 8211],
+  [151, 8212],
+  [152, 732],
+  [153, 8482],
+  [154, 353],
+  [155, 8250],
+  [156, 339],
+  [158, 382],
+  [159, 376]
+]);
 function decodeHtmlEntities(text) {
   if (!text) return text;
   return text.replace(ENTITY_RE, (match, body) => {
     if (body[0] === "#") {
       const isHex = body[1]?.toLowerCase() === "x";
       const codePoint = isHex ? Number.parseInt(body.slice(2), 16) : Number.parseInt(body.slice(1), 10);
-      if (!Number.isInteger(codePoint) || codePoint < 0 || codePoint > 1114111) {
+      if (!Number.isInteger(codePoint) || codePoint > 1114111) {
         return match;
       }
-      try {
-        return String.fromCodePoint(codePoint);
-      } catch {
-        return match;
+      if (codePoint === 0 || codePoint >= 55296 && codePoint <= 57343) {
+        return "\uFFFD";
       }
+      return String.fromCodePoint(
+        WIN1252_C1_REPLACEMENTS.get(codePoint) ?? codePoint
+      );
     }
-    const decoded = NAMED_ENTITIES[body.toLowerCase()];
+    const decoded = NAMED_ENTITIES[body];
     return decoded === void 0 ? match : decoded;
   });
 }
@@ -123,7 +170,13 @@ var TokenSet = class {
 };
 
 // src/util/images.js
-var DEFAULT_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
+var DEFAULT_IMAGE_EXTENSIONS = Object.freeze([
+  "png",
+  "jpg",
+  "jpeg",
+  "gif",
+  "webp"
+]);
 var DRIVE_ID_PATTERN = /drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=view&)?id=)([a-zA-Z0-9_-]+)/;
 var DRIVE_URL_PATTERN = new RegExp(
   `https?:\\/\\/${DRIVE_ID_PATTERN.source}[^\\s<>"]*`,
@@ -2835,12 +2888,18 @@ function deepFreezeRecord(obj) {
   }
   return Object.freeze(obj);
 }
+var SCRIPT_STYLE_RE = /<(script|style)\b[^<>]*>[\s\S]*?<\/\1\s*>/gi;
+var BLOCK_TAG_RE = /<\/?(?:br|p|div|li|ul|ol|tr|td|h[1-6]|blockquote|hr)\b[^<>]*>/gi;
+var TAG_RE = /<[^<>]*>/g;
+function stripHtml(html2) {
+  return html2.replace(SCRIPT_STYLE_RE, "").replace(BLOCK_TAG_RE, " ").replace(TAG_RE, "");
+}
 function plainTextDescription(event) {
-  const text = event?.description ?? "";
+  const text = typeof event?.description === "string" ? event.description : "";
   if (!text) return "";
   const format = event.descriptionFormat ?? detectFormat(text);
   const html2 = format === "markdown" ? marked.parse(text) : text;
-  const stripped = format === "plain" ? html2 : html2.replace(/<[^>]*>/g, " ");
+  const stripped = format === "plain" ? html2 : stripHtml(html2);
   return decodeHtmlEntities(stripped).replace(/\s+/g, " ").trim();
 }
 
@@ -3151,7 +3210,6 @@ function getImagesFromAttachments(attachments) {
   return attachments.filter((a) => a.mimeType?.startsWith("image/")).map((a) => normalizeImageUrl(a.fileUrl || a.url)).filter(Boolean);
 }
 function enrichGoogleEvent(item, config) {
-  const merged = { ...CONTENT_DEFAULTS, ...config };
   const apiAttachments = [];
   const imageAttachments = [];
   for (const a of item.attachments || []) {
@@ -3183,7 +3241,7 @@ function enrichGoogleEvent(item, config) {
       _imageAttachments: imageAttachments,
       _sourceTimeZone: item._sourceTimeZone
     },
-    merged
+    config
   );
 }
 export {

@@ -119,7 +119,13 @@ var Already = (() => {
   };
 
   // src/util/images.js
-  var DEFAULT_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
+  var DEFAULT_IMAGE_EXTENSIONS = Object.freeze([
+    "png",
+    "jpg",
+    "jpeg",
+    "gif",
+    "webp"
+  ]);
   var DRIVE_ID_PATTERN = /drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=view&)?id=)([a-zA-Z0-9_-]+)/;
   var DRIVE_URL_PATTERN = new RegExp(
     `https?:\\/\\/${DRIVE_ID_PATTERN.source}[^\\s<>"]*`,
@@ -3291,7 +3297,6 @@ ${text}</tr>
     return attachments.filter((a) => a.mimeType?.startsWith("image/")).map((a) => normalizeImageUrl(a.fileUrl || a.url)).filter(Boolean);
   }
   function enrichGoogleEvent(item, config) {
-    const merged = { ...CONTENT_DEFAULTS, ...config };
     const apiAttachments = [];
     const imageAttachments = [];
     for (const a of item.attachments || []) {
@@ -3323,7 +3328,7 @@ ${text}</tr>
         _imageAttachments: imageAttachments,
         _sourceTimeZone: item._sourceTimeZone
       },
-      merged
+      config
     );
   }
   function transformGoogleEvents(googleData, config) {

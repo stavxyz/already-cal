@@ -2,7 +2,14 @@ import { decodeAmp } from "./html-entities.js";
 import { cleanupHtml, stripUrl } from "./sanitize.js";
 import { normalizeUrl } from "./tokens.js";
 
-export const DEFAULT_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
+/** Frozen so consumers can't mutate the shared default at runtime. */
+export const DEFAULT_IMAGE_EXTENSIONS = Object.freeze([
+  "png",
+  "jpg",
+  "jpeg",
+  "gif",
+  "webp",
+]);
 
 // Core pattern for extracting a Google Drive file ID from various URL formats:
 //   /file/d/ID/..., /open?id=ID, /uc?id=ID, /uc?export=view&id=ID

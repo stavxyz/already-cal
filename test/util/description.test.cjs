@@ -491,6 +491,36 @@ describe("plainTextDescription", () => {
     );
   });
 
+  it("decodes named entities from HTML pasted from Word (curly apostrophe, em dash)", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "<p>It&#8217;s great &mdash; really!</p>",
+        descriptionFormat: "html",
+      }),
+      "It’s great — really!",
+    );
+  });
+
+  it("decodes named accented-letter entities from HTML (Google Docs export)", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "Caf&eacute; visit &amp; tour",
+        descriptionFormat: "html",
+      }),
+      "Café visit & tour",
+    );
+  });
+
+  it("decodes the same entity forms on the Markdown path", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "It&#8217;s Caf&eacute; &mdash; &amp; more",
+        descriptionFormat: "markdown",
+      }),
+      "It’s Café — & more",
+    );
+  });
+
   it("returns an empty string for a missing description", () => {
     assert.strictEqual(plainTextDescription({}), "");
   });

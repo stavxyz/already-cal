@@ -1,4 +1,5 @@
 import { marked } from "marked";
+import { decodeHtmlEntities } from "./html-entities.js";
 import { escapeHtml } from "./sanitize.js";
 
 /**
@@ -378,15 +379,6 @@ function sanitizeNode(node, allowedTags, allowedAttrs, allowedUrlSchemes) {
   }
 }
 
-const PLAIN_TEXT_ENTITIES = {
-  "&amp;": "&",
-  "&lt;": "<",
-  "&gt;": ">",
-  "&quot;": '"',
-  "&#39;": "'",
-  "&nbsp;": " ",
-};
-
 /**
  * Plain text of an enriched event's description, for places that cannot show
  * markup, such as link-preview text. Public core API (see src/core.js). The
@@ -399,10 +391,7 @@ export function plainTextDescription(event) {
   const format = event.descriptionFormat ?? detectFormat(text);
   const html = format === "markdown" ? marked.parse(text) : text;
   const stripped = format === "plain" ? html : html.replace(/<[^>]*>/g, " ");
-  return stripped
-    .replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (m) => PLAIN_TEXT_ENTITIES[m])
-    .replace(/\s+/g, " ")
-    .trim();
+  return decodeHtmlEntities(stripped).replace(/\s+/g, " ").trim();
 }
 
 /** Render event description text as sanitized HTML based on auto-detected format. */

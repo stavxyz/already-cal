@@ -229,15 +229,35 @@ describe("badge layout", () => {
     assert.strictEqual(el.querySelector(".already-card__description"), null);
   });
 
-  it("renders tag pills when tags are present", () => {
+  // enrichEvent produces tags as { key, value } objects (docs/event-schema.md).
+  it("labels tag pills from the enriched { key, value } shape", () => {
     const el = render(
-      createTestEvent({ tags: ["Outdoor", "Family"] }),
+      createTestEvent({
+        tags: [
+          { key: "tag", value: "Outdoor" },
+          { key: "level", value: "beginner" },
+          { key: "signup", value: "https://example.com/form" },
+        ],
+      }),
       baseOptions,
     );
-    const tags = el.querySelectorAll(".already-card__tag");
-    assert.strictEqual(tags.length, 2);
-    assert.strictEqual(tags[0].textContent, "Outdoor");
-    assert.strictEqual(tags[1].textContent, "Family");
+    const tags = [...el.querySelectorAll(".already-card__tag")].map(
+      (t) => t.textContent,
+    );
+    assert.deepStrictEqual(tags, ["Outdoor", "level: beginner"]);
+  });
+
+  it("renders a tag directive from a real description", async () => {
+    const { enrichEvent } = await import("../../src/data.js");
+    const event = enrichEvent(
+      createTestEvent({ description: "Brisket.\n#already:tag:food" }),
+      {},
+    );
+    const el = render(event, baseOptions);
+    const tags = [...el.querySelectorAll(".already-card__tag")].map(
+      (t) => t.textContent,
+    );
+    assert.deepStrictEqual(tags, ["food"]);
   });
 
   it("omits tag container when no tags", () => {

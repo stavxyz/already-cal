@@ -1,4 +1,5 @@
 import { formatEventWhen } from "../../util/dates.js";
+import { isCategoryTag, tagLabel } from "../../util/tags.js";
 import { createElement } from "../../views/helpers.js";
 import { buildBadge } from "../helpers.js";
 
@@ -48,11 +49,12 @@ export function render(event, options) {
   body.appendChild(row);
 
   // Tags
-  if (event.tags && event.tags.length > 0) {
+  const tags = (event.tags || []).filter(isCategoryTag);
+  if (tags.length > 0) {
     const tagsEl = createElement("div", "already-card__tags");
-    for (const tag of event.tags) {
+    for (const tag of tags) {
       const pill = createElement("span", "already-card__tag");
-      pill.textContent = tag;
+      pill.textContent = tagLabel(tag);
       tagsEl.appendChild(pill);
     }
     body.appendChild(tagsEl);

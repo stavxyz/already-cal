@@ -85,13 +85,22 @@ describe("compact layout", () => {
     assert.ok(loc.textContent.includes("Central Park"));
   });
 
-  it("renders tag pills when present", () => {
+  // enrichEvent produces tags as { key, value } objects (docs/event-schema.md).
+  it("labels tag pills from the enriched { key, value } shape", () => {
     const el = render(
-      createTestEvent({ tags: ["Outdoor", "Family"] }),
+      createTestEvent({
+        tags: [
+          { key: "tag", value: "Outdoor" },
+          { key: "level", value: "beginner" },
+          { key: "signup", value: "https://example.com/form" },
+        ],
+      }),
       baseOptions,
     );
-    const tags = el.querySelectorAll(".already-card__tag");
-    assert.strictEqual(tags.length, 2);
+    const tags = [...el.querySelectorAll(".already-card__tag")].map(
+      (t) => t.textContent,
+    );
+    assert.deepStrictEqual(tags, ["Outdoor", "level: beginner"]);
   });
 
   it("omits tags when empty", () => {

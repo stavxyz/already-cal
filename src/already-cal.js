@@ -1,3 +1,4 @@
+import { CONTENT_DEFAULTS } from "./content-defaults.js";
 import { loadData } from "./data.js";
 import { register } from "./registry.js";
 import { getInitialView, onHashChange, parseHash, setView } from "./router.js";
@@ -28,7 +29,6 @@ import {
   DEFAULT_ALLOWED_URL_SCHEMES,
   DEFAULT_RAW_TEXT_ELEMENTS,
 } from "./util/description.js";
-import { DEFAULT_PLATFORMS } from "./util/links.js";
 import {
   postInteractionToParent,
   postReadyToParent,
@@ -54,8 +54,7 @@ const DEFAULTS = {
   mobileHiddenViews: ["week"],
   maxEventsPerDay: 3,
   locationLinkTemplate: "https://maps.google.com/?q={location}",
-  imageExtensions: null, // null = use defaults in images.js
-  knownPlatforms: DEFAULT_PLATFORMS,
+  ...CONTENT_DEFAULTS,
   sanitization: null, // null = use defaults in description.js
   eventFilter: null,
   eventTransform: null,

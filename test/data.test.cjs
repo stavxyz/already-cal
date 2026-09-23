@@ -360,3 +360,50 @@ describe("enrichEvent — AFL comments", () => {
     assert.ok(result.links[0].url.includes("instagram.com/active"));
   });
 });
+
+describe("enrichGoogleEvent", () => {
+  let enrichGoogleEvent;
+  let CONTENT_DEFAULTS;
+  before(async () => {
+    ({ enrichGoogleEvent } = await import("../src/data.js"));
+    ({ CONTENT_DEFAULTS } = await import("../src/content-defaults.js"));
+  });
+
+  const item = {
+    id: "e1",
+    summary: "Rally",
+    description:
+      "Join us.\n#already:tag:food\n#already:image:https://example.com/a.jpg",
+    location: "Austin",
+    start: { dateTime: "2026-04-04T16:00:00-05:00" },
+    end: { dateTime: "2026-04-04T19:00:00-05:00" },
+    attachments: [
+      { mimeType: "image/png", fileUrl: "https://example.com/b.png" },
+      {
+        mimeType: "application/pdf",
+        fileUrl: "https://example.com/c.pdf",
+        title: "Flyer",
+      },
+    ],
+    _sourceTimeZone: "America/Chicago",
+  };
+
+  it("matches what transformGoogleEvents produces for the same item", () => {
+    const viaTransform = transformGoogleEvents({ items: [item] }, {}).events[0];
+    assert.deepStrictEqual(enrichGoogleEvent(item, {}), viaTransform);
+  });
+
+  it("picks the directive image first and strips directives", () => {
+    const e = enrichGoogleEvent(item, {});
+    assert.strictEqual(e.image, "https://example.com/a.jpg");
+    assert.ok(!e.description.includes("#already:"));
+    assert.deepStrictEqual(e.tags, [{ key: "tag", value: "food" }]);
+  });
+
+  it("treats an empty config the same as the content defaults", () => {
+    assert.deepStrictEqual(
+      enrichGoogleEvent(item, {}),
+      enrichGoogleEvent(item, { ...CONTENT_DEFAULTS }),
+    );
+  });
+});

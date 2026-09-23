@@ -1,3 +1,4 @@
+import { CONTENT_DEFAULTS } from "./content-defaults.js";
 import {
   deriveTypeFromMimeType,
   extractAttachmentTokens,
@@ -201,49 +202,60 @@ function getImagesFromAttachments(attachments) {
     .filter(Boolean);
 }
 
+/**
+ * Turn one raw Google Calendar API event into the event the widget renders.
+ * Public core API (see src/core.js): the widget and server-side consumers
+ * both call this, so they interpret event content identically.
+ */
+export function enrichGoogleEvent(item, config) {
+  const merged = { ...CONTENT_DEFAULTS, ...config };
+
+  // Separate image attachments from file attachments.
+  // Image attachments keep mimeType so getImagesFromAttachments can process them.
+  // File attachments get normalized to {label, url, type} schema.
+  const apiAttachments = [];
+  const imageAttachments = [];
+  for (const a of item.attachments || []) {
+    if (a.mimeType?.startsWith("image/")) {
+      imageAttachments.push({ mimeType: a.mimeType, url: a.fileUrl });
+    } else {
+      const type = deriveTypeFromMimeType(a.mimeType);
+      apiAttachments.push({
+        label: a.title || labelForType(type),
+        url: a.fileUrl,
+        type,
+      });
+    }
+  }
+
+  // Build base event shape — enrichEvent handles description extraction.
+  // _imageAttachments is internal, stripped by enrichEvent before returning.
+  return enrichEvent(
+    {
+      id: item.id,
+      title: item.summary || "Untitled Event",
+      description: item.description || "",
+      location: item.location || "",
+      start: item.start?.dateTime || item.start?.date || "",
+      end: item.end?.dateTime || item.end?.date || "",
+      allDay: !item.start?.dateTime,
+      image: null,
+      images: [],
+      links: [],
+      htmlLink: item.htmlLink || "",
+      attachments: apiAttachments,
+      _imageAttachments: imageAttachments,
+      _sourceTimeZone: item._sourceTimeZone,
+    },
+    merged,
+  );
+}
+
 /** Transform raw Google Calendar API response into already-cal data format. */
 export function transformGoogleEvents(googleData, config) {
-  const events = (googleData.items || []).map((item) => {
-    // Separate image attachments from file attachments.
-    // Image attachments keep mimeType so getImagesFromAttachments can process them.
-    // File attachments get normalized to {label, url, type} schema.
-    const apiAttachments = [];
-    const imageAttachments = [];
-    for (const a of item.attachments || []) {
-      if (a.mimeType?.startsWith("image/")) {
-        imageAttachments.push({ mimeType: a.mimeType, url: a.fileUrl });
-      } else {
-        const type = deriveTypeFromMimeType(a.mimeType);
-        apiAttachments.push({
-          label: a.title || labelForType(type),
-          url: a.fileUrl,
-          type,
-        });
-      }
-    }
-
-    // Build base event shape — enrichEvent handles description extraction.
-    // _imageAttachments is internal, stripped by enrichEvent before returning.
-    return enrichEvent(
-      {
-        id: item.id,
-        title: item.summary || "Untitled Event",
-        description: item.description || "",
-        location: item.location || "",
-        start: item.start?.dateTime || item.start?.date || "",
-        end: item.end?.dateTime || item.end?.date || "",
-        allDay: !item.start?.dateTime,
-        image: null,
-        images: [],
-        links: [],
-        htmlLink: item.htmlLink || "",
-        attachments: apiAttachments,
-        _imageAttachments: imageAttachments,
-        _sourceTimeZone: item._sourceTimeZone,
-      },
-      config,
-    );
-  });
+  const events = (googleData.items || []).map((item) =>
+    enrichGoogleEvent(item, config),
+  );
 
   return {
     events,

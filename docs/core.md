@@ -40,9 +40,9 @@ widget interpret event content identically. See
 [Event Schema](event-schema.md) for the full shape of the returned event and
 [Directives Reference](directives.md) for the `#already:` syntax.
 
-- `item` — a raw event object as returned by the Google Calendar API
+- `item`: a raw event object as returned by the Google Calendar API
   (`events.list`/`events.get`).
-- `config` — optional. Accepts the same `imageExtensions` and `knownPlatforms`
+- `config`: optional. Accepts the same `imageExtensions` and `knownPlatforms`
   keys as the widget's config; pass `{}` to use the defaults.
 - Returns the enriched event object.
 
@@ -53,7 +53,7 @@ no HTML tags, no directives, and no URLs that enrichment already consumed
 into `image`/`images`/`links`/`attachments`. Intended for places that cannot
 render markup, such as link-preview or unfurl card text.
 
-- `event` — an event object as returned by `enrichGoogleEvent`, or any object
+- `event`: an event object as returned by `enrichGoogleEvent`, or any object
   with `description` and (optionally) `descriptionFormat` fields.
 - Returns a string. Whitespace is collapsed to single spaces and trimmed.
 

@@ -3668,6 +3668,26 @@ ${text}</tr>
     return names;
   }
 
+  // src/util/tags.js
+  function hasKey(tag2) {
+    return tag2 != null && typeof tag2 === "object" && typeof tag2.key === "string" && tag2.key !== "";
+  }
+  function isLinkTag(tag2) {
+    return hasKey(tag2) && tag2.key !== "tag" && typeof tag2.value === "string" && tag2.value.startsWith("http");
+  }
+  function isCategoryTag(tag2) {
+    if (typeof tag2 === "string") return tag2.trim() !== "";
+    if (!hasKey(tag2) || isLinkTag(tag2)) return false;
+    if (typeof tag2.value === "string") return tag2.value.trim() !== "";
+    return Number.isFinite(tag2.value);
+  }
+  function tagLabel(tag2) {
+    if (typeof tag2 === "string") return tag2;
+    if (tag2 == null) return "";
+    const value = String(tag2.value ?? "");
+    return tag2.key === "tag" ? value : `${tag2.key}: ${value}`;
+  }
+
   // src/views/helpers.js
   function createElement(tag2, className, attrs) {
     const el = document.createElement(tag2);
@@ -3842,11 +3862,12 @@ ${text}</tr>
       loc.textContent = `\u{1F4CD} ${event.location}`;
       body.appendChild(loc);
     }
-    if (event.tags && event.tags.length > 0) {
+    const tags = (event.tags || []).filter(isCategoryTag);
+    if (tags.length > 0) {
       const tagsEl = createElement("div", "already-card__tags");
-      for (const tag2 of event.tags) {
+      for (const tag2 of tags) {
         const pill = createElement("span", "already-card__tag");
-        pill.textContent = tag2;
+        pill.textContent = tagLabel(tag2);
         tagsEl.appendChild(pill);
       }
       body.appendChild(tagsEl);
@@ -3926,11 +3947,12 @@ ${text}</tr>
     badge.classList.add("already-card__badge--inline");
     row.appendChild(badge);
     body.appendChild(row);
-    if (event.tags && event.tags.length > 0) {
+    const tags = (event.tags || []).filter(isCategoryTag);
+    if (tags.length > 0) {
       const tagsEl = createElement("div", "already-card__tags");
-      for (const tag2 of event.tags) {
+      for (const tag2 of tags) {
         const pill = createElement("span", "already-card__tag");
-        pill.textContent = tag2;
+        pill.textContent = tagLabel(tag2);
         tagsEl.appendChild(pill);
       }
       body.appendChild(tagsEl);
@@ -4848,16 +4870,12 @@ ${text}</tr>
   function createTagFilter(onFilterChange, config) {
     const selectedTags = /* @__PURE__ */ new Set();
     const clearLabel = config?.i18n?.clearFilter || "Clear";
-    function getTagLabel(tag2) {
-      return tag2.key === "tag" ? tag2.value : `${tag2.key}: ${tag2.value}`;
-    }
     function render5(container, events) {
       const tagCounts = /* @__PURE__ */ new Map();
       for (const event of events) {
         for (const tag2 of event.tags || []) {
-          if (tag2.key !== "tag" && tag2.value && tag2.value.startsWith("http"))
-            continue;
-          const label = getTagLabel(tag2);
+          if (!isCategoryTag(tag2)) continue;
+          const label = tagLabel(tag2);
           tagCounts.set(label, (tagCounts.get(label) || 0) + 1);
         }
       }
@@ -4901,8 +4919,8 @@ ${text}</tr>
       if (selectedTags.size === 0) return null;
       return (event) => {
         for (const tag2 of event.tags || []) {
-          const label = getTagLabel(tag2);
-          if (selectedTags.has(label)) return true;
+          if (!isCategoryTag(tag2)) continue;
+          if (selectedTags.has(tagLabel(tag2))) return true;
         }
         return false;
       };
@@ -5369,16 +5387,12 @@ ${text}</tr>
       meta.appendChild(locDiv);
     }
     content.appendChild(meta);
-    const scalarAndTextTags = (event.tags || []).filter((t) => {
-      if (t.key === "tag") return true;
-      if (t.value && !t.value.startsWith("http")) return true;
-      return false;
-    });
+    const scalarAndTextTags = (event.tags || []).filter(isCategoryTag);
     if (scalarAndTextTags.length > 0) {
       const tagsDiv = createElement("div", "already-detail-tags");
       for (const tag2 of scalarAndTextTags) {
         const span = createElement("span", "already-detail-tag");
-        span.textContent = tag2.key === "tag" ? tag2.value : `${tag2.key}: ${tag2.value}`;
+        span.textContent = tagLabel(tag2);
         tagsDiv.appendChild(span);
       }
       content.appendChild(tagsDiv);
@@ -5401,9 +5415,7 @@ ${text}</tr>
       }
       content.appendChild(attachDiv);
     }
-    const urlTags = (event.tags || []).filter(
-      (t) => t.key !== "tag" && t.value && t.value.startsWith("http")
-    );
+    const urlTags = (event.tags || []).filter(isLinkTag);
     const titleCase = (s) => s.charAt(0).toUpperCase() + s.slice(1);
     const allLinks = [
       ...event.links || [],

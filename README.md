@@ -163,7 +163,7 @@ Already.init({
   maxEventsPerDay: 3,                  // month view: chips before "+N more"
   locationLinkTemplate: 'https://maps.google.com/?q={location}',
   storageKeyPrefix: 'already',        // for multiple instances
-  imageExtensions: null,               // null = defaults: png, jpg, jpeg, gif, webp
+  imageExtensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'],  // null or omitted also falls back to this
 
   // --- Link extraction ---
   // 18 built-in: Eventbrite, Google Forms, Google Maps, Zoom, Google Meet,

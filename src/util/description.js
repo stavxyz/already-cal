@@ -378,6 +378,33 @@ function sanitizeNode(node, allowedTags, allowedAttrs, allowedUrlSchemes) {
   }
 }
 
+const PLAIN_TEXT_ENTITIES = {
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&#39;": "'",
+  "&nbsp;": " ",
+};
+
+/**
+ * Plain text of an enriched event's description, for places that cannot show
+ * markup, such as link-preview text. Public core API (see src/core.js). The
+ * contract is readable plain text; exact whitespace and entity output may
+ * change between minor versions. Uses no DOM, so it runs in Workers.
+ */
+export function plainTextDescription(event) {
+  const text = event?.description ?? "";
+  if (!text) return "";
+  const format = event.descriptionFormat ?? detectFormat(text);
+  const html = format === "markdown" ? marked.parse(text) : text;
+  const stripped = format === "plain" ? html : html.replace(/<[^>]*>/g, " ");
+  return stripped
+    .replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (m) => PLAIN_TEXT_ENTITIES[m])
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /** Render event description text as sanitized HTML based on auto-detected format. */
 export function renderDescription(text, config) {
   if (!text) return "";

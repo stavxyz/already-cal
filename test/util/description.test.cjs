@@ -455,3 +455,65 @@ describe("sanitizer default constants are immutable", () => {
     assert.ok(Object.isFrozen(DEFAULT_RAW_TEXT_ELEMENTS));
   });
 });
+
+describe("plainTextDescription", () => {
+  let plainTextDescription;
+  before(async () => {
+    ({ plainTextDescription } = await import("../../src/util/description.js"));
+  });
+
+  it("returns plain text unchanged apart from whitespace", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "Brisket and  beer.\n\nBring chairs.",
+      }),
+      "Brisket and beer. Bring chairs.",
+    );
+  });
+
+  it("drops HTML tags and empty wrappers, and decodes entities", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "<p>Hello <b>world</b> &amp; friends</p><p></p>",
+        descriptionFormat: "html",
+      }),
+      "Hello world & friends",
+    );
+  });
+
+  it("renders Markdown to text without its syntax", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "## Title\n- **bold** item\n[link](https://example.com)",
+        descriptionFormat: "markdown",
+      }),
+      "Title bold item link",
+    );
+  });
+
+  it("returns an empty string for a missing description", () => {
+    assert.strictEqual(plainTextDescription({}), "");
+  });
+});
+
+describe("plainTextDescription with enrichGoogleEvent", () => {
+  let enrichGoogleEvent;
+  let plainTextDescription;
+  before(async () => {
+    ({ enrichGoogleEvent } = await import("../../src/data.js"));
+    ({ plainTextDescription } = await import("../../src/util/description.js"));
+  });
+
+  it("reads plain text from a description already stripped of directives and image URLs", () => {
+    const event = enrichGoogleEvent(
+      {
+        id: "evt1",
+        summary: "BBQ",
+        description:
+          "**Big** day\nhttps://drive.google.com/file/d/ABC123/view\n#already:tag:food",
+      },
+      {},
+    );
+    assert.strictEqual(plainTextDescription(event), "Big day");
+  });
+});

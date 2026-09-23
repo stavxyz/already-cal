@@ -575,6 +575,7 @@ open dev.html           # local preview with mock data
 |----------|-------------|
 | [Configuration Reference](docs/configuration.md) | Every config option with types, defaults, and descriptions |
 | [Event Schema](docs/event-schema.md) | Event object fields and data pipeline |
+| [Core (server-side entry)](docs/core.md) | DOM-free event enrichment for server-side consumers |
 | [Directives Reference](docs/directives.md) | `#already:` directive syntax for all platforms, images, and tags |
 | [AFL Reference](docs/afl.md) | Already Format Language: comments, directives, URL extraction, format detection |
 | [Architecture](docs/architecture.md) | Technical deep-dive: data pipeline, rendering flow, theme system, lifecycle |

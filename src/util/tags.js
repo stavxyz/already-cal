@@ -1,26 +1,40 @@
 // Tags reach renderers as { key, value } objects from enrichEvent (see
-// docs/event-schema.md). A plain string, a null entry, or a non-string value
-// is tolerated because pre-set event.tags and an eventTransform hook both
-// bypass directive parsing.
+// docs/event-schema.md). Other shapes are tolerated because pre-set
+// event.tags and an eventTransform hook both bypass directive parsing:
+// anything that is not a usable tag is dropped rather than rendered oddly.
+
+function hasKey(tag) {
+  return (
+    tag != null &&
+    typeof tag === "object" &&
+    typeof tag.key === "string" &&
+    tag.key !== ""
+  );
+}
 
 /**
  * Whether a tag is a link: a key-value tag whose value is a URL. Links render
  * as buttons, never as pills.
  */
 export function isLinkTag(tag) {
-  if (tag == null || typeof tag !== "object" || tag.key === "tag") return false;
-  return typeof tag.value === "string" && tag.value.startsWith("http");
+  return (
+    hasKey(tag) &&
+    tag.key !== "tag" &&
+    typeof tag.value === "string" &&
+    tag.value.startsWith("http")
+  );
 }
 
 /**
- * Whether a tag is a category worth showing as a pill: a plain string, a
- * scalar tag, or a key-value tag with a non-empty value that is not a link.
+ * Whether a tag is a category worth showing as a pill: a non-blank string,
+ * or a keyed tag whose value is a non-blank string or a finite number and
+ * which is not a link.
  */
 export function isCategoryTag(tag) {
-  if (typeof tag === "string") return true;
-  if (tag == null || typeof tag !== "object") return false;
-  if (tag.key === "tag") return true;
-  return tag.value != null && tag.value !== "" && !isLinkTag(tag);
+  if (typeof tag === "string") return tag.trim() !== "";
+  if (!hasKey(tag) || isLinkTag(tag)) return false;
+  if (typeof tag.value === "string") return tag.value.trim() !== "";
+  return Number.isFinite(tag.value);
 }
 
 /** Display text for a tag: a scalar tag's value, or "key: value". */

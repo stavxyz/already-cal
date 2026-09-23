@@ -50,8 +50,31 @@ describe("isCategoryTag", () => {
     );
   });
 
-  it("rejects a key-value tag with an empty value", () => {
-    assert.strictEqual(isCategoryTag({ key: "level", value: "" }), false);
+  it("rejects tags with nothing to show", () => {
+    for (const tag of [
+      { key: "level", value: "" },
+      { key: "level" },
+      { key: "tag" },
+      { key: "tag", value: "" },
+      { key: "tag", value: "   " },
+      "",
+      "  ",
+    ]) {
+      assert.strictEqual(isCategoryTag(tag), false, JSON.stringify(tag));
+    }
+  });
+
+  it("rejects keyless tags and non-scalar values", () => {
+    for (const tag of [
+      { value: "plain" },
+      { key: 5, value: "x" },
+      { key: "x", value: { a: 1 } },
+      { key: "x", value: ["a"] },
+      { key: "x", value: false },
+      { key: "x", value: Number.NaN },
+    ]) {
+      assert.strictEqual(isCategoryTag(tag), false, JSON.stringify(tag));
+    }
   });
 
   it("accepts a numeric key-value tag and rejects null entries", () => {
@@ -74,5 +97,7 @@ describe("isLinkTag", () => {
     assert.strictEqual(isLinkTag({ key: "capacity", value: 50 }), false);
     assert.strictEqual(isLinkTag("https://x"), false);
     assert.strictEqual(isLinkTag(null), false);
+    assert.strictEqual(isLinkTag({ value: "https://x" }), false);
+    assert.strictEqual(isLinkTag({ key: 5, value: "https://x" }), false);
   });
 });

@@ -113,6 +113,19 @@ describe("compact layout", () => {
     assert.strictEqual(el.querySelector(".already-card__tags"), null);
   });
 
+  it("renders a tag directive from a real description", async () => {
+    const { enrichEvent } = await import("../../src/data.js");
+    const event = enrichEvent(
+      createTestEvent({ description: "Brisket.\n#already:tag:food" }),
+      {},
+    );
+    const el = render(event, baseOptions);
+    const tags = [...el.querySelectorAll(".already-card__tag")].map(
+      (t) => t.textContent,
+    );
+    assert.deepStrictEqual(tags, ["food"]);
+  });
+
   it("omits tags when empty", () => {
     const el = render(createTestEvent({ tags: [] }), baseOptions);
     assert.strictEqual(el.querySelector(".already-card__tags"), null);

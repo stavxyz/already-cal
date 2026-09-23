@@ -612,6 +612,30 @@ describe("plainTextDescription", () => {
       `expected under 200ms, took ${elapsed.toFixed(1)}ms`,
     );
   });
+
+  // Regression guard for a quadratic script/style-removal regex: a single
+  // combined /<(script|style)\b[^<>]*>[\s\S]*?<\/\1\s*>/gi backtracks to
+  // the end of the string for every unclosed opener. Repeating an opener
+  // with no closer ~100,000 characters' worth previously took hundreds of
+  // milliseconds (168ms at 100k characters, 668ms at 200k, scaling
+  // roughly with the square of the length); stripScriptStyle's forward-
+  // only indexOf scan keeps each of these under 200ms.
+  for (const [label, chunk] of [
+    ["<style>", "<style>"],
+    ["<script>", "<script>"],
+    ["<script (no closing '>')", "<script"],
+  ]) {
+    it(`strips ~100,000 characters of repeated unclosed '${label}' in well under 200ms`, () => {
+      const description = chunk.repeat(Math.ceil(100000 / chunk.length));
+      const start = performance.now();
+      plainTextDescription({ description, descriptionFormat: "html" });
+      const elapsed = performance.now() - start;
+      assert.ok(
+        elapsed < 200,
+        `expected under 200ms, took ${elapsed.toFixed(1)}ms`,
+      );
+    });
+  }
 });
 
 describe("plainTextDescription with enrichGoogleEvent", () => {

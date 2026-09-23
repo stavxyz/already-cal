@@ -382,7 +382,59 @@ function sanitizeNode(node, allowedTags, allowedAttrs, allowedUrlSchemes) {
 // Elements whose content is program text or stylesheet source, not visible
 // copy: dropped whole (tag AND contents) before tag stripping so their
 // bodies never leak into the plain-text output.
-const SCRIPT_STYLE_RE = /<(script|style)\b[^<>]*>[\s\S]*?<\/\1\s*>/gi;
+//
+// Only the opener is matched by regex here; `[^<>]*` keeps that linear for
+// the same reason as BLOCK_TAG_RE/TAG_RE below. A single combined regex
+// with a non-greedy `[\s\S]*?<\/\1\s*>` (the previous approach) is
+// quadratic when an opener has no matching closer: the engine scans
+// forward to the end of the string looking for a closer that isn't there,
+// then repeats that full scan for every later opener. stripScriptStyle
+// below instead finds each opener with this regex and looks for its
+// closer with a plain forward `indexOf`, never backtracking past text it
+// already scanned.
+const SCRIPT_STYLE_OPEN_RE = /<(script|style)\b[^<>]*>/gi;
+
+/**
+ * Remove `<script>`/`<style>` elements, including their contents, from
+ * `html` in linear time. See the comment above `SCRIPT_STYLE_OPEN_RE` for
+ * why this isn't one combined regex.
+ *
+ * If an opener's closer is never found, everything from that opener to the
+ * end of the string is dropped and scanning stops there: this matches how
+ * a real HTML parser treats an unclosed `<script>`/`<style>` (it consumes
+ * the rest of the document as element content until EOF). It's also what
+ * keeps the function linear: an unclosed opener is discovered by a single
+ * forward `indexOf` scan to the end of the string, and once that happens
+ * there's nothing left to scan, so the pathological case (many unclosed
+ * openers in a row) costs at most one full-length scan for the whole
+ * call, not one per opener.
+ */
+function stripScriptStyle(html) {
+  const lower = html.toLowerCase();
+  let out = "";
+  let cursor = 0; // start of the next not-yet-appended segment of `html`
+  SCRIPT_STYLE_OPEN_RE.lastIndex = 0;
+  let match = SCRIPT_STYLE_OPEN_RE.exec(html);
+  while (match !== null) {
+    const name = match[1].toLowerCase();
+    const openEnd = SCRIPT_STYLE_OPEN_RE.lastIndex;
+    const closerIdx = lower.indexOf(`</${name}`, openEnd);
+    if (closerIdx === -1) {
+      // No closer anywhere in the rest of the string: keep everything up
+      // to this opener, drop the opener through EOF, and stop scanning.
+      out += html.slice(cursor, match.index);
+      cursor = html.length;
+      break;
+    }
+    const closeTagEnd = html.indexOf(">", closerIdx);
+    const afterClose = closeTagEnd === -1 ? html.length : closeTagEnd + 1;
+    out += html.slice(cursor, match.index);
+    cursor = afterClose;
+    SCRIPT_STYLE_OPEN_RE.lastIndex = cursor;
+    match = SCRIPT_STYLE_OPEN_RE.exec(html);
+  }
+  return out + html.slice(cursor);
+}
 
 // Block-level tags: replaced with a space so text on either side of them
 // doesn't get jammed together ("<p>a</p><p>b</p>" -> "a b", not "ab").
@@ -403,10 +455,7 @@ const TAG_RE = /<[^<>]*>/g;
 
 /** Strip HTML markup for plain-text output. See the tag-class comments above. */
 function stripHtml(html) {
-  return html
-    .replace(SCRIPT_STYLE_RE, "")
-    .replace(BLOCK_TAG_RE, " ")
-    .replace(TAG_RE, "");
+  return stripScriptStyle(html).replace(BLOCK_TAG_RE, " ").replace(TAG_RE, "");
 }
 
 /**

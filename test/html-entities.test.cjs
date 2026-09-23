@@ -66,9 +66,36 @@ describe("decodeHtmlEntities", () => {
     assert.strictEqual(decodeHtmlEntities("&foobar;"), "&foobar;");
   });
 
-  it("leaves an out-of-range numeric entity untouched instead of throwing", () => {
+  it("does not resolve inherited Object.prototype properties as named entities", () => {
+    // A plain `{}` lookup (`NAMED_ENTITIES[body]`) would also see inherited
+    // properties like `constructor` and `toString`, "decoding" them to
+    // function source instead of leaving the entity text alone.
+    assert.strictEqual(decodeHtmlEntities("&constructor;"), "&constructor;");
+    assert.strictEqual(decodeHtmlEntities("&toString;"), "&toString;");
+  });
+
+  it("decodes an out-of-range numeric entity to U+FFFD instead of throwing", () => {
     assert.doesNotThrow(() => decodeHtmlEntities("&#99999999;"));
-    assert.strictEqual(decodeHtmlEntities("&#99999999;"), "&#99999999;");
+    assert.strictEqual(decodeHtmlEntities("&#99999999;"), "�");
+  });
+
+  it("decodes a numeric entity just above the Unicode range (0x110000) to U+FFFD", () => {
+    assert.strictEqual(decodeHtmlEntities("&#x110000;"), "�");
+  });
+
+  it("decodes a large-but-finite out-of-range digit string (&#99999999999;) to U+FFFD", () => {
+    // 11 nines parses to a normal finite integer (99999999999), just one
+    // that's far above 0x10FFFF; covered separately from the
+    // Infinity-overflow case below because it exercises the
+    // `codePoint > 0x10ffff` branch rather than `!Number.isInteger`.
+    assert.doesNotThrow(() => decodeHtmlEntities("&#99999999999;"));
+    assert.strictEqual(decodeHtmlEntities("&#99999999999;"), "�");
+  });
+
+  it("decodes a digit string long enough to overflow to Infinity to U+FFFD instead of throwing", () => {
+    const hugeEntity = `&#${"9".repeat(400)};`;
+    assert.doesNotThrow(() => decodeHtmlEntities(hugeEntity));
+    assert.strictEqual(decodeHtmlEntities(hugeEntity), "�");
   });
 
   it("passes through text with no entities unchanged", () => {

@@ -24,8 +24,13 @@ export function decodeAmp(text) {
  * all-caps aliases (`AMP`, `LT`, `GT`, `QUOT`, `COPY`, `REG`) below were each
  * checked against that table before being added; no alias is included that
  * the table lacks.
+ *
+ * A null-prototype object: `NAMED_ENTITIES[body]` on a plain `{}` would
+ * also resolve inherited `Object.prototype` properties, so `&constructor;`
+ * or `&toString;` would "decode" to a function instead of being left
+ * alone. `Object.create(null)` has no prototype chain to leak through.
  */
-const NAMED_ENTITIES = {
+const NAMED_ENTITIES = Object.assign(Object.create(null), {
   amp: "&",
   AMP: "&",
   lt: "<",
@@ -71,7 +76,7 @@ const NAMED_ENTITIES = {
   REG: "®",
   trade: "™",
   deg: "°",
-};
+});
 
 /** Matches `&#39;` / `&#x2019;` (any case) / `&name;` in one pass. */
 const ENTITY_RE = /&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi;
@@ -145,10 +150,17 @@ export function decodeHtmlEntities(text) {
       const codePoint = isHex
         ? Number.parseInt(body.slice(2), 16)
         : Number.parseInt(body.slice(1), 10);
-      if (!Number.isInteger(codePoint) || codePoint > 0x10ffff) {
-        return match;
-      }
-      if (codePoint === 0 || (codePoint >= 0xd800 && codePoint <= 0xdfff)) {
+      // Per the WHATWG numeric-character-reference-end-state algorithm, 0,
+      // a value outside the Unicode range (including a very long digit
+      // string that overflows to Infinity, which fails Number.isInteger),
+      // and a UTF-16 surrogate all decode to U+FFFD rather than being left
+      // as the original entity text.
+      if (
+        !Number.isInteger(codePoint) ||
+        codePoint === 0 ||
+        codePoint > 0x10ffff ||
+        (codePoint >= 0xd800 && codePoint <= 0xdfff)
+      ) {
         return "�";
       }
       return String.fromCodePoint(

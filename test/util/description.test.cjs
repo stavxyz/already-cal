@@ -524,6 +524,94 @@ describe("plainTextDescription", () => {
   it("returns an empty string for a missing description", () => {
     assert.strictEqual(plainTextDescription({}), "");
   });
+
+  it("returns an empty string for a non-string description instead of throwing", () => {
+    assert.strictEqual(plainTextDescription({ description: null }), "");
+    assert.strictEqual(plainTextDescription({ description: 42 }), "");
+    assert.strictEqual(plainTextDescription({ description: {} }), "");
+    assert.strictEqual(plainTextDescription({ description: ["x"] }), "");
+  });
+
+  it("keeps text on either side of a <br> separated by a space", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "Doors at 7pm.<br>Music at 8pm.",
+        descriptionFormat: "html",
+      }),
+      "Doors at 7pm. Music at 8pm.",
+    );
+  });
+
+  it("renders a <ul><li> list as space-separated text", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "<ul><li>Bring chairs</li><li>Bring beer</li></ul>",
+        descriptionFormat: "html",
+      }),
+      "Bring chairs Bring beer",
+    );
+  });
+
+  it("strips an <a href> with an entity-encoded ampersand, keeping only the link text", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: '<a href="https://example.com/?a=1&amp;b=2">Details</a>',
+        descriptionFormat: "html",
+      }),
+      "Details",
+    );
+  });
+
+  it("does not inject a space around an inline tag (Doors at <b>7pm</b>.)", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "Doors at <b>7pm</b>.",
+        descriptionFormat: "html",
+      }),
+      "Doors at 7pm.",
+    );
+  });
+
+  it("returns a URL-only description unchanged (no tags to strip)", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "https://example.com/event/123",
+      }),
+      "https://example.com/event/123",
+    );
+  });
+
+  it("drops <script> and <style> elements along with their contents", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description:
+          "<style>.x{color:red}</style><p>Visible</p><script>alert(1)</script>",
+        descriptionFormat: "html",
+      }),
+      "Visible",
+    );
+  });
+
+  it("decodes an uppercase named entity (Google Docs export)", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "Caf&Eacute; visit",
+        descriptionFormat: "html",
+      }),
+      "CafÉ visit",
+    );
+  });
+
+  it("strips a 100,000-character run of unclosed '<' in well under 200ms (linear-time tag stripping)", () => {
+    const description = "<".repeat(100000);
+    const start = performance.now();
+    plainTextDescription({ description, descriptionFormat: "html" });
+    const elapsed = performance.now() - start;
+    assert.ok(
+      elapsed < 200,
+      `expected under 200ms, took ${elapsed.toFixed(1)}ms`,
+    );
+  });
 });
 
 describe("plainTextDescription with enrichGoogleEvent", () => {

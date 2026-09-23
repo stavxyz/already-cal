@@ -379,18 +379,52 @@ function sanitizeNode(node, allowedTags, allowedAttrs, allowedUrlSchemes) {
   }
 }
 
+// Elements whose content is program text or stylesheet source, not visible
+// copy: dropped whole (tag AND contents) before tag stripping so their
+// bodies never leak into the plain-text output.
+const SCRIPT_STYLE_RE = /<(script|style)\b[^<>]*>[\s\S]*?<\/\1\s*>/gi;
+
+// Block-level tags: replaced with a space so text on either side of them
+// doesn't get jammed together ("<p>a</p><p>b</p>" -> "a b", not "ab").
+// `[^<>]*` (not `[^>]*`) keeps this linear-time: excluding `<` from the
+// attribute-content class means a stray `<` with no matching `>` fails the
+// match at that position in O(1) instead of backtracking through the rest
+// of the string.
+const BLOCK_TAG_RE =
+  /<\/?(?:br|p|div|li|ul|ol|tr|td|h[1-6]|blockquote|hr)\b[^<>]*>/gi;
+
+// Catch-all for any remaining (inline) tag, replaced with nothing so
+// "Doors at <b>7pm</b>." becomes "Doors at 7pm." with no injected space.
+// `[^<>]*`, not `[^>]*`: the latter is quadratic on a string of unclosed
+// `<` characters (each failed match backtracks through the rest of the
+// string before advancing), because `[^>]*` happily consumes `<` too.
+// Excluding `<` bounds the backtrack to the run up to the next `<` or `>`.
+const TAG_RE = /<[^<>]*>/g;
+
+/** Strip HTML markup for plain-text output. See the tag-class comments above. */
+function stripHtml(html) {
+  return html
+    .replace(SCRIPT_STYLE_RE, "")
+    .replace(BLOCK_TAG_RE, " ")
+    .replace(TAG_RE, "");
+}
+
 /**
  * Plain text of an enriched event's description, for places that cannot show
  * markup, such as link-preview text. Public core API (see src/core.js). The
- * contract is readable plain text; exact whitespace and entity output may
- * change between minor versions. Uses no DOM, so it runs in Workers.
+ * output is unescaped plain text: decoded entities can leave literal `<` or
+ * `&` characters in the result (e.g. a description containing `&amp;lt;3`
+ * decodes to `<3`), so a caller embedding the result in HTML or an HTML
+ * attribute must escape it itself. The contract is readable plain text;
+ * exact whitespace and entity output may change between minor versions.
+ * Uses no DOM, so it runs in Workers.
  */
 export function plainTextDescription(event) {
-  const text = event?.description ?? "";
+  const text = typeof event?.description === "string" ? event.description : "";
   if (!text) return "";
   const format = event.descriptionFormat ?? detectFormat(text);
   const html = format === "markdown" ? marked.parse(text) : text;
-  const stripped = format === "plain" ? html : html.replace(/<[^>]*>/g, " ");
+  const stripped = format === "plain" ? html : stripHtml(html);
   return decodeHtmlEntities(stripped).replace(/\s+/g, " ").trim();
 }
 

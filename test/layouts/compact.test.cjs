@@ -103,6 +103,16 @@ describe("compact layout", () => {
     assert.deepStrictEqual(tags, ["Outdoor", "level: beginner"]);
   });
 
+  it("omits the tag row when every tag is a link", () => {
+    const el = render(
+      createTestEvent({
+        tags: [{ key: "rsvp", value: "https://example.com/form" }],
+      }),
+      baseOptions,
+    );
+    assert.strictEqual(el.querySelector(".already-card__tags"), null);
+  });
+
   it("omits tags when empty", () => {
     const el = render(createTestEvent({ tags: [] }), baseOptions);
     assert.strictEqual(el.querySelector(".already-card__tags"), null);

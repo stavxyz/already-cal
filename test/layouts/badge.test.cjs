@@ -247,6 +247,16 @@ describe("badge layout", () => {
     assert.deepStrictEqual(tags, ["Outdoor", "level: beginner"]);
   });
 
+  it("omits the tag row when every tag is a link", () => {
+    const el = render(
+      createTestEvent({
+        tags: [{ key: "rsvp", value: "https://example.com/form" }],
+      }),
+      baseOptions,
+    );
+    assert.strictEqual(el.querySelector(".already-card__tags"), null);
+  });
+
   it("renders a tag directive from a real description", async () => {
     const { enrichEvent } = await import("../../src/data.js");
     const event = enrichEvent(

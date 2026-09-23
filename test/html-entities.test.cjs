@@ -58,7 +58,7 @@ describe("decodeHtmlEntities", () => {
     assert.strictEqual(decodeHtmlEntities("&gt;"), ">");
     assert.strictEqual(decodeHtmlEntities("&quot;"), '"');
     assert.strictEqual(decodeHtmlEntities("&apos;"), "'");
-    assert.strictEqual(decodeHtmlEntities("&nbsp;"), " ");
+    assert.strictEqual(decodeHtmlEntities("&nbsp;"), " ");
     assert.strictEqual(decodeHtmlEntities("&#39;"), "'");
   });
 
@@ -77,5 +77,66 @@ describe("decodeHtmlEntities", () => {
 
   it("passes through empty string", () => {
     assert.strictEqual(decodeHtmlEntities(""), "");
+  });
+
+  it("matches named entities case-sensitively per the WHATWG table", () => {
+    assert.strictEqual(decodeHtmlEntities("&eacute;"), "é");
+    assert.strictEqual(decodeHtmlEntities("&Eacute;"), "É");
+    assert.strictEqual(decodeHtmlEntities("&EACUTE;"), "&EACUTE;");
+  });
+
+  it("decodes the legacy all-caps aliases AMP/LT/GT/QUOT/COPY/REG", () => {
+    assert.strictEqual(decodeHtmlEntities("&AMP;"), "&");
+    assert.strictEqual(decodeHtmlEntities("&LT;"), "<");
+    assert.strictEqual(decodeHtmlEntities("&GT;"), ">");
+    assert.strictEqual(decodeHtmlEntities("&QUOT;"), '"');
+    assert.strictEqual(decodeHtmlEntities("&COPY;"), "©");
+    assert.strictEqual(decodeHtmlEntities("&REG;"), "®");
+  });
+
+  it("leaves &MDASH; unchanged (no uppercase alias exists for mdash)", () => {
+    assert.strictEqual(decodeHtmlEntities("&MDASH;"), "&MDASH;");
+    assert.strictEqual(decodeHtmlEntities("&mdash;"), "—");
+  });
+
+  it("decodes all the newly added uppercase accented-letter entities", () => {
+    assert.strictEqual(decodeHtmlEntities("&Egrave;"), "È");
+    assert.strictEqual(decodeHtmlEntities("&Aacute;"), "Á");
+    assert.strictEqual(decodeHtmlEntities("&Iacute;"), "Í");
+    assert.strictEqual(decodeHtmlEntities("&Oacute;"), "Ó");
+    assert.strictEqual(decodeHtmlEntities("&Uacute;"), "Ú");
+    assert.strictEqual(decodeHtmlEntities("&Ntilde;"), "Ñ");
+    assert.strictEqual(decodeHtmlEntities("&Uuml;"), "Ü");
+    assert.strictEqual(decodeHtmlEntities("&Ouml;"), "Ö");
+    assert.strictEqual(decodeHtmlEntities("&Auml;"), "Ä");
+    assert.strictEqual(decodeHtmlEntities("&Ccedil;"), "Ç");
+  });
+
+  it("decodes &#0; and surrogate code points to U+FFFD", () => {
+    assert.strictEqual(decodeHtmlEntities("&#0;"), "�");
+    assert.strictEqual(decodeHtmlEntities("&#x0;"), "�");
+    assert.strictEqual(decodeHtmlEntities("&#55296;"), "�"); // 0xD800
+    assert.strictEqual(decodeHtmlEntities("&#xD800;"), "�");
+    assert.strictEqual(decodeHtmlEntities("&#xDFFF;"), "�");
+  });
+
+  it("decodes Windows-1252 C1 numeric references per the WHATWG table", () => {
+    assert.strictEqual(decodeHtmlEntities("&#8217;"), "’"); // 0x2019 direct
+    assert.strictEqual(decodeHtmlEntities("&#x92;"), "’"); // Windows-1252 byte -> U+2019
+    assert.strictEqual(decodeHtmlEntities("&#x80;"), "€"); // -> U+20AC EURO SIGN
+    assert.strictEqual(decodeHtmlEntities("&#x97;"), "—"); // -> U+2014 EM DASH
+  });
+
+  it("leaves unmapped C1 code points (0x81, 0x8D, 0x8F, 0x90, 0x9D) as themselves", () => {
+    assert.strictEqual(decodeHtmlEntities("&#x81;"), "\u0081");
+    assert.strictEqual(decodeHtmlEntities("&#x8D;"), "\u008d");
+    assert.strictEqual(decodeHtmlEntities("&#x8F;"), "\u008f");
+    assert.strictEqual(decodeHtmlEntities("&#x90;"), "\u0090");
+    assert.strictEqual(decodeHtmlEntities("&#x9D;"), "\u009d");
+  });
+
+  it("decodes a single-pass entity without double-decoding", () => {
+    assert.strictEqual(decodeHtmlEntities("&amp;lt;"), "&lt;");
+    assert.strictEqual(decodeHtmlEntities("&amp;#8217;"), "&#8217;");
   });
 });

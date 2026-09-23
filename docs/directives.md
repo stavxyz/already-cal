@@ -75,7 +75,7 @@ Converted to `https://lh3.googleusercontent.com/d/FILE_ID`. The file must be pub
 
 ## Tag Directives
 
-Tags are metadata labels attached to events. They appear as badge pills in the detail view and as filterable pills in the tag filter bar.
+Tags are metadata labels attached to events. They appear as pills in the detail view, on badge and compact cards, and in the tag filter bar.
 
 ### Scalar tags
 
@@ -103,7 +103,7 @@ When the value starts with `http`, the tag is rendered as a clickable link butto
 #already:rsvp:https://forms.google.com/...  → link button labeled "Rsvp"
 ```
 
-URL-valued tags are excluded from the tag filter bar.
+URL-valued tags are excluded from the tag filter bar and from card pills.
 
 ## Featured and Hidden
 

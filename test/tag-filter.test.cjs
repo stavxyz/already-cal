@@ -166,6 +166,22 @@ describe("createTagFilter", () => {
     assert.strictEqual(filter(events[1]), false); // only 'music'
   });
 
+  it("never matches a link tag whose label equals a selected pill", () => {
+    const { render, getFilter } = createTagFilter(() => {});
+    const container = document.createElement("div");
+    const events = [
+      createTestEvent({ tags: ["signup: https://x"] }),
+      createTestEvent({ tags: [{ key: "signup", value: "https://x" }] }),
+    ];
+    render(container, events);
+    const pills = container.querySelectorAll(".already-tag-pill");
+    assert.strictEqual(pills.length, 1);
+    pills[0].click();
+    const filter = getFilter();
+    assert.strictEqual(filter(events[0]), true);
+    assert.strictEqual(filter(events[1]), false);
+  });
+
   it("union filter passes events matching any selected tag", () => {
     const { render, getFilter } = createTagFilter(() => {});
     const container = document.createElement("div");

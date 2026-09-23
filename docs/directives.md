@@ -75,7 +75,7 @@ Converted to `https://lh3.googleusercontent.com/d/FILE_ID`. The file must be pub
 
 ## Tag Directives
 
-Tags are metadata labels attached to events. They appear as pills in the detail view, on badge and compact cards, and in the tag filter bar. A key-value tag with an empty value or a URL value is not shown as a pill.
+Tags are metadata labels attached to events. They appear as pills in the detail view, on badge and compact cards, and in the tag filter bar.
 
 ### Scalar tags
 

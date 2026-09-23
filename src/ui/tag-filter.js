@@ -1,23 +1,19 @@
 // src/ui/tag-filter.js
 
+import { isCategoryTag, tagLabel } from "../util/tags.js";
+
 /** Create a tag filter controller with render, getFilter, and getSelectedTags methods. */
 export function createTagFilter(onFilterChange, config) {
   const selectedTags = new Set();
   const clearLabel = config?.i18n?.clearFilter || "Clear";
-
-  function getTagLabel(tag) {
-    return tag.key === "tag" ? tag.value : `${tag.key}: ${tag.value}`;
-  }
 
   function render(container, events) {
     // Collect unique tags from visible events, count frequency
     const tagCounts = new Map();
     for (const event of events) {
       for (const tag of event.tags || []) {
-        // Skip URL-valued tags (they're links, not categories)
-        if (tag.key !== "tag" && tag.value && tag.value.startsWith("http"))
-          continue;
-        const label = getTagLabel(tag);
+        if (!isCategoryTag(tag)) continue;
+        const label = tagLabel(tag);
         tagCounts.set(label, (tagCounts.get(label) || 0) + 1);
       }
     }
@@ -71,7 +67,7 @@ export function createTagFilter(onFilterChange, config) {
     if (selectedTags.size === 0) return null;
     return (event) => {
       for (const tag of event.tags || []) {
-        const label = getTagLabel(tag);
+        const label = tagLabel(tag);
         if (selectedTags.has(label)) return true;
       }
       return false;

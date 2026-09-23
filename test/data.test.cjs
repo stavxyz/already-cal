@@ -360,3 +360,68 @@ describe("enrichEvent — AFL comments", () => {
     assert.ok(result.links[0].url.includes("instagram.com/active"));
   });
 });
+
+describe("enrichGoogleEvent", () => {
+  let enrichGoogleEvent;
+  before(async () => {
+    ({ enrichGoogleEvent } = await import("../src/data.js"));
+  });
+
+  const item = {
+    id: "e1",
+    summary: "Rally",
+    description:
+      "Join us.\n#already:tag:food\n#already:image:https://example.com/a.jpg",
+    location: "Austin",
+    start: { dateTime: "2026-04-04T16:00:00-05:00" },
+    end: { dateTime: "2026-04-04T19:00:00-05:00" },
+    attachments: [
+      { mimeType: "image/png", fileUrl: "https://example.com/b.png" },
+      {
+        mimeType: "application/pdf",
+        fileUrl: "https://example.com/c.pdf",
+        title: "Flyer",
+      },
+    ],
+    _sourceTimeZone: "America/Chicago",
+  };
+
+  // Pinned expected output for `item` above, captured by running
+  // origin/main's (pre-core-entry-refactor) transformGoogleEvents against
+  // the same fixture, to lock in pre-refactor behavior. `generated` is a
+  // property of the top-level transformGoogleEvents() return value, not of
+  // an individual event, so pinning enrichGoogleEvent's per-event output
+  // here already excludes it.
+  const expected = {
+    id: "e1",
+    title: "Rally",
+    description: "Join us.",
+    location: "Austin",
+    start: "2026-04-04T16:00:00-05:00",
+    end: "2026-04-04T19:00:00-05:00",
+    allDay: false,
+    image: "https://example.com/a.jpg",
+    images: ["https://example.com/a.jpg", "https://example.com/b.png"],
+    links: [],
+    htmlLink: "",
+    attachments: [
+      { label: "Flyer", url: "https://example.com/c.pdf", type: "pdf" },
+    ],
+    _sourceTimeZone: "America/Chicago",
+    descriptionFormat: "plain",
+    tags: [{ key: "tag", value: "food" }],
+    featured: false,
+    hidden: false,
+  };
+
+  it("matches the pinned pre-refactor output for a representative item", () => {
+    assert.deepStrictEqual(enrichGoogleEvent(item, {}), expected);
+  });
+
+  it("picks the directive image first and strips directives", () => {
+    const e = enrichGoogleEvent(item, {});
+    assert.strictEqual(e.image, "https://example.com/a.jpg");
+    assert.ok(!e.description.includes("#already:"));
+    assert.deepStrictEqual(e.tags, [{ key: "tag", value: "food" }]);
+  });
+});

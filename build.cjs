@@ -47,16 +47,32 @@ async function build() {
     minify: true,
   });
 
+  // The DOM-free core entry (src/core.js), for server-side consumers. Built
+  // with platform: "neutral" so nothing DOM-shaped leaks in. No mainFields
+  // override is needed: marked's package.json has an "exports" map with an
+  // "import" condition pointing at lib/marked.esm.js, and esbuild honors
+  // that condition ahead of mainFields whenever format is "esm".
+  const ctxCore = await esbuild.context({
+    entryPoints: ["src/core.js"],
+    bundle: true,
+    format: "esm",
+    platform: "neutral",
+    outfile: "dist/already-cal-core.mjs",
+    minify: false,
+    define,
+  });
+
   await Promise.all([
     ctx.rebuild(),
     ctxMin.rebuild(),
     ctxCss.rebuild(),
     ctxCssMin.rebuild(),
+    ctxCore.rebuild(),
   ]);
   console.log("Build complete.");
 
   if (watch) {
-    await Promise.all([ctx.watch(), ctxCss.watch()]);
+    await Promise.all([ctx.watch(), ctxCss.watch(), ctxCore.watch()]);
     console.log("Watching for changes...");
   } else {
     await Promise.all([
@@ -64,6 +80,7 @@ async function build() {
       ctxMin.dispose(),
       ctxCss.dispose(),
       ctxCssMin.dispose(),
+      ctxCore.dispose(),
     ]);
   }
 }

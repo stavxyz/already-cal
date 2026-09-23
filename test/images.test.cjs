@@ -3,11 +3,20 @@ const assert = require("node:assert");
 
 let normalizeImageUrl;
 let extractImage;
+let DEFAULT_IMAGE_EXTENSIONS;
 
 before(async () => {
   const mod = await import("../src/util/images.js");
   normalizeImageUrl = mod.normalizeImageUrl;
   extractImage = mod.extractImage;
+  DEFAULT_IMAGE_EXTENSIONS = mod.DEFAULT_IMAGE_EXTENSIONS;
+});
+
+describe("DEFAULT_IMAGE_EXTENSIONS", () => {
+  it("is frozen so consumers can't mutate the shared default", () => {
+    assert.ok(Object.isFrozen(DEFAULT_IMAGE_EXTENSIONS));
+    assert.throws(() => DEFAULT_IMAGE_EXTENSIONS.push("svg"));
+  });
 });
 
 describe("normalizeImageUrl", () => {

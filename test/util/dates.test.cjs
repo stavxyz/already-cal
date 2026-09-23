@@ -1,7 +1,8 @@
 const { describe, it, before } = require("node:test");
 const assert = require("node:assert");
-// Cross-repo parity table, extracted to its own fixture because already.events
-// machine-parses it — see that file's header before reshaping it.
+// Cross-repo parity table, extracted to its own fixture because a downstream
+// consumer that vendors this widget machine-parses it: see that file's
+// header before reshaping it.
 const { ZONE_ABBREV_CASES } = require("../fixtures/zone-abbrev-parity.cjs");
 
 let formatDate,

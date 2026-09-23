@@ -26,7 +26,7 @@ After enrichment, each event has these fields:
 | `htmlLink` | `string` | Google Calendar web link (empty string if not available) |
 | `_sourceTimeZone` | `string` (optional) | IANA zone for this event's own source calendar, e.g. `"America/New_York"` |
 
-`_sourceTimeZone` is supplied by the data producer per event (not extracted by `enrichEvent()`) — for example, already.events sets it to the zone of the specific source calendar an event came from. When present, built-in card and day views show event times in the viewer's local zone with this zone appended if it differs (e.g. `"Aug 19, 2:00 – 3:00 PM · 3:00 PM EDT"`). When absent, `calendar.timezone` is used as the fallback. A malformed or unrecognized value is ignored and the fallback is used — it never throws.
+`_sourceTimeZone` is supplied by the data producer per event (not extracted by `enrichEvent()`): for example, a downstream consumer that vendors this widget might set it to the zone of the specific source calendar an event came from. When present, built-in card and day views show event times in the viewer's local zone with this zone appended if it differs (e.g. `"Aug 19, 2:00 – 3:00 PM · 3:00 PM EDT"`). When absent, `calendar.timezone` is used as the fallback. A malformed or unrecognized value is ignored and the fallback is used: it never throws.
 
 ## Data Pipeline
 

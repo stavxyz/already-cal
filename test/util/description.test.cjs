@@ -455,3 +455,207 @@ describe("sanitizer default constants are immutable", () => {
     assert.ok(Object.isFrozen(DEFAULT_RAW_TEXT_ELEMENTS));
   });
 });
+
+describe("plainTextDescription", () => {
+  let plainTextDescription;
+  before(async () => {
+    ({ plainTextDescription } = await import("../../src/util/description.js"));
+  });
+
+  it("returns plain text unchanged apart from whitespace", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "Brisket and  beer.\n\nBring chairs.",
+      }),
+      "Brisket and beer. Bring chairs.",
+    );
+  });
+
+  it("drops HTML tags and empty wrappers, and decodes entities", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "<p>Hello <b>world</b> &amp; friends</p><p></p>",
+        descriptionFormat: "html",
+      }),
+      "Hello world & friends",
+    );
+  });
+
+  it("renders Markdown to text without its syntax", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "## Title\n- **bold** item\n[link](https://example.com)",
+        descriptionFormat: "markdown",
+      }),
+      "Title bold item link",
+    );
+  });
+
+  it("decodes named entities from HTML pasted from Word (curly apostrophe, em dash)", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "<p>It&#8217;s great &mdash; really!</p>",
+        descriptionFormat: "html",
+      }),
+      "It’s great — really!",
+    );
+  });
+
+  it("decodes named accented-letter entities from HTML (Google Docs export)", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "Caf&eacute; visit &amp; tour",
+        descriptionFormat: "html",
+      }),
+      "Café visit & tour",
+    );
+  });
+
+  it("decodes the same entity forms on the Markdown path", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "It&#8217;s Caf&eacute; &mdash; &amp; more",
+        descriptionFormat: "markdown",
+      }),
+      "It’s Café — & more",
+    );
+  });
+
+  it("returns an empty string for a missing description", () => {
+    assert.strictEqual(plainTextDescription({}), "");
+  });
+
+  it("returns an empty string for a non-string description instead of throwing", () => {
+    assert.strictEqual(plainTextDescription({ description: null }), "");
+    assert.strictEqual(plainTextDescription({ description: 42 }), "");
+    assert.strictEqual(plainTextDescription({ description: {} }), "");
+    assert.strictEqual(plainTextDescription({ description: ["x"] }), "");
+  });
+
+  it("keeps text on either side of a <br> separated by a space", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "Doors at 7pm.<br>Music at 8pm.",
+        descriptionFormat: "html",
+      }),
+      "Doors at 7pm. Music at 8pm.",
+    );
+  });
+
+  it("renders a <ul><li> list as space-separated text", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "<ul><li>Bring chairs</li><li>Bring beer</li></ul>",
+        descriptionFormat: "html",
+      }),
+      "Bring chairs Bring beer",
+    );
+  });
+
+  it("strips an <a href> with an entity-encoded ampersand, keeping only the link text", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: '<a href="https://example.com/?a=1&amp;b=2">Details</a>',
+        descriptionFormat: "html",
+      }),
+      "Details",
+    );
+  });
+
+  it("does not inject a space around an inline tag (Doors at <b>7pm</b>.)", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "Doors at <b>7pm</b>.",
+        descriptionFormat: "html",
+      }),
+      "Doors at 7pm.",
+    );
+  });
+
+  it("returns a URL-only description unchanged (no tags to strip)", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "https://example.com/event/123",
+      }),
+      "https://example.com/event/123",
+    );
+  });
+
+  it("drops <script> and <style> elements along with their contents", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description:
+          "<style>.x{color:red}</style><p>Visible</p><script>alert(1)</script>",
+        descriptionFormat: "html",
+      }),
+      "Visible",
+    );
+  });
+
+  it("decodes an uppercase named entity (Google Docs export)", () => {
+    assert.strictEqual(
+      plainTextDescription({
+        description: "Caf&Eacute; visit",
+        descriptionFormat: "html",
+      }),
+      "CafÉ visit",
+    );
+  });
+
+  it("strips a 100,000-character run of unclosed '<' in well under 200ms (linear-time tag stripping)", () => {
+    const description = "<".repeat(100000);
+    const start = performance.now();
+    plainTextDescription({ description, descriptionFormat: "html" });
+    const elapsed = performance.now() - start;
+    assert.ok(
+      elapsed < 200,
+      `expected under 200ms, took ${elapsed.toFixed(1)}ms`,
+    );
+  });
+
+  // Regression guard for a quadratic script/style-removal regex: a single
+  // combined /<(script|style)\b[^<>]*>[\s\S]*?<\/\1\s*>/gi backtracks to
+  // the end of the string for every unclosed opener. Repeating an opener
+  // with no closer ~100,000 characters' worth previously took hundreds of
+  // milliseconds (168ms at 100k characters, 668ms at 200k, scaling
+  // roughly with the square of the length); stripScriptStyle's forward-
+  // only indexOf scan keeps each of these under 200ms.
+  for (const [label, chunk] of [
+    ["<style>", "<style>"],
+    ["<script>", "<script>"],
+    ["<script (no closing '>')", "<script"],
+  ]) {
+    it(`strips ~100,000 characters of repeated unclosed '${label}' in well under 200ms`, () => {
+      const description = chunk.repeat(Math.ceil(100000 / chunk.length));
+      const start = performance.now();
+      plainTextDescription({ description, descriptionFormat: "html" });
+      const elapsed = performance.now() - start;
+      assert.ok(
+        elapsed < 200,
+        `expected under 200ms, took ${elapsed.toFixed(1)}ms`,
+      );
+    });
+  }
+});
+
+describe("plainTextDescription with enrichGoogleEvent", () => {
+  let enrichGoogleEvent;
+  let plainTextDescription;
+  before(async () => {
+    ({ enrichGoogleEvent } = await import("../../src/data.js"));
+    ({ plainTextDescription } = await import("../../src/util/description.js"));
+  });
+
+  it("reads plain text from a description already stripped of directives and image URLs", () => {
+    const event = enrichGoogleEvent(
+      {
+        id: "evt1",
+        summary: "BBQ",
+        description:
+          "**Big** day\nhttps://drive.google.com/file/d/ABC123/view\n#already:tag:food",
+      },
+      {},
+    );
+    assert.strictEqual(plainTextDescription(event), "Big day");
+  });
+});

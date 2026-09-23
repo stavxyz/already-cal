@@ -171,7 +171,7 @@ sticky: { header: false, viewSelector: true, tagFilter: false }
 |--------|------|---------|-------------|
 | `locationLinkTemplate` | `string` | `'https://maps.google.com/?q={location}'` | URL template for location links. `{location}` is replaced with the encoded location |
 | `storageKeyPrefix` | `string` | `'already'` | localStorage key prefix (set different values for multiple instances) |
-| `imageExtensions` | `string[] \| null` | `null` | Image file extensions to detect in descriptions. `null` uses defaults: `['png', 'jpg', 'jpeg', 'gif', 'webp']` |
+| `imageExtensions` | `string[] \| null` | `['png', 'jpg', 'jpeg', 'gif', 'webp']` | Image file extensions to detect in descriptions. `null` or omitting the key also falls back to the default list |
 
 ## Link Extraction
 

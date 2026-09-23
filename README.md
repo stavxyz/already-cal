@@ -163,7 +163,7 @@ Already.init({
   maxEventsPerDay: 3,                  // month view: chips before "+N more"
   locationLinkTemplate: 'https://maps.google.com/?q={location}',
   storageKeyPrefix: 'already',        // for multiple instances
-  imageExtensions: null,               // null = defaults: png, jpg, jpeg, gif, webp
+  imageExtensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'],  // null or omitted also falls back to this
 
   // --- Link extraction ---
   // 18 built-in: Eventbrite, Google Forms, Google Maps, Zoom, Google Meet,
@@ -575,6 +575,7 @@ open dev.html           # local preview with mock data
 |----------|-------------|
 | [Configuration Reference](docs/configuration.md) | Every config option with types, defaults, and descriptions |
 | [Event Schema](docs/event-schema.md) | Event object fields and data pipeline |
+| [Core (server-side entry)](docs/core.md) | DOM-free event enrichment for server-side consumers |
 | [Directives Reference](docs/directives.md) | `#already:` directive syntax for all platforms, images, and tags |
 | [AFL Reference](docs/afl.md) | Already Format Language: comments, directives, URL extraction, format detection |
 | [Architecture](docs/architecture.md) | Technical deep-dive: data pipeline, rendering flow, theme system, lifecycle |
@@ -606,7 +607,7 @@ Three GitHub Actions workflows run automatically:
 - CSS custom properties for theming
 - `Intl.DateTimeFormat` for locale-aware formatting
 
-Build outputs: `dist/already-cal.js` (+ sourcemap), `dist/already-cal.min.js`, `dist/already-cal.css`, `dist/already-cal.min.css`. The default config object is available as `Already.DEFAULTS` for extending (e.g., `Already.DEFAULTS.knownPlatforms`).
+Build outputs: `dist/already-cal.js` (+ sourcemap), `dist/already-cal.min.js`, `dist/already-cal.css`, `dist/already-cal.min.css`, and `dist/already-cal-core.mjs` (the DOM-free server-side entry; see [Core (server-side entry)](docs/core.md)). The default config object is available as `Already.DEFAULTS` for extending (e.g., `Already.DEFAULTS.knownPlatforms`).
 
 ## License
 

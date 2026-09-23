@@ -37,6 +37,53 @@ var Already = (() => {
   function decodeAmp(text) {
     return text.replace(/&amp;/g, "&");
   }
+  var NAMED_ENTITIES = Object.assign(/* @__PURE__ */ Object.create(null), {
+    amp: "&",
+    AMP: "&",
+    lt: "<",
+    LT: "<",
+    gt: ">",
+    GT: ">",
+    quot: '"',
+    QUOT: '"',
+    apos: "'",
+    nbsp: "\xA0",
+    rsquo: "\u2019",
+    lsquo: "\u2018",
+    rdquo: "\u201D",
+    ldquo: "\u201C",
+    mdash: "\u2014",
+    ndash: "\u2013",
+    hellip: "\u2026",
+    eacute: "\xE9",
+    Eacute: "\xC9",
+    egrave: "\xE8",
+    Egrave: "\xC8",
+    aacute: "\xE1",
+    Aacute: "\xC1",
+    iacute: "\xED",
+    Iacute: "\xCD",
+    oacute: "\xF3",
+    Oacute: "\xD3",
+    uacute: "\xFA",
+    Uacute: "\xDA",
+    ntilde: "\xF1",
+    Ntilde: "\xD1",
+    uuml: "\xFC",
+    Uuml: "\xDC",
+    ouml: "\xF6",
+    Ouml: "\xD6",
+    auml: "\xE4",
+    Auml: "\xC4",
+    ccedil: "\xE7",
+    Ccedil: "\xC7",
+    copy: "\xA9",
+    COPY: "\xA9",
+    reg: "\xAE",
+    REG: "\xAE",
+    trade: "\u2122",
+    deg: "\xB0"
+  });
 
   // src/util/sanitize.js
   var ESC_MAP = {
@@ -119,7 +166,13 @@ var Already = (() => {
   };
 
   // src/util/images.js
-  var DEFAULT_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
+  var DEFAULT_IMAGE_EXTENSIONS = Object.freeze([
+    "png",
+    "jpg",
+    "jpeg",
+    "gif",
+    "webp"
+  ]);
   var DRIVE_ID_PATTERN = /drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=view&)?id=)([a-zA-Z0-9_-]+)/;
   var DRIVE_URL_PATTERN = new RegExp(
     `https?:\\/\\/${DRIVE_ID_PATTERN.source}[^\\s<>"]*`,
@@ -268,6 +321,267 @@ var Already = (() => {
     cleaned = cleanupHtml(cleaned);
     return { tokens, description: cleaned };
   }
+
+  // src/util/links.js
+  var PROFILE_PREFIXES = /* @__PURE__ */ new Set(["r", "u", "groups"]);
+  function pathSegments(url) {
+    try {
+      return new URL(url).pathname.replace(/\/+$/, "").split("/").filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+  function handleAt(url) {
+    try {
+      const segments = pathSegments(url);
+      if (segments.length === 0) return null;
+      if (segments.length === 2 && PROFILE_PREFIXES.has(segments[0])) {
+        return `${segments[0]}/${segments[1]}`;
+      }
+      if (segments.length === 1) {
+        const seg = segments[0].replace(/^@/, "");
+        if (/\.(jpg|jpeg|png|gif|webp|pdf|html|js|css|php)$/i.test(seg))
+          return null;
+        return seg;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+  var DEFAULT_PLATFORMS = [
+    {
+      pattern: /eventbrite\.com/i,
+      label: "RSVP on Eventbrite",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        const slug = segs[segs.length - 1] || "";
+        const m = slug.match(/(\d+)$/);
+        return `eventbrite:${m ? m[1] : slug}`;
+      }
+    },
+    {
+      pattern: /docs\.google\.com\/forms/i,
+      label: "Fill Out Form",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        const eIdx = segs.indexOf("e");
+        const id = eIdx !== -1 ? segs[eIdx + 1] : segs[segs.length - 1];
+        return `googleforms:${id || ""}`;
+      }
+    },
+    {
+      pattern: /goo\.gl\/maps|maps\.app\.goo\.gl|google\.com\/maps/i,
+      label: "View on Map",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        if (/maps\.app\.goo\.gl/.test(url)) {
+          return `googlemaps:${segs[0] || ""}`;
+        }
+        return `googlemaps:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /zoom\.us/i,
+      label: "Join Zoom",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        const jIdx = segs.indexOf("j");
+        const id = jIdx !== -1 ? segs[jIdx + 1] : segs[segs.length - 1];
+        return `zoom:${id || ""}`;
+      }
+    },
+    {
+      pattern: /meet\.google\.com/i,
+      label: "Join Google Meet",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        return `googlemeet:${segs[0] || ""}`;
+      }
+    },
+    {
+      pattern: /instagram\.com/i,
+      labelFn: (url) => {
+        const h = handleAt(url);
+        return h ? `Follow @${h} on Instagram` : "View on Instagram";
+      },
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        if (segs.length === 0) return "instagram:";
+        if (segs.length === 1) return `instagram:${segs[0].replace(/^@/, "")}`;
+        return `instagram:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /facebook\.com|fb\.com/i,
+      labelFn: (url) => {
+        const h = handleAt(url);
+        return h ? `${h} on Facebook` : "View on Facebook";
+      },
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        return `facebook:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /(?:twitter\.com|(?:^|\/\/)(?:www\.)?x\.com)/i,
+      labelFn: (url) => {
+        const h = handleAt(url);
+        return h ? `Follow @${h} on X` : "View on X";
+      },
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        return `x:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /reddit\.com/i,
+      labelFn: (url) => {
+        const h = handleAt(url);
+        return h ? `${h} on Reddit` : "View on Reddit";
+      },
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        return `reddit:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /youtube\.com|youtu\.be/i,
+      label: "Watch on YouTube",
+      canonicalize(url) {
+        try {
+          const parsed = new URL(url);
+          if (/youtu\.be/.test(url)) {
+            const segs2 = pathSegments(url);
+            return `youtube:${segs2[0] || ""}`;
+          }
+          const v = parsed.searchParams.get("v");
+          if (v) return `youtube:${v}`;
+          const segs = pathSegments(url);
+          return `youtube:${segs.join("/")}`;
+        } catch {
+          return "youtube:";
+        }
+      }
+    },
+    {
+      pattern: /tiktok\.com/i,
+      labelFn: (url) => {
+        const h = handleAt(url);
+        return h ? `@${h} on TikTok` : "View on TikTok";
+      },
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        if (segs.length === 0) return "tiktok:";
+        return `tiktok:${segs[0].replace(/^@/, "")}`;
+      }
+    },
+    {
+      pattern: /linkedin\.com/i,
+      label: "View on LinkedIn",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        return `linkedin:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /discord\.gg|discord\.com/i,
+      label: "Join Discord",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        if (/discord\.gg/.test(url)) return `discord:${segs[0] || ""}`;
+        const invIdx = segs.indexOf("invite");
+        if (invIdx !== -1) return `discord:${segs[invIdx + 1] || ""}`;
+        return `discord:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /lu\.ma/i,
+      label: "RSVP on Luma",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        return `luma:${segs[0] || ""}`;
+      }
+    },
+    {
+      pattern: /mobilize\.us/i,
+      label: "RSVP on Mobilize",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        return `mobilize:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /actionnetwork\.org/i,
+      label: "Take Action",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        return `actionnetwork:${segs.join("/")}`;
+      }
+    },
+    {
+      pattern: /gofundme\.com/i,
+      label: "Donate on GoFundMe",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        const fIdx = segs.indexOf("f");
+        const slug = fIdx !== -1 ? segs[fIdx + 1] : segs[segs.length - 1];
+        return `gofundme:${slug || ""}`;
+      }
+    },
+    {
+      pattern: /partiful\.com/i,
+      label: "RSVP on Partiful",
+      canonicalize(url) {
+        const segs = pathSegments(url);
+        const eIdx = segs.indexOf("e");
+        const id = eIdx !== -1 ? segs[eIdx + 1] : segs[segs.length - 1];
+        return `partiful:${id || ""}`;
+      }
+    }
+  ];
+  function extractLinkTokens(description, config) {
+    if (!description) return { tokens: [], description };
+    description = decodeAmp(description);
+    const platforms = config?.knownPlatforms || DEFAULT_PLATFORMS;
+    const tokens = [];
+    let cleaned = description;
+    const seen = /* @__PURE__ */ new Set();
+    URL_PATTERN.lastIndex = 0;
+    const urls = description.match(URL_PATTERN) || [];
+    for (const url of urls) {
+      const normalized = normalizeUrl(url);
+      for (const platform of platforms) {
+        if (platform.pattern.test(url)) {
+          const canonicalId = platform.canonicalize ? platform.canonicalize(normalized) : null;
+          if (canonicalId && seen.has(canonicalId)) {
+            cleaned = stripUrl(cleaned, url);
+            break;
+          }
+          if (canonicalId) seen.add(canonicalId);
+          const label = platform.labelFn ? platform.labelFn(url) : platform.label;
+          tokens.push({
+            canonicalId: canonicalId || `link:${normalized}`,
+            type: "link",
+            source: "url",
+            url,
+            label,
+            metadata: {}
+          });
+          cleaned = stripUrl(cleaned, url);
+          break;
+        }
+      }
+    }
+    cleaned = cleanupHtml(cleaned);
+    return { tokens, description: cleaned };
+  }
+
+  // src/content-defaults.js
+  var CONTENT_DEFAULTS = Object.freeze({
+    imageExtensions: DEFAULT_IMAGE_EXTENSIONS,
+    knownPlatforms: DEFAULT_PLATFORMS
+  });
 
   // src/util/attachments.js
   var IMAGE_EXTENSIONS = new Set(DEFAULT_IMAGE_EXTENSIONS);
@@ -2890,261 +3204,6 @@ ${text}</tr>
     return { tokens, description: cleaned, featured, hidden };
   }
 
-  // src/util/links.js
-  var PROFILE_PREFIXES = /* @__PURE__ */ new Set(["r", "u", "groups"]);
-  function pathSegments(url) {
-    try {
-      return new URL(url).pathname.replace(/\/+$/, "").split("/").filter(Boolean);
-    } catch {
-      return [];
-    }
-  }
-  function handleAt(url) {
-    try {
-      const segments = pathSegments(url);
-      if (segments.length === 0) return null;
-      if (segments.length === 2 && PROFILE_PREFIXES.has(segments[0])) {
-        return `${segments[0]}/${segments[1]}`;
-      }
-      if (segments.length === 1) {
-        const seg = segments[0].replace(/^@/, "");
-        if (/\.(jpg|jpeg|png|gif|webp|pdf|html|js|css|php)$/i.test(seg))
-          return null;
-        return seg;
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  }
-  var DEFAULT_PLATFORMS = [
-    {
-      pattern: /eventbrite\.com/i,
-      label: "RSVP on Eventbrite",
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        const slug = segs[segs.length - 1] || "";
-        const m = slug.match(/(\d+)$/);
-        return `eventbrite:${m ? m[1] : slug}`;
-      }
-    },
-    {
-      pattern: /docs\.google\.com\/forms/i,
-      label: "Fill Out Form",
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        const eIdx = segs.indexOf("e");
-        const id = eIdx !== -1 ? segs[eIdx + 1] : segs[segs.length - 1];
-        return `googleforms:${id || ""}`;
-      }
-    },
-    {
-      pattern: /goo\.gl\/maps|maps\.app\.goo\.gl|google\.com\/maps/i,
-      label: "View on Map",
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        if (/maps\.app\.goo\.gl/.test(url)) {
-          return `googlemaps:${segs[0] || ""}`;
-        }
-        return `googlemaps:${segs.join("/")}`;
-      }
-    },
-    {
-      pattern: /zoom\.us/i,
-      label: "Join Zoom",
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        const jIdx = segs.indexOf("j");
-        const id = jIdx !== -1 ? segs[jIdx + 1] : segs[segs.length - 1];
-        return `zoom:${id || ""}`;
-      }
-    },
-    {
-      pattern: /meet\.google\.com/i,
-      label: "Join Google Meet",
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        return `googlemeet:${segs[0] || ""}`;
-      }
-    },
-    {
-      pattern: /instagram\.com/i,
-      labelFn: (url) => {
-        const h = handleAt(url);
-        return h ? `Follow @${h} on Instagram` : "View on Instagram";
-      },
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        if (segs.length === 0) return "instagram:";
-        if (segs.length === 1) return `instagram:${segs[0].replace(/^@/, "")}`;
-        return `instagram:${segs.join("/")}`;
-      }
-    },
-    {
-      pattern: /facebook\.com|fb\.com/i,
-      labelFn: (url) => {
-        const h = handleAt(url);
-        return h ? `${h} on Facebook` : "View on Facebook";
-      },
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        return `facebook:${segs.join("/")}`;
-      }
-    },
-    {
-      pattern: /(?:twitter\.com|(?:^|\/\/)(?:www\.)?x\.com)/i,
-      labelFn: (url) => {
-        const h = handleAt(url);
-        return h ? `Follow @${h} on X` : "View on X";
-      },
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        return `x:${segs.join("/")}`;
-      }
-    },
-    {
-      pattern: /reddit\.com/i,
-      labelFn: (url) => {
-        const h = handleAt(url);
-        return h ? `${h} on Reddit` : "View on Reddit";
-      },
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        return `reddit:${segs.join("/")}`;
-      }
-    },
-    {
-      pattern: /youtube\.com|youtu\.be/i,
-      label: "Watch on YouTube",
-      canonicalize(url) {
-        try {
-          const parsed = new URL(url);
-          if (/youtu\.be/.test(url)) {
-            const segs2 = pathSegments(url);
-            return `youtube:${segs2[0] || ""}`;
-          }
-          const v = parsed.searchParams.get("v");
-          if (v) return `youtube:${v}`;
-          const segs = pathSegments(url);
-          return `youtube:${segs.join("/")}`;
-        } catch {
-          return "youtube:";
-        }
-      }
-    },
-    {
-      pattern: /tiktok\.com/i,
-      labelFn: (url) => {
-        const h = handleAt(url);
-        return h ? `@${h} on TikTok` : "View on TikTok";
-      },
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        if (segs.length === 0) return "tiktok:";
-        return `tiktok:${segs[0].replace(/^@/, "")}`;
-      }
-    },
-    {
-      pattern: /linkedin\.com/i,
-      label: "View on LinkedIn",
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        return `linkedin:${segs.join("/")}`;
-      }
-    },
-    {
-      pattern: /discord\.gg|discord\.com/i,
-      label: "Join Discord",
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        if (/discord\.gg/.test(url)) return `discord:${segs[0] || ""}`;
-        const invIdx = segs.indexOf("invite");
-        if (invIdx !== -1) return `discord:${segs[invIdx + 1] || ""}`;
-        return `discord:${segs.join("/")}`;
-      }
-    },
-    {
-      pattern: /lu\.ma/i,
-      label: "RSVP on Luma",
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        return `luma:${segs[0] || ""}`;
-      }
-    },
-    {
-      pattern: /mobilize\.us/i,
-      label: "RSVP on Mobilize",
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        return `mobilize:${segs.join("/")}`;
-      }
-    },
-    {
-      pattern: /actionnetwork\.org/i,
-      label: "Take Action",
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        return `actionnetwork:${segs.join("/")}`;
-      }
-    },
-    {
-      pattern: /gofundme\.com/i,
-      label: "Donate on GoFundMe",
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        const fIdx = segs.indexOf("f");
-        const slug = fIdx !== -1 ? segs[fIdx + 1] : segs[segs.length - 1];
-        return `gofundme:${slug || ""}`;
-      }
-    },
-    {
-      pattern: /partiful\.com/i,
-      label: "RSVP on Partiful",
-      canonicalize(url) {
-        const segs = pathSegments(url);
-        const eIdx = segs.indexOf("e");
-        const id = eIdx !== -1 ? segs[eIdx + 1] : segs[segs.length - 1];
-        return `partiful:${id || ""}`;
-      }
-    }
-  ];
-  function extractLinkTokens(description, config) {
-    if (!description) return { tokens: [], description };
-    description = decodeAmp(description);
-    const platforms = config?.knownPlatforms || DEFAULT_PLATFORMS;
-    const tokens = [];
-    let cleaned = description;
-    const seen = /* @__PURE__ */ new Set();
-    URL_PATTERN.lastIndex = 0;
-    const urls = description.match(URL_PATTERN) || [];
-    for (const url of urls) {
-      const normalized = normalizeUrl(url);
-      for (const platform of platforms) {
-        if (platform.pattern.test(url)) {
-          const canonicalId = platform.canonicalize ? platform.canonicalize(normalized) : null;
-          if (canonicalId && seen.has(canonicalId)) {
-            cleaned = stripUrl(cleaned, url);
-            break;
-          }
-          if (canonicalId) seen.add(canonicalId);
-          const label = platform.labelFn ? platform.labelFn(url) : platform.label;
-          tokens.push({
-            canonicalId: canonicalId || `link:${normalized}`,
-            type: "link",
-            source: "url",
-            url,
-            label,
-            metadata: {}
-          });
-          cleaned = stripUrl(cleaned, url);
-          break;
-        }
-      }
-    }
-    cleaned = cleanupHtml(cleaned);
-    return { tokens, description: cleaned };
-  }
-
   // src/data.js
   async function loadData(config) {
     let data;
@@ -3284,42 +3343,45 @@ ${text}</tr>
     if (!attachments) return [];
     return attachments.filter((a) => a.mimeType?.startsWith("image/")).map((a) => normalizeImageUrl(a.fileUrl || a.url)).filter(Boolean);
   }
-  function transformGoogleEvents(googleData, config) {
-    const events = (googleData.items || []).map((item) => {
-      const apiAttachments = [];
-      const imageAttachments = [];
-      for (const a of item.attachments || []) {
-        if (a.mimeType?.startsWith("image/")) {
-          imageAttachments.push({ mimeType: a.mimeType, url: a.fileUrl });
-        } else {
-          const type = deriveTypeFromMimeType(a.mimeType);
-          apiAttachments.push({
-            label: a.title || labelForType(type),
-            url: a.fileUrl,
-            type
-          });
-        }
+  function enrichGoogleEvent(item, config) {
+    const apiAttachments = [];
+    const imageAttachments = [];
+    for (const a of item.attachments || []) {
+      if (a.mimeType?.startsWith("image/")) {
+        imageAttachments.push({ mimeType: a.mimeType, url: a.fileUrl });
+      } else {
+        const type = deriveTypeFromMimeType(a.mimeType);
+        apiAttachments.push({
+          label: a.title || labelForType(type),
+          url: a.fileUrl,
+          type
+        });
       }
-      return enrichEvent(
-        {
-          id: item.id,
-          title: item.summary || "Untitled Event",
-          description: item.description || "",
-          location: item.location || "",
-          start: item.start?.dateTime || item.start?.date || "",
-          end: item.end?.dateTime || item.end?.date || "",
-          allDay: !item.start?.dateTime,
-          image: null,
-          images: [],
-          links: [],
-          htmlLink: item.htmlLink || "",
-          attachments: apiAttachments,
-          _imageAttachments: imageAttachments,
-          _sourceTimeZone: item._sourceTimeZone
-        },
-        config
-      );
-    });
+    }
+    return enrichEvent(
+      {
+        id: item.id,
+        title: item.summary || "Untitled Event",
+        description: item.description || "",
+        location: item.location || "",
+        start: item.start?.dateTime || item.start?.date || "",
+        end: item.end?.dateTime || item.end?.date || "",
+        allDay: !item.start?.dateTime,
+        image: null,
+        images: [],
+        links: [],
+        htmlLink: item.htmlLink || "",
+        attachments: apiAttachments,
+        _imageAttachments: imageAttachments,
+        _sourceTimeZone: item._sourceTimeZone
+      },
+      config
+    );
+  }
+  function transformGoogleEvents(googleData, config) {
+    const events = (googleData.items || []).map(
+      (item) => enrichGoogleEvent(item, config)
+    );
     return {
       events,
       calendar: {
@@ -5726,9 +5788,7 @@ ${text}</tr>
     mobileHiddenViews: ["week"],
     maxEventsPerDay: 3,
     locationLinkTemplate: "https://maps.google.com/?q={location}",
-    imageExtensions: null,
-    // null = use defaults in images.js
-    knownPlatforms: DEFAULT_PLATFORMS,
+    ...CONTENT_DEFAULTS,
     sanitization: null,
     // null = use defaults in description.js
     eventFilter: null,

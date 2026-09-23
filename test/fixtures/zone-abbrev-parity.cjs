@@ -1,14 +1,14 @@
 /**
  * (instant, zone) → expected short-zone-abbrev parity table.
  *
- * This repo and the already.events worker repo each run an INDEPENDENT `Intl`
+ * This repo and a downstream consumer that vendors this widget each run an INDEPENDENT `Intl`
  * self-check over THIS SAME table (there: `workers/embed/test/fixtures/
  * zone-abbrev-parity.ts`). The two repos can't import each other, so the rows
  * are kept identical by convention: if you add/edit/remove a row here, make
  * the same edit in the sibling table in the same change.
  *
  * ── THE SHAPE OF THE LITERAL BELOW IS LOAD-BEARING ───────────────────────────
- * already.events' `scripts/copy-already-cal.js` fetches THIS FILE from
+ * The downstream consumer's `scripts/copy-already-cal.js` fetches THIS FILE from
  * `main` at vendor-bump time and regex-parses the array literal
  * (`scripts/zone-abbrev-parity.js`) to detect the two tables drifting apart.
  * That parser requires:
@@ -32,7 +32,7 @@
  *     unverified. That is the one remaining fail-open case, so deleting or
  *     relocating this file is the one reshape that can go unnoticed.
  * Coordinate any reshape of this literal — and especially of this file's PATH —
- * with a matching change to already.events' `copy-already-cal.js` in the same
+ * with a matching change to the downstream consumer's `copy-already-cal.js` in the same
  * window. (`--skip-parity-check` is the documented escape hatch there.)
  *
  * The rows deliberately cover three DIFFERENT abbreviation SHAPES, because

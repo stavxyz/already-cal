@@ -607,7 +607,7 @@ Three GitHub Actions workflows run automatically:
 - CSS custom properties for theming
 - `Intl.DateTimeFormat` for locale-aware formatting
 
-Build outputs: `dist/already-cal.js` (+ sourcemap), `dist/already-cal.min.js`, `dist/already-cal.css`, `dist/already-cal.min.css`. The default config object is available as `Already.DEFAULTS` for extending (e.g., `Already.DEFAULTS.knownPlatforms`).
+Build outputs: `dist/already-cal.js` (+ sourcemap), `dist/already-cal.min.js`, `dist/already-cal.css`, `dist/already-cal.min.css`, and `dist/already-cal-core.mjs` (the DOM-free server-side entry; see [Core (server-side entry)](docs/core.md)). The default config object is available as `Already.DEFAULTS` for extending (e.g., `Already.DEFAULTS.knownPlatforms`).
 
 ## License
 

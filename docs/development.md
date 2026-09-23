@@ -18,6 +18,8 @@ npm install
 ```
 src/
 ├── already-cal.js          # Main entry point — init(), setConfig(), registerLayout(), registerTheme(), DEFAULTS, THEMES
+├── core.js                 # DOM-free server-side entry: enrichGoogleEvent, plainTextDescription, CONTENT_DEFAULTS
+├── content-defaults.js     # CONTENT_DEFAULTS shared by the widget and the core entry
 ├── data.js                 # Data loading, format detection, event enrichment
 ├── registry.js             # Generic, type-agnostic registry (layouts, theme bundles)
 ├── router.js               # Hash-based routing, localStorage view persistence
@@ -82,6 +84,7 @@ The build script (`build.cjs`) uses [esbuild](https://esbuild.github.io/) to pro
 | `dist/already-cal.min.js` | `src/already-cal.js` | IIFE (`Already` global) | Minified, no sourcemap |
 | `dist/already-cal.css` | `src/styles/index.css` | CSS bundle | All styles + palettes |
 | `dist/already-cal.min.css` | `src/styles/index.css` | CSS bundle | Minified |
+| `dist/already-cal-core.mjs` | `src/core.js` | ESM, `platform: "neutral"` | DOM-free server-side entry; see [Core (server-side entry)](core.md) |
 
 Commands:
 

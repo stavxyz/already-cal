@@ -37,6 +37,53 @@ var Already = (() => {
   function decodeAmp(text) {
     return text.replace(/&amp;/g, "&");
   }
+  var NAMED_ENTITIES = Object.assign(/* @__PURE__ */ Object.create(null), {
+    amp: "&",
+    AMP: "&",
+    lt: "<",
+    LT: "<",
+    gt: ">",
+    GT: ">",
+    quot: '"',
+    QUOT: '"',
+    apos: "'",
+    nbsp: "\xA0",
+    rsquo: "\u2019",
+    lsquo: "\u2018",
+    rdquo: "\u201D",
+    ldquo: "\u201C",
+    mdash: "\u2014",
+    ndash: "\u2013",
+    hellip: "\u2026",
+    eacute: "\xE9",
+    Eacute: "\xC9",
+    egrave: "\xE8",
+    Egrave: "\xC8",
+    aacute: "\xE1",
+    Aacute: "\xC1",
+    iacute: "\xED",
+    Iacute: "\xCD",
+    oacute: "\xF3",
+    Oacute: "\xD3",
+    uacute: "\xFA",
+    Uacute: "\xDA",
+    ntilde: "\xF1",
+    Ntilde: "\xD1",
+    uuml: "\xFC",
+    Uuml: "\xDC",
+    ouml: "\xF6",
+    Ouml: "\xD6",
+    auml: "\xE4",
+    Auml: "\xC4",
+    ccedil: "\xE7",
+    Ccedil: "\xC7",
+    copy: "\xA9",
+    COPY: "\xA9",
+    reg: "\xAE",
+    REG: "\xAE",
+    trade: "\u2122",
+    deg: "\xB0"
+  });
 
   // src/util/sanitize.js
   var ESC_MAP = {

@@ -2,7 +2,7 @@
 function decodeAmp(text) {
   return text.replace(/&amp;/g, "&");
 }
-var NAMED_ENTITIES = {
+var NAMED_ENTITIES = Object.assign(/* @__PURE__ */ Object.create(null), {
   amp: "&",
   AMP: "&",
   lt: "<",
@@ -48,7 +48,7 @@ var NAMED_ENTITIES = {
   REG: "\xAE",
   trade: "\u2122",
   deg: "\xB0"
-};
+});
 var ENTITY_RE = /&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi;
 var WIN1252_C1_REPLACEMENTS = /* @__PURE__ */ new Map([
   [128, 8364],
@@ -85,10 +85,7 @@ function decodeHtmlEntities(text) {
     if (body[0] === "#") {
       const isHex = body[1]?.toLowerCase() === "x";
       const codePoint = isHex ? Number.parseInt(body.slice(2), 16) : Number.parseInt(body.slice(1), 10);
-      if (!Number.isInteger(codePoint) || codePoint > 1114111) {
-        return match;
-      }
-      if (codePoint === 0 || codePoint >= 55296 && codePoint <= 57343) {
+      if (!Number.isInteger(codePoint) || codePoint === 0 || codePoint > 1114111 || codePoint >= 55296 && codePoint <= 57343) {
         return "\uFFFD";
       }
       return String.fromCodePoint(
@@ -2888,11 +2885,35 @@ function deepFreezeRecord(obj) {
   }
   return Object.freeze(obj);
 }
-var SCRIPT_STYLE_RE = /<(script|style)\b[^<>]*>[\s\S]*?<\/\1\s*>/gi;
+var SCRIPT_STYLE_OPEN_RE = /<(script|style)\b[^<>]*>/gi;
+function stripScriptStyle(html2) {
+  const lower = html2.toLowerCase();
+  let out = "";
+  let cursor = 0;
+  SCRIPT_STYLE_OPEN_RE.lastIndex = 0;
+  let match = SCRIPT_STYLE_OPEN_RE.exec(html2);
+  while (match !== null) {
+    const name = match[1].toLowerCase();
+    const openEnd = SCRIPT_STYLE_OPEN_RE.lastIndex;
+    const closerIdx = lower.indexOf(`</${name}`, openEnd);
+    if (closerIdx === -1) {
+      out += html2.slice(cursor, match.index);
+      cursor = html2.length;
+      break;
+    }
+    const closeTagEnd = html2.indexOf(">", closerIdx);
+    const afterClose = closeTagEnd === -1 ? html2.length : closeTagEnd + 1;
+    out += html2.slice(cursor, match.index);
+    cursor = afterClose;
+    SCRIPT_STYLE_OPEN_RE.lastIndex = cursor;
+    match = SCRIPT_STYLE_OPEN_RE.exec(html2);
+  }
+  return out + html2.slice(cursor);
+}
 var BLOCK_TAG_RE = /<\/?(?:br|p|div|li|ul|ol|tr|td|h[1-6]|blockquote|hr)\b[^<>]*>/gi;
 var TAG_RE = /<[^<>]*>/g;
 function stripHtml(html2) {
-  return html2.replace(SCRIPT_STYLE_RE, "").replace(BLOCK_TAG_RE, " ").replace(TAG_RE, "");
+  return stripScriptStyle(html2).replace(BLOCK_TAG_RE, " ").replace(TAG_RE, "");
 }
 function plainTextDescription(event) {
   const text = typeof event?.description === "string" ? event.description : "";

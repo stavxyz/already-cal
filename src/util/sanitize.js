@@ -106,8 +106,9 @@ export function cleanupHtml(str) {
       .replace(/(<br\s*\/?>[\s]*){2,}/gi, "<br><br>")
       // Remove <br> at the very start or end
       .replace(/^(\s*<br\s*\/?>[\s]*)+/gi, "")
-      // Trailing <br> run. `\s*(?:<br...>\s*)+` accepts the same strings as
-      // the simpler `(\s*<br...>\s*)+`, which is quadratic in two ways.
+      // This removes a trailing <br> run. `\s*(?:<br...>\s*)+` accepts the
+      // same strings as the simpler `(\s*<br...>\s*)+`, which is quadratic
+      // in two ways.
       // Every position inside a long whitespace run is a new start whose
       // `\s*` scans to the end of the run and fails; `(?<!\s)` rules those
       // starts out, and it never rules out the real match, because a

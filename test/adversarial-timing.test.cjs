@@ -56,6 +56,12 @@ const INPUTS = {
   "distinct PDF URLs": (n) => sequenceTo((i) => `https://a.co/${i}.pdf `, n),
   "distinct image URLs": (n) => sequenceTo((i) => `https://a.co/${i}.png `, n),
   "distinct directives": (n) => sequenceTo((i) => `#already:tag:t${i}\n`, n),
+  // With no space or newline to cut at, marked gets the whole parse limit of
+  // "[](", the slowest input found for it, so raising the limit shows here.
+  "Markdown with unclosed empty links and no spaces": (n) =>
+    `**x**${repeatTo("[](", n - 5)}`,
+  "Markdown with unclosed empty image links and no spaces": (n) =>
+    `**x**${repeatTo("![](", n - 5)}`,
 };
 
 function time(enrichGoogleEvent, plainTextDescription, description) {

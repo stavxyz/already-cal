@@ -283,7 +283,7 @@ function extractImageTokens(description, config) {
   const pattern = buildImagePattern(extensions);
   const seen = /* @__PURE__ */ new Set();
   const tokens = [];
-  const found = [];
+  const toStrip = [];
   let match;
   for (const run of description.matchAll(URL_PATTERN)) {
     match = pattern.exec(run[0]);
@@ -302,7 +302,7 @@ function extractImageTokens(description, config) {
         metadata: {}
       });
     }
-    found.push({ index: run.index, text: originalUrl });
+    toStrip.push({ index: run.index, text: originalUrl });
   }
   DRIVE_URL_PATTERN.lastIndex = 0;
   match = DRIVE_URL_PATTERN.exec(description);
@@ -321,7 +321,7 @@ function extractImageTokens(description, config) {
         metadata: {}
       });
     }
-    found.push({ index: match.index, text: originalUrl });
+    toStrip.push({ index: match.index, text: originalUrl });
     match = DRIVE_URL_PATTERN.exec(description);
   }
   DROPBOX_URL_PATTERN.lastIndex = 0;
@@ -329,7 +329,7 @@ function extractImageTokens(description, config) {
   while (match !== null) {
     const originalUrl = match[0];
     const ext = getPathExtension(originalUrl);
-    found.push({ index: match.index, text: originalUrl });
+    toStrip.push({ index: match.index, text: originalUrl });
     match = DROPBOX_URL_PATTERN.exec(description);
     if (ext && NON_IMAGE_EXTENSIONS.has(ext)) continue;
     const normalized = normalizeImageUrl(originalUrl);
@@ -346,7 +346,7 @@ function extractImageTokens(description, config) {
       });
     }
   }
-  const cleaned = cleanupHtml(stripMatches(description, found));
+  const cleaned = cleanupHtml(stripMatches(description, toStrip));
   return { tokens, description: cleaned };
 }
 
@@ -2941,19 +2941,23 @@ var TAG_RE = /<[^<>]*>/g;
 function stripHtml(html2) {
   return stripScriptStyle(html2).replace(BLOCK_TAG_RE, " ").replace(TAG_RE, "");
 }
-var MARKDOWN_PARSE_LIMIT = 1e3;
+var MARKDOWN_PARSE_LIMIT = 500;
 function markdownToHtmlBounded(text) {
   if (text.length <= MARKDOWN_PARSE_LIMIT) return marked.parse(text);
   const head = text.slice(0, MARKDOWN_PARSE_LIMIT);
-  let cut = head.lastIndexOf("\n");
-  if (cut <= 0) cut = head.lastIndexOf(" ");
+  const newline2 = head.lastIndexOf("\n");
+  let cut = newline2 >= MARKDOWN_PARSE_LIMIT / 2 ? newline2 : Math.max(newline2, head.lastIndexOf(" "));
   if (cut <= 0) {
     cut = MARKDOWN_PARSE_LIMIT;
     const code = text.charCodeAt(cut - 1);
     if (code >= 55296 && code <= 56319) cut -= 1;
   }
   return `${marked.parse(text.slice(0, cut))}
-${text.slice(cut)}`;
+${escapeNonTagLt(text.slice(cut))}`;
+}
+var NON_TAG_LT_RE = /<(?![a-z/!?])/gi;
+function escapeNonTagLt(text) {
+  return text.replace(NON_TAG_LT_RE, "&lt;");
 }
 function plainTextDescription(event) {
   const text = typeof event?.description === "string" ? event.description : "";

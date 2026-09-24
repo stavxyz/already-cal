@@ -282,7 +282,7 @@ var Already = (() => {
     const pattern = buildImagePattern(extensions);
     const seen = /* @__PURE__ */ new Set();
     const tokens = [];
-    const found = [];
+    const toStrip = [];
     let match;
     for (const run of description.matchAll(URL_PATTERN)) {
       match = pattern.exec(run[0]);
@@ -301,7 +301,7 @@ var Already = (() => {
           metadata: {}
         });
       }
-      found.push({ index: run.index, text: originalUrl });
+      toStrip.push({ index: run.index, text: originalUrl });
     }
     DRIVE_URL_PATTERN.lastIndex = 0;
     match = DRIVE_URL_PATTERN.exec(description);
@@ -320,7 +320,7 @@ var Already = (() => {
           metadata: {}
         });
       }
-      found.push({ index: match.index, text: originalUrl });
+      toStrip.push({ index: match.index, text: originalUrl });
       match = DRIVE_URL_PATTERN.exec(description);
     }
     DROPBOX_URL_PATTERN.lastIndex = 0;
@@ -328,7 +328,7 @@ var Already = (() => {
     while (match !== null) {
       const originalUrl = match[0];
       const ext = getPathExtension(originalUrl);
-      found.push({ index: match.index, text: originalUrl });
+      toStrip.push({ index: match.index, text: originalUrl });
       match = DROPBOX_URL_PATTERN.exec(description);
       if (ext && NON_IMAGE_EXTENSIONS.has(ext)) continue;
       const normalized = normalizeImageUrl(originalUrl);
@@ -345,7 +345,7 @@ var Already = (() => {
         });
       }
     }
-    const cleaned = cleanupHtml(stripMatches(description, found));
+    const cleaned = cleanupHtml(stripMatches(description, toStrip));
     return { tokens, description: cleaned };
   }
 
@@ -4437,7 +4437,7 @@ ${text}</tr>
     } catch {
       result = base.split(/[?#]/)[0];
     }
-    return result.replace(/\/+$/, "").replace(EVENT_PATH_RE, "");
+    return trimTrailingSlashes(result).replace(EVENT_PATH_RE, "");
   }
 
   // src/util/share.js

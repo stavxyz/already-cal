@@ -119,15 +119,16 @@ export const DEFAULT_RAW_TEXT_ELEMENTS = Object.freeze([
 const RAW_TEXT_ELEMENTS_SET = new Set(DEFAULT_RAW_TEXT_ELEMENTS);
 
 const HTML_TAG_RE = /<\/?[a-z][a-z0-9]*[\s>]/i;
-// The link branch detects `[text](url)`. It used to be `\[.+?\]\(.+?\)`,
-// which is super-linear: on a string like "[a](" repeated, every `[` starts
-// a lazy scan to the end of the line looking for a `)` that never comes, so
-// detection took seconds at a few thousand characters. Excluding `[` from
-// both the text and the url classes stops each attempt at the next `[`,
-// where the next attempt starts, so no character is scanned by more than one
-// attempt and the test is linear. The length bounds are generous limits for
-// real links. Cost: link text containing nested brackets (`[a [b] c](url)`)
-// or a url containing `[` is no longer detected by this branch alone.
+// The link branch detects `[text](url)`. Neither class may accept `[`. The
+// simpler `\[.+?\]\(.+?\)` is super-linear: on a string like "[a](" repeated,
+// every `[` starts a lazy scan to the end of the line looking for a `)` that
+// never comes, which takes seconds at a few thousand characters. Excluding
+// `[` from both the text and the url classes stops each attempt at the next
+// `[`, where the next attempt starts, so no character is scanned by more
+// than one attempt and the test is linear. The length bounds are generous
+// limits for real links. Cost: link text containing nested brackets
+// (`[a [b] c](url)`) or a url containing `[` is not detected by this branch
+// alone.
 const MARKDOWN_RE =
   /(?:^|\n)#{1,6}\s|(?:^|\n)[-*]\s|\*\*|__|\[[^[\]\n]{1,500}\]\([^[)\n]{1,2000}\)/;
 // Extracts the URL scheme (everything before the first colon), case-insensitive.

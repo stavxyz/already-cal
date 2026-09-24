@@ -22,15 +22,14 @@ export function escapeHtml(str) {
  * `{ index, text }` records of substrings found in this same `text`.
  *
  * All removals are collected as spans and applied in one pass, so the cost
- * is linear in the length of `text`. Removing each URL with its own
- * search-and-replace over the whole string cost one full scan per distinct
- * URL, which is quadratic on a description of thousands of distinct URLs,
- * and building a RegExp from each URL threw "Regular expression too large"
- * on a long enough one.
+ * is linear in the length of `text`. A search-and-replace over the whole
+ * string for each URL costs one full scan per distinct URL, which is
+ * quadratic on a description of thousands of distinct URLs, and a RegExp
+ * built from a long enough URL throws "Regular expression too large".
  *
  * Because it removes the matched positions rather than every copy of each
- * string, a URL that also appears inside a longer, different URL no longer
- * cuts a hole in that longer URL.
+ * string, a URL that also appears inside a longer, different URL does not
+ * cut a hole in that longer URL.
  */
 export function stripMatches(text, matches) {
   if (matches.length === 0) return text;
@@ -100,16 +99,16 @@ export function cleanupHtml(str) {
       .replace(/(<br\s*\/?>[\s]*){2,}/gi, "<br><br>")
       // Remove <br> at the very start or end
       .replace(/^(\s*<br\s*\/?>[\s]*)+/gi, "")
-      // Trailing <br> run. Written as `\s*(?:<br...>\s*)+`, the same language
-      // as the older `(\s*<br...>\s*)+`, so the output is unchanged. The
-      // older form was quadratic in two ways. Every position inside a long
-      // whitespace run was a new start whose `\s*` scanned to the end of
-      // the run and failed; `(?<!\s)` rules those starts out, and it never
-      // rules out the real match, because a match's leftmost start can't
-      // follow whitespace (the leading `\s*` would have absorbed it). And on
-      // "<br>" + spaces + "x", each backtrack step in the whitespace after a
-      // <br> let the next repetition's own `\s*` rescan the rest of it; with
-      // the whitespace only after the tag, each step checks for `<br` once.
+      // Trailing <br> run. `\s*(?:<br...>\s*)+` accepts the same strings as
+      // the simpler `(\s*<br...>\s*)+`, which is quadratic in two ways.
+      // Every position inside a long whitespace run is a new start whose
+      // `\s*` scans to the end of the run and fails; `(?<!\s)` rules those
+      // starts out, and it never rules out the real match, because a
+      // match's leftmost start can't follow whitespace (the leading `\s*`
+      // would have absorbed it). And on "<br>" + spaces + "x", each backtrack
+      // step in the whitespace after a <br> lets the next repetition's own
+      // `\s*` rescan the rest of it; with the whitespace only after the tag,
+      // each step checks for `<br` once.
       .replace(/(?<!\s)\s*(?:<br\s*\/?>\s*)+$/gi, "")
       // Collapse 3+ newlines into 2
       .replace(/\n{3,}/g, "\n\n")

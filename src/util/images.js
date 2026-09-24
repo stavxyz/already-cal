@@ -99,13 +99,13 @@ export function normalizeImageUrl(url) {
   return url;
 }
 
-// Matches an image URL at the START of a URL run (see extractImageTokens).
-// Anchored on purpose: the unanchored global form of this pattern was
-// quadratic. On a run with no image extension, such as "http://" repeated,
-// the engine tried every "http" inside the run as a new start, and each try
-// scanned to the end of the run and backtracked all the way. Applying the
-// anchored pattern once per run gives the same matches (a later start inside
-// a run can only match if the run's first start does, and the first start's
+// Matches an image URL at the start of a URL run (see extractImageTokens).
+// It must stay anchored and run once per URL run. The unanchored global form
+// is quadratic: on a run with no image extension, such as "http://"
+// repeated, every "http" inside the run is a new start, and each try scans
+// to the end of the run and backtracks all the way. Applying the anchored
+// pattern once per run gives the same matches (a later start inside a run
+// can only match if the run's first start does, and the first start's
 // greedy match already ends at the run's last image extension, leaving
 // nothing for a second match in the same run) in linear time.
 function buildImagePattern(extensions) {

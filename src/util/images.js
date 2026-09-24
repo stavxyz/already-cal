@@ -1,5 +1,5 @@
 import { decodeAmp } from "./html-entities.js";
-import { cleanupHtml, stripUrl, URL_PATTERN } from "./sanitize.js";
+import { cleanupHtml, stripUrls, URL_PATTERN } from "./sanitize.js";
 import { normalizeUrl } from "./tokens.js";
 
 /** Frozen so consumers can't mutate the shared default at runtime. */
@@ -217,11 +217,7 @@ export function extractImageTokens(description, config) {
     }
   }
 
-  let cleaned = description;
-  for (const url of originalUrls) {
-    cleaned = stripUrl(cleaned, url);
-  }
-  cleaned = cleanupHtml(cleaned);
+  const cleaned = cleanupHtml(stripUrls(description, originalUrls));
   return { tokens, description: cleaned };
 }
 

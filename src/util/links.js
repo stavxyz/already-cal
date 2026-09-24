@@ -1,5 +1,5 @@
 import { decodeAmp } from "./html-entities.js";
-import { cleanupHtml, stripUrl, URL_PATTERN } from "./sanitize.js";
+import { cleanupHtml, stripUrls, URL_PATTERN } from "./sanitize.js";
 import { normalizeUrl } from "./tokens.js";
 
 // Two-segment path prefixes that represent profile-like destinations,
@@ -269,7 +269,7 @@ export function extractLinkTokens(description, config) {
   description = decodeAmp(description);
   const platforms = config?.knownPlatforms || DEFAULT_PLATFORMS;
   const tokens = [];
-  let cleaned = description;
+  const toStrip = [];
   const seen = new Set();
 
   URL_PATTERN.lastIndex = 0;
@@ -282,7 +282,7 @@ export function extractLinkTokens(description, config) {
           ? platform.canonicalize(normalized)
           : null;
         if (canonicalId && seen.has(canonicalId)) {
-          cleaned = stripUrl(cleaned, url);
+          toStrip.push(url);
           break;
         }
         if (canonicalId) seen.add(canonicalId);
@@ -295,12 +295,12 @@ export function extractLinkTokens(description, config) {
           label,
           metadata: {},
         });
-        cleaned = stripUrl(cleaned, url);
+        toStrip.push(url);
         break;
       }
     }
   }
 
-  cleaned = cleanupHtml(cleaned);
+  const cleaned = cleanupHtml(stripUrls(description, toStrip));
   return { tokens, description: cleaned };
 }

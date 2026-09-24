@@ -28,6 +28,17 @@ export function stripUrl(html, url) {
   return stripWrappingAnchors(html, url).split(url).join("");
 }
 
+/**
+ * Apply `stripUrl` for each URL in order, skipping repeats. `stripUrl`
+ * already removes every occurrence, so a repeat would only rescan the whole
+ * string, which made a description holding thousands of copies of one URL
+ * or directive quadratic to clean.
+ */
+export function stripUrls(html, urls) {
+  for (const url of new Set(urls)) html = stripUrl(html, url);
+  return html;
+}
+
 const ANCHOR_OPEN_RE = /<a/gi;
 
 /**

@@ -469,6 +469,41 @@ function stripHtml(html) {
 }
 
 /**
+ * Most characters of a Markdown description that `plainTextDescription`
+ * hands to `marked.parse`. marked (v15) is super-linear on some inputs, so
+ * this caps the cost on descriptions an attacker controls. Unclosed link
+ * syntax such as "[a](" or "![a](" repeated is the worst case, roughly cubic:
+ * 14 ms at 1,000 characters, 122 ms at 2,000, 1 s at 4,000, and 12.7 s at
+ * 8,000 (marked 15.0.12 on Node 26, on one development machine); "__a"
+ * repeated is quadratic, 4 s at 64,000. 1,000 keeps the worst case in the tens of
+ * milliseconds and is still several times the length of the link-preview
+ * text this function exists for.
+ */
+const MARKDOWN_PARSE_LIMIT = 1000;
+
+/**
+ * `marked.parse(text)` for at most the first MARKDOWN_PARSE_LIMIT characters.
+ * A longer description is cut at the last newline (or else the last space)
+ * before the limit, so a line or word is not split in two, and the rest is
+ * appended as-is. The caller strips tags and decodes entities from the whole
+ * result, so that rest still comes out as readable text; only its Markdown
+ * syntax (such as `**` or `[text](url)`) is left in place.
+ */
+function markdownToHtmlBounded(text) {
+  if (text.length <= MARKDOWN_PARSE_LIMIT) return marked.parse(text);
+  const head = text.slice(0, MARKDOWN_PARSE_LIMIT);
+  let cut = head.lastIndexOf("\n");
+  if (cut <= 0) cut = head.lastIndexOf(" ");
+  if (cut <= 0) {
+    cut = MARKDOWN_PARSE_LIMIT;
+    // Don't split a UTF-16 surrogate pair (an emoji, say) in two.
+    const code = text.charCodeAt(cut - 1);
+    if (code >= 0xd800 && code <= 0xdbff) cut -= 1;
+  }
+  return `${marked.parse(text.slice(0, cut))}\n${text.slice(cut)}`;
+}
+
+/**
  * Plain text of an enriched event's description, for places that cannot show
  * markup, such as link-preview text. Public core API (see src/core.js). The
  * output is unescaped plain text: decoded entities can leave literal `<` or
@@ -482,7 +517,7 @@ export function plainTextDescription(event) {
   const text = typeof event?.description === "string" ? event.description : "";
   if (!text) return "";
   const format = event.descriptionFormat ?? detectFormat(text);
-  const html = format === "markdown" ? marked.parse(text) : text;
+  const html = format === "markdown" ? markdownToHtmlBounded(text) : text;
   const stripped = format === "plain" ? html : stripHtml(html);
   return decodeHtmlEntities(stripped).replace(/\s+/g, " ").trim();
 }

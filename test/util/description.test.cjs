@@ -638,6 +638,35 @@ describe("plainTextDescription", () => {
   }
 });
 
+describe("plainTextDescription Markdown parse limit", () => {
+  let plainTextDescription;
+  before(async () => {
+    ({ plainTextDescription } = await import("../../src/util/description.js"));
+  });
+
+  it("parses the first 1,000 characters as Markdown and keeps the rest as text", () => {
+    const filler = "word ".repeat(300).trim();
+    const description = `**Bold** intro\n${filler}\nTail **end** [x](https://a.co)`;
+    const out = plainTextDescription({
+      description,
+      descriptionFormat: "markdown",
+    });
+    assert.ok(out.startsWith("Bold intro word"), out.slice(0, 40));
+    assert.ok(out.endsWith("Tail **end** [x](https://a.co)"), out.slice(-40));
+    assert.strictEqual(out.split("word").length - 1, 300);
+  });
+
+  it("does not split an emoji when the first 1,000 characters have no space", () => {
+    const description = `**${"a".repeat(997)}😀b`;
+    const out = plainTextDescription({
+      description,
+      descriptionFormat: "markdown",
+    });
+    // A split pair would come out as "\uD83D \uDE00b", with a space between.
+    assert.ok(out.endsWith(" 😀b"), JSON.stringify(out.slice(-6)));
+  });
+});
+
 describe("detectFormat Markdown link detection", () => {
   let detectFormat;
   before(async () => {

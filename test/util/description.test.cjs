@@ -646,14 +646,26 @@ describe("plainTextDescription Markdown parse limit", () => {
 
   it("parses the first 1,000 characters as Markdown and keeps the rest as text", () => {
     const filler = "word ".repeat(300).trim();
-    const description = `**Bold** intro\n${filler}\nTail **end** [x](https://a.co)`;
+    const description = `**Bold** intro\n**Mid** ${filler}\nTail **end** [x](https://a.co)`;
     const out = plainTextDescription({
       description,
       descriptionFormat: "markdown",
     });
-    assert.ok(out.startsWith("Bold intro word"), out.slice(0, 40));
+    assert.ok(out.startsWith("Bold intro Mid word"), out.slice(0, 40));
     assert.ok(out.endsWith("Tail **end** [x](https://a.co)"), out.slice(-40));
     assert.strictEqual(out.split("word").length - 1, 300);
+  });
+
+  it("parses a long Markdown paragraph that follows a short first line", () => {
+    const paragraph = "**w** [l](https://a.co) ".repeat(60).trim();
+    const out = plainTextDescription({
+      description: `Intro\n${paragraph}`,
+      descriptionFormat: "markdown",
+    });
+    const parsed = out.slice(0, 60);
+    assert.ok(out.startsWith("Intro w l w l"), out.slice(0, 40));
+    assert.ok(!parsed.includes("**"), parsed);
+    assert.ok(!parsed.includes("https://a.co"), parsed);
   });
 
   it("does not split an emoji when the first 1,000 characters have no space", () => {

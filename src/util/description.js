@@ -483,17 +483,23 @@ const MARKDOWN_PARSE_LIMIT = 1000;
 
 /**
  * `marked.parse(text)` for at most the first MARKDOWN_PARSE_LIMIT characters.
- * A longer description is cut at the last newline (or else the last space)
- * before the limit, so a line or word is not split in two, and the rest is
- * appended as-is. The caller strips tags and decodes entities from the whole
- * result, so that rest still comes out as readable text; only its Markdown
- * syntax (such as `**` or `[text](url)`) is left in place.
+ * A longer description is cut at the last newline before the limit if that
+ * newline is in the second half of the limit, or else at the last newline or
+ * space, whichever is later, so a line or word is not split in two. A newline
+ * in the first half is passed over because cutting there would leave most
+ * of the parse budget unused. The rest is appended as-is. The caller strips
+ * tags and decodes entities from the whole result, so that rest still comes
+ * out as readable text; only its Markdown syntax (such as `**` or
+ * `[text](url)`) is left in place.
  */
 function markdownToHtmlBounded(text) {
   if (text.length <= MARKDOWN_PARSE_LIMIT) return marked.parse(text);
   const head = text.slice(0, MARKDOWN_PARSE_LIMIT);
-  let cut = head.lastIndexOf("\n");
-  if (cut <= 0) cut = head.lastIndexOf(" ");
+  const newline = head.lastIndexOf("\n");
+  let cut =
+    newline >= MARKDOWN_PARSE_LIMIT / 2
+      ? newline
+      : Math.max(newline, head.lastIndexOf(" "));
   if (cut <= 0) {
     cut = MARKDOWN_PARSE_LIMIT;
     // Don't split a UTF-16 surrogate pair (an emoji, say) in two.

@@ -275,5 +275,5 @@ Key import relationships (simplified):
 - **`views/helpers.js`** imports: `router.js`, `util/dates.js`; exports `decorateCard`, `bindEventClick`, `createElement`, etc.
 - **`views/grid.js`** and **`views/list.js`** import: `layouts/helpers.js` (safeRenderCard), `layouts/registry.js`, `views/helpers.js` (decorateCard)
 - **`views/detail.js`** imports: `views/lightbox.js`
-- **`util/directives.js`** imports: `util/images.js` (for `normalizeImageUrl`, `imageCanonicalId`), `util/sanitize.js` (for `cleanupHtml`, `stripUrl`)
+- **`util/directives.js`** imports: `util/images.js` (for `normalizeImageUrl`, `imageCanonicalId`), `util/sanitize.js` (for `cleanupHtml`, `stripMatches`)
 - **`ui/*` modules** are leaf nodes — they don't import from each other

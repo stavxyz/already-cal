@@ -1,6 +1,6 @@
 import { decodeAmp } from "./html-entities.js";
 import { cleanupHtml, stripUrls, URL_PATTERN } from "./sanitize.js";
-import { normalizeUrl } from "./tokens.js";
+import { normalizeUrl, trimTrailingSlashes } from "./tokens.js";
 
 // Two-segment path prefixes that represent profile-like destinations,
 // not individual content.  Keyed by the first segment.
@@ -17,7 +17,9 @@ const PROFILE_PREFIXES = new Set(["r", "u", "groups"]);
  */
 function pathSegments(url) {
   try {
-    return new URL(url).pathname.replace(/\/+$/, "").split("/").filter(Boolean);
+    return trimTrailingSlashes(new URL(url).pathname)
+      .split("/")
+      .filter(Boolean);
   } catch {
     return [];
   }
@@ -58,7 +60,9 @@ export const DEFAULT_PLATFORMS = [
       // Extract trailing numeric ID from slug like /e/some-title-12345
       const segs = pathSegments(url);
       const slug = segs[segs.length - 1] || "";
-      const m = slug.match(/(\d+)$/);
+      // `(?<!\d)` keeps this linear on a long digit run followed by a
+      // non-digit, like TRAILING_SLASHES_RE in tokens.js.
+      const m = slug.match(/(?<!\d)(\d+)$/);
       return `eventbrite:${m ? m[1] : slug}`;
     },
   },

@@ -4,6 +4,17 @@ const TRACKING_PARAMS = new Set([
 ]);
 const TRACKING_PREFIX = "utm_";
 
+// `(?<!\/)` lets a match start only at the first slash of a run. Plain
+// `\/+$` tried every slash in a run as a new start and scanned to the run's
+// end each time, which is quadratic on a path of many slashes followed by
+// anything else.
+const TRAILING_SLASHES_RE = /(?<!\/)\/+$/;
+
+/** Remove trailing `/` characters, in linear time. */
+export function trimTrailingSlashes(path) {
+  return path.replace(TRAILING_SLASHES_RE, "");
+}
+
 /** Normalize a URL: force HTTPS, strip www prefix, remove tracking parameters. */
 export function normalizeUrl(url) {
   try {
@@ -12,7 +23,7 @@ export function normalizeUrl(url) {
     u.hostname = u.hostname.replace(/^www\./, "");
 
     // Strip trailing slashes; treat bare root as empty path in output
-    const pathname = u.pathname.replace(/\/+$/, "");
+    const pathname = trimTrailingSlashes(u.pathname);
 
     const cleaned = new URLSearchParams();
     for (const [key, value] of u.searchParams) {

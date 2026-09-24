@@ -530,7 +530,9 @@ function escapeNonTagLt(text) {
  * decodes to `<3`), so a caller embedding the result in HTML or an HTML
  * attribute must escape it itself. The contract is readable plain text;
  * exact whitespace and entity output may change between minor versions.
- * Uses no DOM, so it runs in Workers.
+ * Only the first 500 characters of a Markdown description are parsed as
+ * Markdown, and the rest keeps its Markdown syntax (see
+ * MARKDOWN_PARSE_LIMIT and docs/core.md). Uses no DOM, so it runs in Workers.
  */
 export function plainTextDescription(event) {
   const text = typeof event?.description === "string" ? event.description : "";

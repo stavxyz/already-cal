@@ -1,4 +1,5 @@
 import { EVENT_PATH_RE } from "./event-path.js";
+import { trimTrailingSlashes } from "./tokens.js";
 
 /**
  * Build a shareable URL from a base URL and a share target.
@@ -43,5 +44,5 @@ function normalizeBase(base) {
   // is itself an event deep-link; without this, appending the event suffix in
   // buildShareUrl would double it (`…/event/<id>/event/<id>`), a path the
   // router can't resolve.
-  return result.replace(/\/+$/, "").replace(EVENT_PATH_RE, "");
+  return trimTrailingSlashes(result).replace(EVENT_PATH_RE, "");
 }

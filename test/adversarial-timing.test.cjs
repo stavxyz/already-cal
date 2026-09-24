@@ -4,7 +4,7 @@ const assert = require("node:assert");
 // Server-side consumers run enrichGoogleEvent and plainTextDescription on
 // event descriptions that anyone who can edit a calendar controls. Each input
 // below once made one of the regexes or marked.parse super-linear. Each test
-// times the input at 128,000 and at 512,000 characters, best of three runs
+// times the input at 128,000 and at 512,000 characters, best of five runs
 // taken alternately so a burst of machine load hits both lengths, and
 // requires the longer to take less than 8 times as long, plus a few
 // milliseconds for timer noise on inputs that finish in under a millisecond.
@@ -18,7 +18,7 @@ const LONG = 512000;
 const MAX_GROWTH = 8;
 const NOISE_MS = 10;
 const CEILING_MS = 1000;
-const RUNS = 3;
+const RUNS = 5;
 
 function repeatTo(unit, length) {
   return unit.repeat(Math.ceil(length / unit.length)).slice(0, length);

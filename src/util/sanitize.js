@@ -58,6 +58,13 @@ const ANCHOR_OPEN_RE = /<a/gi;
  * there to the next `<`. Openers that share that `>` share the result, so it
  * is computed once per `>` and the scan stays linear, even on a long run of
  * `<a` with no `>`.
+ *
+ * X must be one whole matched string. An anchor whose content is two
+ * adjacent matched strings is not matched here; the strings themselves are
+ * still removed, which leaves an empty `<a ...></a>` that renders nothing.
+ * Stripping one string at a time removes that anchor whole instead, because
+ * removing the first string leaves the second as its content. The empty
+ * anchor is accepted as the cost of the single linear pass.
  */
 function wrappingAnchorSpans(text, wanted) {
   const spans = [];

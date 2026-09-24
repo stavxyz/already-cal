@@ -144,7 +144,7 @@ export function extractImageTokens(description, config) {
   const pattern = buildImagePattern(extensions);
   const seen = new Set();
   const tokens = [];
-  const found = [];
+  const toStrip = [];
   let match;
 
   // Standard image URLs (by extension), whether bare, inside href="...", or
@@ -168,7 +168,7 @@ export function extractImageTokens(description, config) {
         metadata: {},
       });
     }
-    found.push({ index: run.index, text: originalUrl });
+    toStrip.push({ index: run.index, text: originalUrl });
   }
 
   // Google Drive image URLs
@@ -189,7 +189,7 @@ export function extractImageTokens(description, config) {
         metadata: {},
       });
     }
-    found.push({ index: match.index, text: originalUrl });
+    toStrip.push({ index: match.index, text: originalUrl });
     match = DRIVE_URL_PATTERN.exec(description);
   }
 
@@ -199,7 +199,7 @@ export function extractImageTokens(description, config) {
   while (match !== null) {
     const originalUrl = match[0];
     const ext = getPathExtension(originalUrl);
-    found.push({ index: match.index, text: originalUrl });
+    toStrip.push({ index: match.index, text: originalUrl });
     match = DROPBOX_URL_PATTERN.exec(description);
     if (ext && NON_IMAGE_EXTENSIONS.has(ext)) continue;
     const normalized = normalizeImageUrl(originalUrl);
@@ -217,7 +217,7 @@ export function extractImageTokens(description, config) {
     }
   }
 
-  const cleaned = cleanupHtml(stripMatches(description, found));
+  const cleaned = cleanupHtml(stripMatches(description, toStrip));
   return { tokens, description: cleaned };
 }
 

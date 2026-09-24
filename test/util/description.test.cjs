@@ -644,7 +644,7 @@ describe("plainTextDescription Markdown parse limit", () => {
     ({ plainTextDescription } = await import("../../src/util/description.js"));
   });
 
-  it("parses the first 1,000 characters as Markdown and keeps the rest as text", () => {
+  it("parses the first 500 characters as Markdown and keeps the rest as text", () => {
     const filler = "word ".repeat(300).trim();
     const description = `**Bold** intro\n**Mid** ${filler}\nTail **end** [x](https://a.co)`;
     const out = plainTextDescription({
@@ -678,8 +678,8 @@ describe("plainTextDescription Markdown parse limit", () => {
     assert.ok(!parsed.includes("https://a.co"), parsed);
   });
 
-  it("does not split an emoji when the first 1,000 characters have no space", () => {
-    const description = `**${"a".repeat(997)}😀b`;
+  it("does not split an emoji when the first 500 characters have no space", () => {
+    const description = `**${"a".repeat(497)}😀b`;
     const out = plainTextDescription({
       description,
       descriptionFormat: "markdown",

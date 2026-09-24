@@ -477,11 +477,12 @@ function stripHtml(html) {
  * five runs), about 0.5 s at 2,000, and 3 to 7 s at 4,000. "[a](" and
  * "![a](" repeated take about half as long. "__a" repeated is quadratic,
  * 4 s at 64,000. These are marked 15.0.12 on Node 26, on one shared
- * development machine. 1,000 keeps the worst case in the tens of
- * milliseconds and is still several times the length of the link-preview
- * text this function exists for.
+ * development machine. At 500 the same inputs take about 4 ms, and the cost
+ * is paid once per event, so a calendar of many hostile events multiplies
+ * it. 500 characters still parse into more than the 200 or so characters a
+ * link preview shows, unless most of them are link markup.
  */
-const MARKDOWN_PARSE_LIMIT = 1000;
+const MARKDOWN_PARSE_LIMIT = 500;
 
 /**
  * `marked.parse(text)` for at most the first MARKDOWN_PARSE_LIMIT characters.

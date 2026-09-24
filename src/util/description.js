@@ -480,8 +480,9 @@ function stripHtml(html) {
  * 4 s at 64,000. These are marked 15.0.12 on Node 26, on one shared
  * development machine. At 500 the same inputs take about 4 ms, and the cost
  * is paid once per event, so a calendar of many hostile events multiplies
- * it. 500 characters still parse into more than the 200 or so characters a
- * link preview shows, unless most of them are link markup.
+ * it. The 250 to 500 characters that are parsed still come out as more
+ * than the 200 or so characters a link preview shows, unless most of them
+ * are link markup.
  */
 const MARKDOWN_PARSE_LIMIT = 500;
 

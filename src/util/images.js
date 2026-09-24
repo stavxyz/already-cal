@@ -1,5 +1,5 @@
 import { decodeAmp } from "./html-entities.js";
-import { cleanupHtml, stripUrl } from "./sanitize.js";
+import { cleanupHtml, stripUrl, URL_PATTERN } from "./sanitize.js";
 import { normalizeUrl } from "./tokens.js";
 
 /** Frozen so consumers can't mutate the shared default at runtime. */
@@ -99,13 +99,18 @@ export function normalizeImageUrl(url) {
   return url;
 }
 
+// Matches an image URL at the START of a URL run (see extractImageTokens).
+// Anchored on purpose: the unanchored global form of this pattern was
+// quadratic. On a run with no image extension, such as "http://" repeated,
+// the engine tried every "http" inside the run as a new start, and each try
+// scanned to the end of the run and backtracked all the way. Applying the
+// anchored pattern once per run gives the same matches (a later start inside
+// a run can only match if the run's first start does, and the first start's
+// greedy match already ends at the run's last image extension, leaving
+// nothing for a second match in the same run) in linear time.
 function buildImagePattern(extensions) {
   const ext = extensions.join("|");
-  // Match image URLs whether bare, inside href="...", or inside >...</a> tags
-  return new RegExp(
-    `(https?://[^\\s<>"]+\\.(?:${ext})(?:\\?[^\\s<>"]*)?)`,
-    "gi",
-  );
+  return new RegExp(`^https?://[^\\s<>"]+\\.(?:${ext})(?:\\?[^\\s<>"]*)?`, "i");
 }
 
 export { getPathExtension, imageCanonicalId, NON_IMAGE_EXTENSIONS };
@@ -142,10 +147,14 @@ export function extractImageTokens(description, config) {
   const originalUrls = [];
   let match;
 
-  // Standard image URLs (by extension)
-  match = pattern.exec(description);
-  while (match !== null) {
-    const originalUrl = match[1];
+  // Standard image URLs (by extension), whether bare, inside href="...", or
+  // inside >...</a>. URL_PATTERN yields each run from its first "http(s)://"
+  // to the next whitespace, `<`, `>`, or `"`, without overlap, so this scan
+  // is linear; the anchored image pattern then checks each run once.
+  for (const run of description.matchAll(URL_PATTERN)) {
+    match = pattern.exec(run[0]);
+    if (match === null) continue;
+    const originalUrl = match[0];
     const normalized = normalizeImageUrl(originalUrl);
     const cid = imageCanonicalId(originalUrl);
     if (normalized && !seen.has(cid)) {
@@ -160,7 +169,6 @@ export function extractImageTokens(description, config) {
       });
     }
     originalUrls.push(originalUrl);
-    match = pattern.exec(description);
   }
 
   // Google Drive image URLs

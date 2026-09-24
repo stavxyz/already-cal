@@ -489,9 +489,10 @@ const MARKDOWN_PARSE_LIMIT = 500;
  * `marked.parse(text)` for at most the first MARKDOWN_PARSE_LIMIT characters.
  * A longer description is cut at the last newline before the limit if that
  * newline is in the second half of the limit, or else at the last newline or
- * space, whichever is later, so a line or word is not split in two. A newline
- * in the first half is passed over because cutting there would leave most
- * of the parse budget unused. The rest is appended unparsed, with only a `<`
+ * space, whichever is later, if that is in the second half, so a line or word
+ * is not split in two. If there is neither, it cuts at the limit, never
+ * inside a surrogate pair. A cut in the first half is never used because it
+ * would leave most of the parse budget unused. The rest is appended unparsed, with only a `<`
  * that cannot start a tag escaped. The caller strips tags and decodes
  * entities from the whole result, so that rest still comes out as readable
  * text; only its Markdown syntax (such as `**` or `[text](url)`) is left in
@@ -505,7 +506,7 @@ function markdownToHtmlBounded(text) {
     newline >= MARKDOWN_PARSE_LIMIT / 2
       ? newline
       : Math.max(newline, head.lastIndexOf(" "));
-  if (cut <= 0) {
+  if (cut < MARKDOWN_PARSE_LIMIT / 2) {
     cut = MARKDOWN_PARSE_LIMIT;
     // Don't split a UTF-16 surrogate pair (an emoji, say) in two.
     const code = text.charCodeAt(cut - 1);

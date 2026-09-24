@@ -678,6 +678,14 @@ describe("plainTextDescription Markdown parse limit", () => {
     assert.ok(!parsed.includes("https://a.co"), parsed);
   });
 
+  it("cuts at the limit when the only space is early in a long description", () => {
+    const out = plainTextDescription({
+      description: `Hi **x**${"w".repeat(600)}`,
+      descriptionFormat: "markdown",
+    });
+    assert.ok(out.startsWith("Hi xwww"), out.slice(0, 20));
+  });
+
   it("does not split an emoji when the first 500 characters have no space", () => {
     const description = `**${"a".repeat(497)}😀b`;
     const out = plainTextDescription({

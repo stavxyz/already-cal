@@ -80,7 +80,7 @@ describe("adversarial descriptions", () => {
   let plainTextDescription;
   before(async () => {
     ({ enrichGoogleEvent, plainTextDescription } = await import(
-      "../src/core.js"
+      "../../src/core.js"
     ));
     // Warm up so one-time JIT and regex compilation isn't timed below.
     for (const make of Object.values(INPUTS)) {

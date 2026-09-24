@@ -11,6 +11,7 @@
     "format": "biome check --write .",
     "lint": "biome ci .",
     "test": "node --test test/*.test.cjs test/util/*.test.cjs test/views/*.test.cjs test/ui/*.test.cjs test/layouts/*.test.cjs test/themes/*.test.cjs",
+    "test:perf": "node --test --test-concurrency=1 test/perf/adversarial-timing.test.cjs",
     "test:coverage": "c8 node --test test/*.test.cjs test/util/*.test.cjs test/views/*.test.cjs test/ui/*.test.cjs test/layouts/*.test.cjs test/themes/*.test.cjs"
   },
   "repository": {

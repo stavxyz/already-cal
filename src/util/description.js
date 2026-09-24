@@ -487,10 +487,11 @@ const MARKDOWN_PARSE_LIMIT = 1000;
  * newline is in the second half of the limit, or else at the last newline or
  * space, whichever is later, so a line or word is not split in two. A newline
  * in the first half is passed over because cutting there would leave most
- * of the parse budget unused. The rest is appended as-is. The caller strips
- * tags and decodes entities from the whole result, so that rest still comes
- * out as readable text; only its Markdown syntax (such as `**` or
- * `[text](url)`) is left in place.
+ * of the parse budget unused. The rest is appended unparsed, with only a `<`
+ * that cannot start a tag escaped. The caller strips tags and decodes
+ * entities from the whole result, so that rest still comes out as readable
+ * text; only its Markdown syntax (such as `**` or `[text](url)`) is left in
+ * place.
  */
 function markdownToHtmlBounded(text) {
   if (text.length <= MARKDOWN_PARSE_LIMIT) return marked.parse(text);
@@ -506,7 +507,16 @@ function markdownToHtmlBounded(text) {
     const code = text.charCodeAt(cut - 1);
     if (code >= 0xd800 && code <= 0xdbff) cut -= 1;
   }
-  return `${marked.parse(text.slice(0, cut))}\n${text.slice(cut)}`;
+  return `${marked.parse(text.slice(0, cut))}\n${escapeNonTagLt(text.slice(cut))}`;
+}
+
+// A `<` that cannot start a tag, such as the one in "a < b", escaped so the
+// caller's tag stripping does not treat "< b and c >" as a tag. marked does
+// the same for the parsed head, so both parts keep such text.
+const NON_TAG_LT_RE = /<(?![a-z/!?])/gi;
+
+function escapeNonTagLt(text) {
+  return text.replace(NON_TAG_LT_RE, "&lt;");
 }
 
 /**

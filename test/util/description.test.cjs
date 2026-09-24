@@ -656,6 +656,16 @@ describe("plainTextDescription Markdown parse limit", () => {
     assert.strictEqual(out.split("word").length - 1, 300);
   });
 
+  it("keeps a '<' that starts no tag in the unparsed rest", () => {
+    const filler = "word ".repeat(250).trim();
+    const description = `**B** ${filler}\nx a < b and c > d <b>bold</b> y`;
+    const out = plainTextDescription({
+      description,
+      descriptionFormat: "markdown",
+    });
+    assert.ok(out.endsWith("x a < b and c > d bold y"), out.slice(-40));
+  });
+
   it("parses a long Markdown paragraph that follows a short first line", () => {
     const paragraph = "**w** [l](https://a.co) ".repeat(60).trim();
     const out = plainTextDescription({

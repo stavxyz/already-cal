@@ -2947,15 +2947,19 @@ function markdownToHtmlBounded(text) {
   const head = text.slice(0, MARKDOWN_PARSE_LIMIT);
   const newline2 = head.lastIndexOf("\n");
   let cut = newline2 >= MARKDOWN_PARSE_LIMIT / 2 ? newline2 : Math.max(newline2, head.lastIndexOf(" "));
-  if (cut <= 0) {
+  if (cut < MARKDOWN_PARSE_LIMIT / 2) {
     cut = MARKDOWN_PARSE_LIMIT;
     const code = text.charCodeAt(cut - 1);
     if (code >= 55296 && code <= 56319) cut -= 1;
   }
+  const lt = head.lastIndexOf("<", cut - 1);
+  if (lt >= MARKDOWN_PARSE_LIMIT / 2 && lt > head.lastIndexOf(">", cut - 1)) {
+    cut = lt;
+  }
   return `${marked.parse(text.slice(0, cut))}
 ${escapeNonTagLt(text.slice(cut))}`;
 }
-var NON_TAG_LT_RE = /<(?![a-z/!?])/gi;
+var NON_TAG_LT_RE = /<(?!\/?[a-z][a-z0-9-]*[\s/>]|!--|!doctype)/gi;
 function escapeNonTagLt(text) {
   return text.replace(NON_TAG_LT_RE, "&lt;");
 }

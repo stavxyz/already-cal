@@ -1,5 +1,5 @@
 import { decodeAmp } from "./html-entities.js";
-import { cleanupHtml, stripUrls, URL_PATTERN } from "./sanitize.js";
+import { cleanupHtml, stripMatches, URL_PATTERN } from "./sanitize.js";
 import { normalizeUrl } from "./tokens.js";
 
 /** Frozen so consumers can't mutate the shared default at runtime. */
@@ -144,7 +144,7 @@ export function extractImageTokens(description, config) {
   const pattern = buildImagePattern(extensions);
   const seen = new Set();
   const tokens = [];
-  const originalUrls = [];
+  const found = [];
   let match;
 
   // Standard image URLs (by extension), whether bare, inside href="...", or
@@ -168,7 +168,7 @@ export function extractImageTokens(description, config) {
         metadata: {},
       });
     }
-    originalUrls.push(originalUrl);
+    found.push({ index: run.index, text: originalUrl });
   }
 
   // Google Drive image URLs
@@ -189,7 +189,7 @@ export function extractImageTokens(description, config) {
         metadata: {},
       });
     }
-    originalUrls.push(originalUrl);
+    found.push({ index: match.index, text: originalUrl });
     match = DRIVE_URL_PATTERN.exec(description);
   }
 
@@ -199,8 +199,8 @@ export function extractImageTokens(description, config) {
   while (match !== null) {
     const originalUrl = match[0];
     const ext = getPathExtension(originalUrl);
+    found.push({ index: match.index, text: originalUrl });
     match = DROPBOX_URL_PATTERN.exec(description);
-    originalUrls.push(originalUrl);
     if (ext && NON_IMAGE_EXTENSIONS.has(ext)) continue;
     const normalized = normalizeImageUrl(originalUrl);
     const cid = imageCanonicalId(originalUrl);
@@ -217,7 +217,7 @@ export function extractImageTokens(description, config) {
     }
   }
 
-  const cleaned = cleanupHtml(stripUrls(description, originalUrls));
+  const cleaned = cleanupHtml(stripMatches(description, found));
   return { tokens, description: cleaned };
 }
 

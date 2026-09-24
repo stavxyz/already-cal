@@ -1,6 +1,6 @@
 import { decodeAmp } from "./html-entities.js";
 import { imageCanonicalId, normalizeImageUrl } from "./images.js";
-import { cleanupHtml, stripUrls } from "./sanitize.js";
+import { cleanupHtml, stripMatches } from "./sanitize.js";
 
 // Directive regex: #already: followed by non-whitespace, non-HTML chars.
 // Excludes < and > so the match stops before any wrapping </a> tag.
@@ -230,9 +230,9 @@ export function extractDirectives(description) {
 
   // Always strip every directive from the description, even a malformed one.
   const cleaned = cleanupHtml(
-    stripUrls(
+    stripMatches(
       description,
-      matches.map((m) => m[0]),
+      matches.map((m) => ({ index: m.index, text: m[0] })),
     ),
   );
   return { tokens, description: cleaned, featured, hidden };

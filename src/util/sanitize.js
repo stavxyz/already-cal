@@ -16,60 +16,79 @@ export function escapeHtml(str) {
 }
 
 /**
- * Remove a URL from HTML, stripping both bare URLs and <a>-wrapped versions.
+ * Remove extracted URLs or directives from `text`: each match itself, plus
+ * any `<a ...>X</a>` element whose content X is one of the matched strings
+ * (tag and content compared case-insensitively). `matches` are
+ * `{ index, text }` records of substrings found in this same `text`.
  *
- * Equivalent to replacing `/<a[^>]*>URL<\/a>/gi` and then every literal
- * occurrence of URL with "", but builds no RegExp from `url`. The RegExp
- * version threw "Regular expression too large" on a long enough URL or
- * directive (a 64,000-character "#already:" run did it), and its `[^>]*`
- * made each call quadratic on a run of `<a` with no `>`.
+ * All removals are collected as spans and applied in one pass, so the cost
+ * is linear in the length of `text`. Removing each URL with its own
+ * search-and-replace over the whole string cost one full scan per distinct
+ * URL, which is quadratic on a description of thousands of distinct URLs,
+ * and building a RegExp from each URL threw "Regular expression too large"
+ * on a long enough one.
+ *
+ * Because it removes the matched positions rather than every copy of each
+ * string, a URL that also appears inside a longer, different URL no longer
+ * cuts a hole in that longer URL.
  */
-export function stripUrl(html, url) {
-  return stripWrappingAnchors(html, url).split(url).join("");
-}
+export function stripMatches(text, matches) {
+  if (matches.length === 0) return text;
+  const wanted = new Set(matches.map((m) => m.text.toLowerCase()));
+  const spans = matches.map((m) => [m.index, m.index + m.text.length]);
+  for (const span of wrappingAnchorSpans(text, wanted)) spans.push(span);
+  spans.sort((a, b) => a[0] - b[0]);
 
-/**
- * Apply `stripUrl` for each URL in order, skipping repeats. `stripUrl`
- * already removes every occurrence, so a repeat would only rescan the whole
- * string, which made a description holding thousands of copies of one URL
- * or directive quadratic to clean.
- */
-export function stripUrls(html, urls) {
-  for (const url of new Set(urls)) html = stripUrl(html, url);
-  return html;
+  let out = "";
+  let cursor = 0;
+  for (const [start, end] of spans) {
+    if (start > cursor) out += text.slice(cursor, start);
+    if (end > cursor) cursor = end;
+  }
+  return out + text.slice(cursor);
 }
 
 const ANCHOR_OPEN_RE = /<a/gi;
 
 /**
- * Remove every `<a ...>URL</a>` (tag and URL matched case-insensitively,
- * like the `gi` RegExp this replaces). An opener's `[^>]*>` always ends at
- * the first `>` after it, so that position is found with `indexOf` and
- * reused by later openers that sit before it, which keeps the scan linear.
+ * Spans of every `<a[^>]*>X</a>` in `text` (case-insensitive) whose X,
+ * lowercased, is in `wanted`. X never contains `<`, since none of the
+ * patterns that find URLs or directives match one.
+ *
+ * An opener's `[^>]*>` always ends at the first `>` after it, and X runs from
+ * there to the next `<`. Openers that share that `>` share the result, so it
+ * is computed once per `>` and the scan stays linear, even on a long run of
+ * `<a` with no `>`.
  */
-function stripWrappingAnchors(html, url) {
-  const target = `${url}</a>`.toLowerCase();
-  let out = "";
-  let cursor = 0;
+function wrappingAnchorSpans(text, wanted) {
+  const spans = [];
   let gt = -1;
+  let closeEnd = -1; // end of `X</a>` after `gt`, or -1 if X is not wanted
   ANCHOR_OPEN_RE.lastIndex = 0;
-  let open = ANCHOR_OPEN_RE.exec(html);
+  let open = ANCHOR_OPEN_RE.exec(text);
   while (open !== null) {
     const afterOpen = open.index + 2;
-    if (gt < afterOpen) gt = html.indexOf(">", afterOpen);
-    // No `>` after this opener means none after any later opener either.
-    if (gt === -1) break;
-    const end = gt + 1 + target.length;
-    if (html.slice(gt + 1, end).toLowerCase() === target) {
-      out += html.slice(cursor, open.index);
-      cursor = end;
-      ANCHOR_OPEN_RE.lastIndex = end;
+    if (gt < afterOpen) {
+      gt = text.indexOf(">", afterOpen);
+      // No `>` after this opener means none after any later opener either.
+      if (gt === -1) break;
+      const lt = text.indexOf("<", gt + 1);
+      closeEnd =
+        lt !== -1 &&
+        text.slice(lt, lt + 4).toLowerCase() === "</a>" &&
+        wanted.has(text.slice(gt + 1, lt).toLowerCase())
+          ? lt + 4
+          : -1;
+    }
+    if (closeEnd !== -1) {
+      spans.push([open.index, closeEnd]);
+      ANCHOR_OPEN_RE.lastIndex = closeEnd;
     } else {
       ANCHOR_OPEN_RE.lastIndex = open.index + 1;
     }
-    open = ANCHOR_OPEN_RE.exec(html);
+    open = ANCHOR_OPEN_RE.exec(text);
   }
-  return out + html.slice(cursor);
+  return spans;
 }
 
 /** Clean up HTML after URL extraction: collapse orphaned <br> runs, remove leading/trailing <br>, and normalize whitespace. */

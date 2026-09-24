@@ -1,5 +1,5 @@
 import { decodeAmp } from "./html-entities.js";
-import { cleanupHtml, stripUrls, URL_PATTERN } from "./sanitize.js";
+import { cleanupHtml, stripMatches, URL_PATTERN } from "./sanitize.js";
 import { normalizeUrl, trimTrailingSlashes } from "./tokens.js";
 
 // Two-segment path prefixes that represent profile-like destinations,
@@ -276,9 +276,8 @@ export function extractLinkTokens(description, config) {
   const toStrip = [];
   const seen = new Set();
 
-  URL_PATTERN.lastIndex = 0;
-  const urls = description.match(URL_PATTERN) || [];
-  for (const url of urls) {
+  for (const found of description.matchAll(URL_PATTERN)) {
+    const url = found[0];
     const normalized = normalizeUrl(url);
     for (const platform of platforms) {
       if (platform.pattern.test(url)) {
@@ -286,7 +285,7 @@ export function extractLinkTokens(description, config) {
           ? platform.canonicalize(normalized)
           : null;
         if (canonicalId && seen.has(canonicalId)) {
-          toStrip.push(url);
+          toStrip.push({ index: found.index, text: url });
           break;
         }
         if (canonicalId) seen.add(canonicalId);
@@ -299,12 +298,12 @@ export function extractLinkTokens(description, config) {
           label,
           metadata: {},
         });
-        toStrip.push(url);
+        toStrip.push({ index: found.index, text: url });
         break;
       }
     }
   }
 
-  const cleaned = cleanupHtml(stripUrls(description, toStrip));
+  const cleaned = cleanupHtml(stripMatches(description, toStrip));
   return { tokens, description: cleaned };
 }

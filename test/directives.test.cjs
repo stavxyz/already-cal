@@ -280,12 +280,21 @@ describe("extractDirectives — edge cases", () => {
     assert.ok(!result.description.includes("</a>"));
   });
 
-  // stripUrl used to compile a RegExp from the matched directive text, which
-  // threw "Regular expression too large" for a long enough directive.
+  // Stripping used to compile a RegExp from the matched directive text,
+  // which threw "Regular expression too large" for a long enough directive.
   it("strips a 64,000-character directive without throwing", () => {
     const directive = `#already:tag:${"x".repeat(64000)}`;
     const result = extractDirectives(`before ${directive} after`);
     assert.strictEqual(result.description, "before  after");
+    assert.strictEqual(result.tokens.length, 1);
+  });
+
+  // Each directive used to be removed by string, everywhere it occurred, so
+  // removing "#already:tag" also cut the front off "#already:tag:food" and
+  // left ":food" behind.
+  it("strips a directive that is a prefix of a later directive cleanly", () => {
+    const result = extractDirectives("a #already:tag b #already:tag:food c");
+    assert.strictEqual(result.description, "a  b  c");
     assert.strictEqual(result.tokens.length, 1);
   });
 

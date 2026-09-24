@@ -678,6 +678,18 @@ describe("plainTextDescription Markdown parse limit", () => {
     assert.ok(!parsed.includes("https://a.co"), parsed);
   });
 
+  it("cuts at a newline in the second half even when a space comes later", () => {
+    const first = `**A** ${"w ".repeat(147)}`;
+    const description = `${first}\n**X** ${"v ".repeat(200)}`;
+    assert.ok(first.length > 250 && first.length < 500, String(first.length));
+    const out = plainTextDescription({
+      description,
+      descriptionFormat: "markdown",
+    });
+    assert.ok(out.startsWith("A w w"), out.slice(0, 20));
+    assert.ok(out.includes("w **X** v"), out.slice(first.length - 20));
+  });
+
   it("cuts at the limit when the only space is early in a long description", () => {
     const out = plainTextDescription({
       description: `Hi **x**${"w".repeat(600)}`,

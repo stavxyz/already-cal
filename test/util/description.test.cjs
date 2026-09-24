@@ -638,6 +638,38 @@ describe("plainTextDescription", () => {
   }
 });
 
+describe("detectFormat Markdown link detection", () => {
+  let detectFormat;
+  before(async () => {
+    ({ detectFormat } = await import("../../src/util/description.js"));
+  });
+
+  for (const text of [
+    "See [the site](https://example.com) for info",
+    '[x](https://a.com "Title here")',
+    "[Wiki](https://en.wikipedia.org/wiki/Foo_(bar))",
+    "text [a] more [b](c)",
+    "line one\n[link text](http://x.y/z?q=1&r=2)",
+    "![poster](http://x.png)",
+  ]) {
+    it(`detects a Markdown link in ${JSON.stringify(text)}`, () => {
+      assert.strictEqual(detectFormat(text), "markdown");
+    });
+  }
+
+  for (const text of [
+    "no link here (really) [nope]",
+    "[a]\n(b)",
+    "[](empty)",
+    "[a]()",
+    "plain [text] (paren)",
+  ]) {
+    it(`does not treat ${JSON.stringify(text)} as a Markdown link`, () => {
+      assert.strictEqual(detectFormat(text), "plain");
+    });
+  }
+});
+
 describe("plainTextDescription with enrichGoogleEvent", () => {
   let enrichGoogleEvent;
   let plainTextDescription;

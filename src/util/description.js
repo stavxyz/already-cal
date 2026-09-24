@@ -492,11 +492,13 @@ const MARKDOWN_PARSE_LIMIT = 500;
  * space, whichever is later, if that is in the second half, so a line or word
  * is not split in two. If there is neither, it cuts at the limit, never
  * inside a surrogate pair. A cut in the first half is never used because it
- * would leave most of the parse budget unused. The rest is appended
- * unparsed, with every `<` that does not start a tag, comment, or doctype
- * escaped. The caller strips tags and decodes entities from the whole
- * result, so that rest still comes out as readable text; only its Markdown
- * syntax (such as `**` or `[text](url)`) is left in place.
+ * would leave most of the parse budget unused. A cut that follows a `<`
+ * with no `>` between them, as inside a tag, moves back to that `<` if it
+ * is in the second half. The rest is appended unparsed, with every `<` that
+ * does not start a tag, comment, or doctype escaped. The caller strips tags
+ * and decodes entities from the whole result, so that rest still comes out
+ * as readable text; only its Markdown syntax (such as `**` or `[text](url)`)
+ * is left in place.
  */
 function markdownToHtmlBounded(text) {
   if (text.length <= MARKDOWN_PARSE_LIMIT) return marked.parse(text);
@@ -511,6 +513,13 @@ function markdownToHtmlBounded(text) {
     // Don't split a UTF-16 surrogate pair (an emoji, say) in two.
     const code = text.charCodeAt(cut - 1);
     if (code >= 0xd800 && code <= 0xdbff) cut -= 1;
+  }
+  // A cut inside a tag would hand its first half to marked and its second
+  // half to the unparsed rest, and neither would be stripped as a tag, so
+  // cut before the tag's `<` instead.
+  const lt = head.lastIndexOf("<", cut - 1);
+  if (lt >= MARKDOWN_PARSE_LIMIT / 2 && lt > head.lastIndexOf(">", cut - 1)) {
+    cut = lt;
   }
   return `${marked.parse(text.slice(0, cut))}\n${escapeNonTagLt(text.slice(cut))}`;
 }

@@ -692,6 +692,25 @@ describe("plainTextDescription Markdown parse limit", () => {
     assert.ok(out.endsWith("word x bold y"), out.slice(-30));
   });
 
+  it("does not cut inside a <script> tag", () => {
+    const description = `**B** ${"w".repeat(485)} <script type="t">alert(1)</script> after`;
+    const out = plainTextDescription({
+      description,
+      descriptionFormat: "markdown",
+    });
+    assert.ok(out.endsWith("w after"), out.slice(-40));
+    assert.ok(!out.includes("alert"), out.slice(-40));
+  });
+
+  it("does not cut inside an <a> tag's attribute", () => {
+    const description = `**B** ${"w ".repeat(236)}w <a href="x" title="a b c d e f">link</a> after`;
+    const out = plainTextDescription({
+      description,
+      descriptionFormat: "markdown",
+    });
+    assert.ok(out.endsWith("w w link after"), out.slice(-40));
+  });
+
   it("parses a long Markdown paragraph that follows a short first line", () => {
     const paragraph = "**w** [l](https://a.co) ".repeat(60).trim();
     const out = plainTextDescription({

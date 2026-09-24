@@ -4,10 +4,13 @@ const assert = require("node:assert");
 // Server-side consumers run enrichGoogleEvent and plainTextDescription on
 // event descriptions that anyone who can edit a calendar controls. Each input
 // below once made one of the regexes or marked.parse super-linear. Each test
-// times the input at 128,000 and at 512,000 characters, best of five runs
-// taken alternately so a burst of machine load hits both lengths, and
-// requires the longer to take less than 8 times as long, plus a few
-// milliseconds for timer noise on inputs that finish in under a millisecond.
+// times the input at 128,000 and at 512,000 characters, taking runs
+// alternately so a burst of machine load hits both lengths, and requires the
+// best longer run to take less than 8 times as long as the best shorter run,
+// plus a few milliseconds for timer noise on inputs that finish in under a
+// millisecond. It takes at least 3 runs of each and, while the ratio is over,
+// up to 9, because load from parallel test files can slow every run of one
+// length for a while.
 // Linear work grows about 4 times over that step and quadratic work about 16
 // times, so the ratio separates them without depending on how fast the
 // machine is. The absolute ceiling at 512,000 characters catches a cost that
@@ -18,7 +21,8 @@ const LONG = 512000;
 const MAX_GROWTH = 8;
 const NOISE_MS = 10;
 const CEILING_MS = 1000;
-const RUNS = 5;
+const MIN_RUNS = 3;
+const MAX_RUNS = 9;
 
 function repeatTo(unit, length) {
   return unit.repeat(Math.ceil(length / unit.length)).slice(0, length);
@@ -94,7 +98,7 @@ describe("adversarial descriptions", () => {
       assert.strictEqual(long.length, LONG);
       let tShort = Number.POSITIVE_INFINITY;
       let tLong = Number.POSITIVE_INFINITY;
-      for (let run = 0; run < RUNS; run++) {
+      for (let run = 1; run <= MAX_RUNS; run++) {
         tShort = Math.min(
           tShort,
           time(enrichGoogleEvent, plainTextDescription, short),
@@ -103,6 +107,7 @@ describe("adversarial descriptions", () => {
           tLong,
           time(enrichGoogleEvent, plainTextDescription, long),
         );
+        if (run >= MIN_RUNS && tLong < MAX_GROWTH * tShort + NOISE_MS) break;
       }
       const times = `${tShort.toFixed(1)} ms at ${SHORT}, ${tLong.toFixed(1)} ms at ${LONG}`;
       assert.ok(tLong < MAX_GROWTH * tShort + NOISE_MS, times);

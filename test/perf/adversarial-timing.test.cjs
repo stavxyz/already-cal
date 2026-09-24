@@ -3,19 +3,23 @@ const assert = require("node:assert");
 
 // Server-side consumers run enrichGoogleEvent and plainTextDescription on
 // event descriptions that anyone who can edit a calendar controls. Each input
-// below once made one of the regexes or marked.parse super-linear. Each test
-// times the input at 128,000 and at 512,000 characters, taking runs
+// below is one that a super-linear regex or an uncapped marked.parse would
+// take from hundreds of milliseconds to minutes on, so each must stay linear.
+// Each test times the input at 128,000 and at 512,000 characters, taking runs
 // alternately so a burst of machine load hits both lengths, and requires the
 // best longer run to take less than 8 times as long as the best shorter run,
-// plus a few milliseconds for timer noise on inputs that finish in under a
-// millisecond. It takes at least 3 runs of each and, while the ratio is over,
-// up to 9, because load from parallel test files can slow every run of one
-// length for a while.
-// Linear work grows about 4 times over that step and quadratic work about 16
-// times, so the ratio separates them without depending on how fast the
-// machine is. The absolute ceiling at 512,000 characters catches a cost that
-// is large at both lengths, such as a Markdown parse limit raised far enough
-// that marked's cubic cost dominates.
+// plus 10 ms for timer noise on inputs that finish in under a millisecond. It
+// takes at least 3 runs of each and, while the ratio is over, up to 9,
+// because other load on the machine can slow every run of one length for a
+// while. Linear work measured 4 to 7 times growth over that step, which
+// leaves little headroom under 8; inputs that finish in a few milliseconds
+// vary more, which the 10 ms allowance covers. Quadratic work grows about 16
+// times (a reintroduced per-match strip loop measured 11 to 17), so the
+// ratio separates them without depending on how fast the machine is. The absolute
+// ceiling at 512,000 characters catches a cost that is large at both
+// lengths, such as a Markdown parse limit raised far enough that marked's
+// cubic cost dominates. Run with `npm run test:perf`, not inside the
+// parallel `npm test`, whose other test files skew the timings.
 const SHORT = 128000;
 const LONG = 512000;
 const MAX_GROWTH = 8;
@@ -61,7 +65,8 @@ const INPUTS = {
   "distinct image URLs": (n) => sequenceTo((i) => `https://a.co/${i}.png `, n),
   "distinct directives": (n) => sequenceTo((i) => `#already:tag:t${i}\n`, n),
   // With no space or newline to cut at, marked gets the whole parse limit of
-  // "[](", the slowest input found for it, so raising the limit shows here.
+  // "[](", the slowest input found for it, so raising the limit several
+  // times over shows here.
   "Markdown with unclosed empty links and no spaces": (n) =>
     `**x**${repeatTo("[](", n - 5)}`,
   "Markdown with unclosed empty image links and no spaces": (n) =>

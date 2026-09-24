@@ -58,6 +58,9 @@ jobs:
       - name: Run tests
         if: matrix.node-version != 22
         run: npm test
+      - name: Run timing tests
+        # Kept out of `npm test`, whose parallel test files skew the timings.
+        run: npm run test:perf
       - name: Verify build
         if: matrix.node-version == 22
         run: npm run build

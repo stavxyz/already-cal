@@ -6,7 +6,7 @@ import {
   DROPBOX_PATTERN,
   getPathExtension,
 } from "./images.js";
-import { cleanupHtml, stripUrl, URL_PATTERN } from "./sanitize.js";
+import { cleanupHtml, stripMatches, URL_PATTERN } from "./sanitize.js";
 import { normalizeUrl } from "./tokens.js";
 
 const IMAGE_EXTENSIONS = new Set(DEFAULT_IMAGE_EXTENSIONS);
@@ -79,17 +79,17 @@ export function extractAttachmentTokens(description, _config) {
   description = decodeAmp(description);
 
   const tokens = [];
-  let cleaned = description;
+  const toStrip = [];
   const seen = new Set();
 
-  const urls = description.match(URL_PATTERN) || [];
-  for (const url of urls) {
+  for (const found of description.matchAll(URL_PATTERN)) {
+    const url = found[0];
     const classification = classifyUrl(url);
     if (!classification) continue;
 
     const cid = attachmentCanonicalId(url);
     if (seen.has(cid)) {
-      cleaned = stripUrl(cleaned, url);
+      toStrip.push({ index: found.index, text: url });
       continue;
     }
     seen.add(cid);
@@ -103,10 +103,10 @@ export function extractAttachmentTokens(description, _config) {
       label: classification.label,
       metadata: { fileType: classification.type },
     });
-    cleaned = stripUrl(cleaned, url);
+    toStrip.push({ index: found.index, text: url });
   }
 
-  cleaned = cleanupHtml(cleaned);
+  const cleaned = cleanupHtml(stripMatches(description, toStrip));
   return { tokens, description: cleaned };
 }
 

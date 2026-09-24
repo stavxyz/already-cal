@@ -98,18 +98,48 @@ var Already = (() => {
     if (!str) return "";
     return String(str).replace(/[&<>"']/g, (c) => ESC_MAP[c]);
   }
-  function escapeRegex(str) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  function stripMatches(text, matches) {
+    if (matches.length === 0) return text;
+    const wanted = new Set(matches.map((m) => m.text.toLowerCase()));
+    const spans = matches.map((m) => [m.index, m.index + m.text.length]);
+    for (const span of wrappingAnchorSpans(text, wanted)) spans.push(span);
+    spans.sort((a, b) => a[0] - b[0]);
+    let out = "";
+    let cursor = 0;
+    for (const [start, end] of spans) {
+      if (start > cursor) out += text.slice(cursor, start);
+      if (end > cursor) cursor = end;
+    }
+    return out + text.slice(cursor);
   }
-  function stripUrl(html2, url) {
-    const escaped = escapeRegex(url);
-    html2 = html2.replace(new RegExp(`<a[^>]*>${escaped}</a>`, "gi"), "");
-    html2 = html2.replace(new RegExp(escaped, "g"), "");
-    return html2;
+  var ANCHOR_OPEN_RE = /<a/gi;
+  function wrappingAnchorSpans(text, wanted) {
+    const spans = [];
+    let gt = -1;
+    let closeEnd = -1;
+    ANCHOR_OPEN_RE.lastIndex = 0;
+    let open = ANCHOR_OPEN_RE.exec(text);
+    while (open !== null) {
+      const afterOpen = open.index + 2;
+      if (gt < afterOpen) {
+        gt = text.indexOf(">", afterOpen);
+        if (gt === -1) break;
+        const lt = text.indexOf("<", gt + 1);
+        closeEnd = lt !== -1 && text.slice(lt, lt + 4).toLowerCase() === "</a>" && wanted.has(text.slice(gt + 1, lt).toLowerCase()) ? lt + 4 : -1;
+      }
+      if (closeEnd !== -1) {
+        spans.push([open.index, closeEnd]);
+        ANCHOR_OPEN_RE.lastIndex = closeEnd;
+      } else {
+        ANCHOR_OPEN_RE.lastIndex = open.index + 1;
+      }
+      open = ANCHOR_OPEN_RE.exec(text);
+    }
+    return spans;
   }
   function cleanupHtml(str) {
     if (!str) return "";
-    return str.replace(/(<br\s*\/?>[\s]*){2,}/gi, "<br><br>").replace(/^(\s*<br\s*\/?>[\s]*)+/gi, "").replace(/(\s*<br\s*\/?>[\s]*)+$/gi, "").replace(/\n{3,}/g, "\n\n").trim();
+    return str.replace(/(<br\s*\/?>[\s]*){2,}/gi, "<br><br>").replace(/^(\s*<br\s*\/?>[\s]*)+/gi, "").replace(/(?<!\s)\s*(?:<br\s*\/?>\s*)+$/gi, "").replace(/\n{3,}/g, "\n\n").trim();
   }
 
   // src/util/tokens.js
@@ -120,12 +150,16 @@ var Already = (() => {
     // Spotify session ID (share tracking)
   ]);
   var TRACKING_PREFIX = "utm_";
+  var TRAILING_SLASHES_RE = /(?<!\/)\/+$/;
+  function trimTrailingSlashes(path) {
+    return path.replace(TRAILING_SLASHES_RE, "");
+  }
   function normalizeUrl(url) {
     try {
       const u = new URL(url);
       u.protocol = "https:";
       u.hostname = u.hostname.replace(/^www\./, "");
-      const pathname = u.pathname.replace(/\/+$/, "");
+      const pathname = trimTrailingSlashes(u.pathname);
       const cleaned = new URLSearchParams();
       for (const [key, value] of u.searchParams) {
         if (key.startsWith(TRACKING_PREFIX)) continue;
@@ -224,10 +258,7 @@ var Already = (() => {
   }
   function buildImagePattern(extensions) {
     const ext = extensions.join("|");
-    return new RegExp(
-      `(https?://[^\\s<>"]+\\.(?:${ext})(?:\\?[^\\s<>"]*)?)`,
-      "gi"
-    );
+    return new RegExp(`^https?://[^\\s<>"]+\\.(?:${ext})(?:\\?[^\\s<>"]*)?`, "i");
   }
   function imageCanonicalId(originalUrl) {
     const driveMatch = originalUrl.match(DRIVE_ID_PATTERN);
@@ -251,11 +282,12 @@ var Already = (() => {
     const pattern = buildImagePattern(extensions);
     const seen = /* @__PURE__ */ new Set();
     const tokens = [];
-    const originalUrls = [];
+    const toStrip = [];
     let match;
-    match = pattern.exec(description);
-    while (match !== null) {
-      const originalUrl = match[1];
+    for (const run of description.matchAll(URL_PATTERN)) {
+      match = pattern.exec(run[0]);
+      if (match === null) continue;
+      const originalUrl = match[0];
       const normalized = normalizeImageUrl(originalUrl);
       const cid = imageCanonicalId(originalUrl);
       if (normalized && !seen.has(cid)) {
@@ -269,8 +301,7 @@ var Already = (() => {
           metadata: {}
         });
       }
-      originalUrls.push(originalUrl);
-      match = pattern.exec(description);
+      toStrip.push({ index: run.index, text: originalUrl });
     }
     DRIVE_URL_PATTERN.lastIndex = 0;
     match = DRIVE_URL_PATTERN.exec(description);
@@ -289,7 +320,7 @@ var Already = (() => {
           metadata: {}
         });
       }
-      originalUrls.push(originalUrl);
+      toStrip.push({ index: match.index, text: originalUrl });
       match = DRIVE_URL_PATTERN.exec(description);
     }
     DROPBOX_URL_PATTERN.lastIndex = 0;
@@ -297,8 +328,8 @@ var Already = (() => {
     while (match !== null) {
       const originalUrl = match[0];
       const ext = getPathExtension(originalUrl);
+      toStrip.push({ index: match.index, text: originalUrl });
       match = DROPBOX_URL_PATTERN.exec(description);
-      originalUrls.push(originalUrl);
       if (ext && NON_IMAGE_EXTENSIONS.has(ext)) continue;
       const normalized = normalizeImageUrl(originalUrl);
       const cid = imageCanonicalId(originalUrl);
@@ -314,11 +345,7 @@ var Already = (() => {
         });
       }
     }
-    let cleaned = description;
-    for (const url of originalUrls) {
-      cleaned = stripUrl(cleaned, url);
-    }
-    cleaned = cleanupHtml(cleaned);
+    const cleaned = cleanupHtml(stripMatches(description, toStrip));
     return { tokens, description: cleaned };
   }
 
@@ -326,7 +353,7 @@ var Already = (() => {
   var PROFILE_PREFIXES = /* @__PURE__ */ new Set(["r", "u", "groups"]);
   function pathSegments(url) {
     try {
-      return new URL(url).pathname.replace(/\/+$/, "").split("/").filter(Boolean);
+      return trimTrailingSlashes(new URL(url).pathname).split("/").filter(Boolean);
     } catch {
       return [];
     }
@@ -356,7 +383,7 @@ var Already = (() => {
       canonicalize(url) {
         const segs = pathSegments(url);
         const slug = segs[segs.length - 1] || "";
-        const m = slug.match(/(\d+)$/);
+        const m = slug.match(/(?<!\d)(\d+)$/);
         return `eventbrite:${m ? m[1] : slug}`;
       }
     },
@@ -545,17 +572,16 @@ var Already = (() => {
     description = decodeAmp(description);
     const platforms = config?.knownPlatforms || DEFAULT_PLATFORMS;
     const tokens = [];
-    let cleaned = description;
+    const toStrip = [];
     const seen = /* @__PURE__ */ new Set();
-    URL_PATTERN.lastIndex = 0;
-    const urls = description.match(URL_PATTERN) || [];
-    for (const url of urls) {
+    for (const found of description.matchAll(URL_PATTERN)) {
+      const url = found[0];
       const normalized = normalizeUrl(url);
       for (const platform of platforms) {
         if (platform.pattern.test(url)) {
           const canonicalId = platform.canonicalize ? platform.canonicalize(normalized) : null;
           if (canonicalId && seen.has(canonicalId)) {
-            cleaned = stripUrl(cleaned, url);
+            toStrip.push({ index: found.index, text: url });
             break;
           }
           if (canonicalId) seen.add(canonicalId);
@@ -568,12 +594,12 @@ var Already = (() => {
             label,
             metadata: {}
           });
-          cleaned = stripUrl(cleaned, url);
+          toStrip.push({ index: found.index, text: url });
           break;
         }
       }
     }
-    cleaned = cleanupHtml(cleaned);
+    const cleaned = cleanupHtml(stripMatches(description, toStrip));
     return { tokens, description: cleaned };
   }
 
@@ -636,15 +662,15 @@ var Already = (() => {
     if (!description) return { tokens: [], description };
     description = decodeAmp(description);
     const tokens = [];
-    let cleaned = description;
+    const toStrip = [];
     const seen = /* @__PURE__ */ new Set();
-    const urls = description.match(URL_PATTERN) || [];
-    for (const url of urls) {
+    for (const found of description.matchAll(URL_PATTERN)) {
+      const url = found[0];
       const classification = classifyUrl(url);
       if (!classification) continue;
       const cid = attachmentCanonicalId(url);
       if (seen.has(cid)) {
-        cleaned = stripUrl(cleaned, url);
+        toStrip.push({ index: found.index, text: url });
         continue;
       }
       seen.add(cid);
@@ -657,9 +683,9 @@ var Already = (() => {
         label: classification.label,
         metadata: { fileType: classification.type }
       });
-      cleaned = stripUrl(cleaned, url);
+      toStrip.push({ index: found.index, text: url });
     }
-    cleaned = cleanupHtml(cleaned);
+    const cleaned = cleanupHtml(stripMatches(description, toStrip));
     return { tokens, description: cleaned };
   }
   function deriveTypeFromMimeType(mimeType) {
@@ -2871,7 +2897,7 @@ ${text}</tr>
   ]);
   var RAW_TEXT_ELEMENTS_SET = new Set(DEFAULT_RAW_TEXT_ELEMENTS);
   var HTML_TAG_RE = /<\/?[a-z][a-z0-9]*[\s>]/i;
-  var MARKDOWN_RE = /(?:^|\n)#{1,6}\s|(?:^|\n)[-*]\s|\*\*|__|\[.+?\]\(.+?\)/;
+  var MARKDOWN_RE = /(?:^|\n)#{1,6}\s|(?:^|\n)[-*]\s|\*\*|__|\[[^[\]\n]{1,500}\]\([^[)\n]{1,2000}\)/;
   var URL_SCHEME_RE = /^([a-z][a-z0-9+.-]*):/i;
   function detectFormat(text) {
     if (!text) return "plain";
@@ -3176,14 +3202,11 @@ ${text}</tr>
     description = decodeAmp(description);
     const tokens = [];
     const seen = /* @__PURE__ */ new Set();
-    let cleaned = description;
     let featured = false;
     let hidden = false;
     const matches = [...description.matchAll(DIRECTIVE_PATTERN)];
     for (const match of matches) {
-      const fullMatch = match[0];
       const body = match[1];
-      cleaned = stripUrl(cleaned, fullMatch);
       const bodyLower = body.toLowerCase();
       if (bodyLower === "featured") {
         featured = true;
@@ -3200,7 +3223,12 @@ ${text}</tr>
         tokens.push(token);
       }
     }
-    cleaned = cleanupHtml(cleaned);
+    const cleaned = cleanupHtml(
+      stripMatches(
+        description,
+        matches.map((m) => ({ index: m.index, text: m[0] }))
+      )
+    );
     return { tokens, description: cleaned, featured, hidden };
   }
 
@@ -4409,7 +4437,7 @@ ${text}</tr>
     } catch {
       result = base.split(/[?#]/)[0];
     }
-    return result.replace(/\/+$/, "").replace(EVENT_PATH_RE, "");
+    return trimTrailingSlashes(result).replace(EVENT_PATH_RE, "");
   }
 
   // src/util/share.js

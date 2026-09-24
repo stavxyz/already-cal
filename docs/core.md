@@ -80,6 +80,17 @@ already consumed into `image`/`images`/`links`/`attachments` are gone.
 Intended for places that cannot render markup, such as link-preview or
 unfurl card text.
 
+Only the first 500 characters of a Markdown description are parsed as
+Markdown. The cut falls at the last line break before that point if it is
+past character 250, or else at the last line break or space, whichever is
+later, if that is past character 250. If there is neither, it cuts at the
+limit, never inside a surrogate pair. A cut that follows a `<` with no `>`
+between them, as inside an HTML tag, moves back to that `<` if it is past
+character 250. The rest is kept, with tags stripped and entities decoded,
+but its Markdown syntax (such as `**` or `[text](url)`) stays in the text.
+The Markdown parser is super-linear on some inputs, so this bounds the time
+a hostile description can cost a server.
+
 The return value is **unescaped plain text**, not HTML-safe text: decoded
 HTML entities can leave literal `<` or `&` characters in the string (for
 example, a description containing `&amp;lt;3` decodes to `<3`). A caller

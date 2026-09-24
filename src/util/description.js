@@ -119,7 +119,18 @@ export const DEFAULT_RAW_TEXT_ELEMENTS = Object.freeze([
 const RAW_TEXT_ELEMENTS_SET = new Set(DEFAULT_RAW_TEXT_ELEMENTS);
 
 const HTML_TAG_RE = /<\/?[a-z][a-z0-9]*[\s>]/i;
-const MARKDOWN_RE = /(?:^|\n)#{1,6}\s|(?:^|\n)[-*]\s|\*\*|__|\[.+?\]\(.+?\)/;
+// The link branch detects `[text](url)`. Neither class may accept `[`. The
+// simpler `\[.+?\]\(.+?\)` is super-linear: on a string like "[a](" repeated,
+// every `[` starts a lazy scan to the end of the line looking for a `)` that
+// never comes, which takes seconds at a few thousand characters. Excluding
+// `[` from both the text and the url classes stops each attempt at the next
+// `[`, where the next attempt starts, so no character is scanned by more
+// than one attempt and the test is linear. The length bounds are generous
+// limits for real links. Cost: link text containing nested brackets
+// (`[a [b] c](url)`) or a url containing `[` is not detected by this branch
+// alone.
+const MARKDOWN_RE =
+  /(?:^|\n)#{1,6}\s|(?:^|\n)[-*]\s|\*\*|__|\[[^[\]\n]{1,500}\]\([^[)\n]{1,2000}\)/;
 // Extracts the URL scheme (everything before the first colon), case-insensitive.
 // Anchored at start with no leading-whitespace allowance because the caller
 // (`isUrlSchemeAllowed`) explicitly strips leading C0 controls + space first
@@ -459,6 +470,73 @@ function stripHtml(html) {
 }
 
 /**
+ * Most characters of a Markdown description that `plainTextDescription`
+ * hands to `marked.parse`. marked (v15) is super-linear on some inputs, so
+ * this caps the cost on descriptions an attacker controls. Unclosed link
+ * syntax with empty link text, "[](" or "![](" repeated, is the slowest
+ * input found and is roughly cubic: 31 to 38 ms at 1,000 characters (best of
+ * five runs), about 0.5 s at 2,000, and 3 to 7 s at 4,000. "[a](" and
+ * "![a](" repeated take about half as long. "__a" repeated is quadratic,
+ * 4 s at 64,000. These are marked 15.0.12 on Node 26, on one shared
+ * development machine. At 500 the same inputs take about 4 ms, and the cost
+ * is paid once per event, so a calendar of many hostile events multiplies
+ * it. The 250 to 500 characters that are parsed still come out as more
+ * than the 200 or so characters a link preview shows, unless most of them
+ * are link markup.
+ */
+const MARKDOWN_PARSE_LIMIT = 500;
+
+/**
+ * `marked.parse(text)` for at most the first MARKDOWN_PARSE_LIMIT characters.
+ * A longer description is cut at the last newline before the limit if that
+ * newline is in the second half of the limit, or else at the last newline or
+ * space, whichever is later, if that is in the second half, so a line or word
+ * is not split in two. If there is neither, it cuts at the limit, never
+ * inside a surrogate pair. A cut in the first half is never used because it
+ * would leave most of the parse budget unused. A cut that follows a `<`
+ * with no `>` between them, as inside a tag, moves back to that `<` if it
+ * is in the second half. The rest is appended unparsed, with every `<` that
+ * does not start a tag, comment, or doctype escaped. The caller strips tags
+ * and decodes entities from the whole result, so that rest still comes out
+ * as readable text; only its Markdown syntax (such as `**` or `[text](url)`)
+ * is left in place.
+ */
+function markdownToHtmlBounded(text) {
+  if (text.length <= MARKDOWN_PARSE_LIMIT) return marked.parse(text);
+  const head = text.slice(0, MARKDOWN_PARSE_LIMIT);
+  const newline = head.lastIndexOf("\n");
+  let cut =
+    newline >= MARKDOWN_PARSE_LIMIT / 2
+      ? newline
+      : Math.max(newline, head.lastIndexOf(" "));
+  if (cut < MARKDOWN_PARSE_LIMIT / 2) {
+    cut = MARKDOWN_PARSE_LIMIT;
+    // Don't split a UTF-16 surrogate pair (an emoji, say) in two.
+    const code = text.charCodeAt(cut - 1);
+    if (code >= 0xd800 && code <= 0xdbff) cut -= 1;
+  }
+  // A cut inside a tag would hand its first half to marked and its second
+  // half to the unparsed rest, and neither would be stripped as a tag, so
+  // cut before the tag's `<` instead.
+  const lt = head.lastIndexOf("<", cut - 1);
+  if (lt >= MARKDOWN_PARSE_LIMIT / 2 && lt > head.lastIndexOf(">", cut - 1)) {
+    cut = lt;
+  }
+  return `${marked.parse(text.slice(0, cut))}\n${escapeNonTagLt(text.slice(cut))}`;
+}
+
+// Every `<` that does not start a tag, an HTML comment, or a doctype is
+// escaped, so the caller's tag stripping keeps text such as "a < b and c > d",
+// "a </ b > c", "<? y >", "<b.c>", and "<foo@bar.com>". A tag here is `<`,
+// an optional `/`, a letter, then letters, digits, or `-`, then whitespace,
+// `/`, or `>`. The parsed head keeps the same text through marked.
+const NON_TAG_LT_RE = /<(?!\/?[a-z][a-z0-9-]*[\s/>]|!--|!doctype)/gi;
+
+function escapeNonTagLt(text) {
+  return text.replace(NON_TAG_LT_RE, "&lt;");
+}
+
+/**
  * Plain text of an enriched event's description, for places that cannot show
  * markup, such as link-preview text. Public core API (see src/core.js). The
  * output is unescaped plain text: decoded entities can leave literal `<` or
@@ -466,13 +544,15 @@ function stripHtml(html) {
  * decodes to `<3`), so a caller embedding the result in HTML or an HTML
  * attribute must escape it itself. The contract is readable plain text;
  * exact whitespace and entity output may change between minor versions.
- * Uses no DOM, so it runs in Workers.
+ * Only the first 500 characters of a Markdown description are parsed as
+ * Markdown, and the rest keeps its Markdown syntax (see
+ * MARKDOWN_PARSE_LIMIT and docs/core.md). Uses no DOM, so it runs in Workers.
  */
 export function plainTextDescription(event) {
   const text = typeof event?.description === "string" ? event.description : "";
   if (!text) return "";
   const format = event.descriptionFormat ?? detectFormat(text);
-  const html = format === "markdown" ? marked.parse(text) : text;
+  const html = format === "markdown" ? markdownToHtmlBounded(text) : text;
   const stripped = format === "plain" ? html : stripHtml(html);
   return decodeHtmlEntities(stripped).replace(/\s+/g, " ").trim();
 }

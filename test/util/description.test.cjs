@@ -638,6 +638,154 @@ describe("plainTextDescription", () => {
   }
 });
 
+describe("plainTextDescription Markdown parse limit", () => {
+  let plainTextDescription;
+  before(async () => {
+    ({ plainTextDescription } = await import("../../src/util/description.js"));
+  });
+
+  it("parses the first 500 characters as Markdown and keeps the rest as text", () => {
+    const filler = "word ".repeat(300).trim();
+    const description = `**Bold** intro\n**Mid** ${filler}\nTail **end** [x](https://a.co)`;
+    const out = plainTextDescription({
+      description,
+      descriptionFormat: "markdown",
+    });
+    assert.ok(out.startsWith("Bold intro Mid word"), out.slice(0, 40));
+    assert.ok(out.endsWith("Tail **end** [x](https://a.co)"), out.slice(-40));
+    assert.strictEqual(out.split("word").length - 1, 300);
+  });
+
+  it("keeps a '<' that starts no tag in the unparsed rest", () => {
+    const filler = "word ".repeat(250).trim();
+    const description = `**B** ${filler}\nx a < b and c > d <b>bold</b> y`;
+    const out = plainTextDescription({
+      description,
+      descriptionFormat: "markdown",
+    });
+    assert.ok(out.endsWith("x a < b and c > d bold y"), out.slice(-40));
+  });
+
+  for (const text of [
+    "a </ b > c",
+    "wow <! fun > yes",
+    "is x <? y > z",
+    "a <b.c> d",
+    "mail <foo@bar.com> or <https://a.co> ok",
+  ]) {
+    it(`keeps ${JSON.stringify(text)} in the unparsed rest`, () => {
+      const filler = "word ".repeat(250).trim();
+      const out = plainTextDescription({
+        description: `**B** ${filler}\n${text}`,
+        descriptionFormat: "markdown",
+      });
+      assert.ok(out.endsWith(` ${text}`), out.slice(-50));
+    });
+  }
+
+  it("still strips tags, comments, and self-closing tags in the unparsed rest", () => {
+    const filler = "word ".repeat(250).trim();
+    const out = plainTextDescription({
+      description: `**B** ${filler}\nx <b>bold</b> <br/> <!-- c --> <!DOCTYPE html> y`,
+      descriptionFormat: "markdown",
+    });
+    assert.ok(out.endsWith("word x bold y"), out.slice(-30));
+  });
+
+  it("does not cut inside a <script> tag", () => {
+    const description = `**B** ${"w".repeat(485)} <script type="t">alert(1)</script> after`;
+    const out = plainTextDescription({
+      description,
+      descriptionFormat: "markdown",
+    });
+    assert.ok(out.endsWith("w after"), out.slice(-40));
+    assert.ok(!out.includes("alert"), out.slice(-40));
+  });
+
+  it("does not cut inside an <a> tag's attribute", () => {
+    const description = `**B** ${"w ".repeat(236)}w <a href="x" title="a b c d e f">link</a> after`;
+    const out = plainTextDescription({
+      description,
+      descriptionFormat: "markdown",
+    });
+    assert.ok(out.endsWith("w w link after"), out.slice(-40));
+  });
+
+  it("parses a long Markdown paragraph that follows a short first line", () => {
+    const paragraph = "**w** [l](https://a.co) ".repeat(60).trim();
+    const out = plainTextDescription({
+      description: `Intro\n${paragraph}`,
+      descriptionFormat: "markdown",
+    });
+    const parsed = out.slice(0, 60);
+    assert.ok(out.startsWith("Intro w l w l"), out.slice(0, 40));
+    assert.ok(!parsed.includes("**"), parsed);
+    assert.ok(!parsed.includes("https://a.co"), parsed);
+  });
+
+  it("cuts at a newline in the second half even when a space comes later", () => {
+    const first = `**A** ${"w ".repeat(147)}`;
+    const description = `${first}\n**X** ${"v ".repeat(200)}`;
+    assert.ok(first.length > 250 && first.length < 500, String(first.length));
+    const out = plainTextDescription({
+      description,
+      descriptionFormat: "markdown",
+    });
+    assert.ok(out.startsWith("A w w"), out.slice(0, 20));
+    assert.ok(out.includes("w **X** v"), out.slice(first.length - 20));
+  });
+
+  it("cuts at the limit when the only space is early in a long description", () => {
+    const out = plainTextDescription({
+      description: `Hi **x**${"w".repeat(600)}`,
+      descriptionFormat: "markdown",
+    });
+    assert.ok(out.startsWith("Hi xwww"), out.slice(0, 20));
+  });
+
+  it("does not split an emoji when the first 500 characters have no space", () => {
+    const description = `**${"a".repeat(497)}😀b`;
+    const out = plainTextDescription({
+      description,
+      descriptionFormat: "markdown",
+    });
+    // A split pair would come out as "\uD83D \uDE00b", with a space between.
+    assert.ok(out.endsWith(" 😀b"), JSON.stringify(out.slice(-6)));
+  });
+});
+
+describe("detectFormat Markdown link detection", () => {
+  let detectFormat;
+  before(async () => {
+    ({ detectFormat } = await import("../../src/util/description.js"));
+  });
+
+  for (const text of [
+    "See [the site](https://example.com) for info",
+    '[x](https://a.com "Title here")',
+    "[Wiki](https://en.wikipedia.org/wiki/Foo_(bar))",
+    "text [a] more [b](c)",
+    "line one\n[link text](http://x.y/z?q=1&r=2)",
+    "![poster](http://x.png)",
+  ]) {
+    it(`detects a Markdown link in ${JSON.stringify(text)}`, () => {
+      assert.strictEqual(detectFormat(text), "markdown");
+    });
+  }
+
+  for (const text of [
+    "no link here (really) [nope]",
+    "[a]\n(b)",
+    "[](empty)",
+    "[a]()",
+    "plain [text] (paren)",
+  ]) {
+    it(`does not treat ${JSON.stringify(text)} as a Markdown link`, () => {
+      assert.strictEqual(detectFormat(text), "plain");
+    });
+  }
+});
+
 describe("plainTextDescription with enrichGoogleEvent", () => {
   let enrichGoogleEvent;
   let plainTextDescription;

@@ -1,6 +1,6 @@
 import { decodeAmp } from "./html-entities.js";
-import { cleanupHtml, stripUrl, URL_PATTERN } from "./sanitize.js";
-import { normalizeUrl } from "./tokens.js";
+import { cleanupHtml, stripMatches, URL_PATTERN } from "./sanitize.js";
+import { normalizeUrl, trimTrailingSlashes } from "./tokens.js";
 
 // Two-segment path prefixes that represent profile-like destinations,
 // not individual content.  Keyed by the first segment.
@@ -17,7 +17,9 @@ const PROFILE_PREFIXES = new Set(["r", "u", "groups"]);
  */
 function pathSegments(url) {
   try {
-    return new URL(url).pathname.replace(/\/+$/, "").split("/").filter(Boolean);
+    return trimTrailingSlashes(new URL(url).pathname)
+      .split("/")
+      .filter(Boolean);
   } catch {
     return [];
   }
@@ -58,7 +60,9 @@ export const DEFAULT_PLATFORMS = [
       // Extract trailing numeric ID from slug like /e/some-title-12345
       const segs = pathSegments(url);
       const slug = segs[segs.length - 1] || "";
-      const m = slug.match(/(\d+)$/);
+      // `(?<!\d)` keeps this linear on a long digit run followed by a
+      // non-digit, like TRAILING_SLASHES_RE in tokens.js.
+      const m = slug.match(/(?<!\d)(\d+)$/);
       return `eventbrite:${m ? m[1] : slug}`;
     },
   },
@@ -269,12 +273,11 @@ export function extractLinkTokens(description, config) {
   description = decodeAmp(description);
   const platforms = config?.knownPlatforms || DEFAULT_PLATFORMS;
   const tokens = [];
-  let cleaned = description;
+  const toStrip = [];
   const seen = new Set();
 
-  URL_PATTERN.lastIndex = 0;
-  const urls = description.match(URL_PATTERN) || [];
-  for (const url of urls) {
+  for (const found of description.matchAll(URL_PATTERN)) {
+    const url = found[0];
     const normalized = normalizeUrl(url);
     for (const platform of platforms) {
       if (platform.pattern.test(url)) {
@@ -282,7 +285,7 @@ export function extractLinkTokens(description, config) {
           ? platform.canonicalize(normalized)
           : null;
         if (canonicalId && seen.has(canonicalId)) {
-          cleaned = stripUrl(cleaned, url);
+          toStrip.push({ index: found.index, text: url });
           break;
         }
         if (canonicalId) seen.add(canonicalId);
@@ -295,12 +298,12 @@ export function extractLinkTokens(description, config) {
           label,
           metadata: {},
         });
-        cleaned = stripUrl(cleaned, url);
+        toStrip.push({ index: found.index, text: url });
         break;
       }
     }
   }
 
-  cleaned = cleanupHtml(cleaned);
+  const cleaned = cleanupHtml(stripMatches(description, toStrip));
   return { tokens, description: cleaned };
 }

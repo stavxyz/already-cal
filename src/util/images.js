@@ -1,5 +1,5 @@
 import { decodeAmp } from "./html-entities.js";
-import { cleanupHtml, stripUrl } from "./sanitize.js";
+import { cleanupHtml, stripMatches, URL_PATTERN } from "./sanitize.js";
 import { normalizeUrl } from "./tokens.js";
 
 /** Frozen so consumers can't mutate the shared default at runtime. */
@@ -99,13 +99,18 @@ export function normalizeImageUrl(url) {
   return url;
 }
 
+// Matches an image URL at the start of a URL run (see extractImageTokens).
+// It must stay anchored and run once per URL run. The unanchored global form
+// is quadratic: on a run with no image extension, such as "http://"
+// repeated, every "http" inside the run is a new start, and each try scans
+// to the end of the run and backtracks all the way. Applying the anchored
+// pattern once per run gives the same matches (a later start inside a run
+// can only match if the run's first start does, and the first start's
+// greedy match already ends at the run's last image extension, leaving
+// nothing for a second match in the same run) in linear time.
 function buildImagePattern(extensions) {
   const ext = extensions.join("|");
-  // Match image URLs whether bare, inside href="...", or inside >...</a> tags
-  return new RegExp(
-    `(https?://[^\\s<>"]+\\.(?:${ext})(?:\\?[^\\s<>"]*)?)`,
-    "gi",
-  );
+  return new RegExp(`^https?://[^\\s<>"]+\\.(?:${ext})(?:\\?[^\\s<>"]*)?`, "i");
 }
 
 export { getPathExtension, imageCanonicalId, NON_IMAGE_EXTENSIONS };
@@ -139,13 +144,17 @@ export function extractImageTokens(description, config) {
   const pattern = buildImagePattern(extensions);
   const seen = new Set();
   const tokens = [];
-  const originalUrls = [];
+  const toStrip = [];
   let match;
 
-  // Standard image URLs (by extension)
-  match = pattern.exec(description);
-  while (match !== null) {
-    const originalUrl = match[1];
+  // Standard image URLs (by extension), whether bare, inside href="...", or
+  // inside >...</a>. URL_PATTERN yields each run from its first "http(s)://"
+  // to the next whitespace, `<`, `>`, or `"`, without overlap, so this scan
+  // is linear; the anchored image pattern then checks each run once.
+  for (const run of description.matchAll(URL_PATTERN)) {
+    match = pattern.exec(run[0]);
+    if (match === null) continue;
+    const originalUrl = match[0];
     const normalized = normalizeImageUrl(originalUrl);
     const cid = imageCanonicalId(originalUrl);
     if (normalized && !seen.has(cid)) {
@@ -159,8 +168,7 @@ export function extractImageTokens(description, config) {
         metadata: {},
       });
     }
-    originalUrls.push(originalUrl);
-    match = pattern.exec(description);
+    toStrip.push({ index: run.index, text: originalUrl });
   }
 
   // Google Drive image URLs
@@ -181,7 +189,7 @@ export function extractImageTokens(description, config) {
         metadata: {},
       });
     }
-    originalUrls.push(originalUrl);
+    toStrip.push({ index: match.index, text: originalUrl });
     match = DRIVE_URL_PATTERN.exec(description);
   }
 
@@ -191,8 +199,8 @@ export function extractImageTokens(description, config) {
   while (match !== null) {
     const originalUrl = match[0];
     const ext = getPathExtension(originalUrl);
+    toStrip.push({ index: match.index, text: originalUrl });
     match = DROPBOX_URL_PATTERN.exec(description);
-    originalUrls.push(originalUrl);
     if (ext && NON_IMAGE_EXTENSIONS.has(ext)) continue;
     const normalized = normalizeImageUrl(originalUrl);
     const cid = imageCanonicalId(originalUrl);
@@ -209,11 +217,7 @@ export function extractImageTokens(description, config) {
     }
   }
 
-  let cleaned = description;
-  for (const url of originalUrls) {
-    cleaned = stripUrl(cleaned, url);
-  }
-  cleaned = cleanupHtml(cleaned);
+  const cleaned = cleanupHtml(stripMatches(description, toStrip));
   return { tokens, description: cleaned };
 }
 

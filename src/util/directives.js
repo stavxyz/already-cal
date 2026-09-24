@@ -1,6 +1,6 @@
 import { decodeAmp } from "./html-entities.js";
 import { imageCanonicalId, normalizeImageUrl } from "./images.js";
-import { cleanupHtml, stripUrl } from "./sanitize.js";
+import { cleanupHtml, stripMatches } from "./sanitize.js";
 
 // Directive regex: #already: followed by non-whitespace, non-HTML chars.
 // Excludes < and > so the match stops before any wrapping </a> tag.
@@ -201,17 +201,12 @@ export function extractDirectives(description) {
 
   const tokens = [];
   const seen = new Set();
-  let cleaned = description;
   let featured = false;
   let hidden = false;
 
   const matches = [...description.matchAll(DIRECTIVE_PATTERN)];
   for (const match of matches) {
-    const fullMatch = match[0];
     const body = match[1];
-
-    // Always strip the directive from description, even if malformed
-    cleaned = stripUrl(cleaned, fullMatch);
 
     // Intercept featured/hidden flags before parseDirective (they have no colon in body)
     const bodyLower = body.toLowerCase();
@@ -233,6 +228,12 @@ export function extractDirectives(description) {
     }
   }
 
-  cleaned = cleanupHtml(cleaned);
+  // Always strip every directive from the description, even a malformed one.
+  const cleaned = cleanupHtml(
+    stripMatches(
+      description,
+      matches.map((m) => ({ index: m.index, text: m[0] })),
+    ),
+  );
   return { tokens, description: cleaned, featured, hidden };
 }

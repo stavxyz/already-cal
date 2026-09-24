@@ -472,10 +472,12 @@ function stripHtml(html) {
  * Most characters of a Markdown description that `plainTextDescription`
  * hands to `marked.parse`. marked (v15) is super-linear on some inputs, so
  * this caps the cost on descriptions an attacker controls. Unclosed link
- * syntax such as "[a](" or "![a](" repeated is the worst case, roughly cubic:
- * 14 ms at 1,000 characters, 122 ms at 2,000, 1 s at 4,000, and 12.7 s at
- * 8,000 (marked 15.0.12 on Node 26, on one development machine); "__a"
- * repeated is quadratic, 4 s at 64,000. 1,000 keeps the worst case in the tens of
+ * syntax with empty link text, "[](" or "![](" repeated, is the slowest
+ * input found and is roughly cubic: 31 to 38 ms at 1,000 characters (best of
+ * five runs), about 0.5 s at 2,000, and 3 to 7 s at 4,000. "[a](" and
+ * "![a](" repeated take about half as long. "__a" repeated is quadratic,
+ * 4 s at 64,000. These are marked 15.0.12 on Node 26, on one shared
+ * development machine. 1,000 keeps the worst case in the tens of
  * milliseconds and is still several times the length of the link-preview
  * text this function exists for.
  */

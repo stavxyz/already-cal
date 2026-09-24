@@ -15,17 +15,50 @@ export function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (c) => ESC_MAP[c]);
 }
 
-/** Escape special regex characters in a string for use in new RegExp(). */
-export function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/**
+ * Remove a URL from HTML, stripping both bare URLs and <a>-wrapped versions.
+ *
+ * Equivalent to replacing `/<a[^>]*>URL<\/a>/gi` and then every literal
+ * occurrence of URL with "", but builds no RegExp from `url`. The RegExp
+ * version threw "Regular expression too large" on a long enough URL or
+ * directive (a 64,000-character "#already:" run did it), and its `[^>]*`
+ * made each call quadratic on a run of `<a` with no `>`.
+ */
+export function stripUrl(html, url) {
+  return stripWrappingAnchors(html, url).split(url).join("");
 }
 
-/** Remove a URL from HTML, stripping both bare URLs and <a>-wrapped versions. */
-export function stripUrl(html, url) {
-  const escaped = escapeRegex(url);
-  html = html.replace(new RegExp(`<a[^>]*>${escaped}</a>`, "gi"), "");
-  html = html.replace(new RegExp(escaped, "g"), "");
-  return html;
+const ANCHOR_OPEN_RE = /<a/gi;
+
+/**
+ * Remove every `<a ...>URL</a>` (tag and URL matched case-insensitively,
+ * like the `gi` RegExp this replaces). An opener's `[^>]*>` always ends at
+ * the first `>` after it, so that position is found with `indexOf` and
+ * reused by later openers that sit before it, which keeps the scan linear.
+ */
+function stripWrappingAnchors(html, url) {
+  const target = `${url}</a>`.toLowerCase();
+  let out = "";
+  let cursor = 0;
+  let gt = -1;
+  ANCHOR_OPEN_RE.lastIndex = 0;
+  let open = ANCHOR_OPEN_RE.exec(html);
+  while (open !== null) {
+    const afterOpen = open.index + 2;
+    if (gt < afterOpen) gt = html.indexOf(">", afterOpen);
+    // No `>` after this opener means none after any later opener either.
+    if (gt === -1) break;
+    const end = gt + 1 + target.length;
+    if (html.slice(gt + 1, end).toLowerCase() === target) {
+      out += html.slice(cursor, open.index);
+      cursor = end;
+      ANCHOR_OPEN_RE.lastIndex = end;
+    } else {
+      ANCHOR_OPEN_RE.lastIndex = open.index + 1;
+    }
+    open = ANCHOR_OPEN_RE.exec(html);
+  }
+  return out + html.slice(cursor);
 }
 
 /** Clean up HTML after URL extraction: collapse orphaned <br> runs, remove leading/trailing <br>, and normalize whitespace. */

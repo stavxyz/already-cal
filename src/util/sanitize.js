@@ -81,7 +81,17 @@ export function cleanupHtml(str) {
       .replace(/(<br\s*\/?>[\s]*){2,}/gi, "<br><br>")
       // Remove <br> at the very start or end
       .replace(/^(\s*<br\s*\/?>[\s]*)+/gi, "")
-      .replace(/(\s*<br\s*\/?>[\s]*)+$/gi, "")
+      // Trailing <br> run. Written as `\s*(?:<br...>\s*)+`, the same language
+      // as the older `(\s*<br...>\s*)+`, so the output is unchanged. The
+      // older form was quadratic in two ways. Every position inside a long
+      // whitespace run was a new start whose `\s*` scanned to the end of
+      // the run and failed; `(?<!\s)` rules those starts out, and it never
+      // rules out the real match, because a match's leftmost start can't
+      // follow whitespace (the leading `\s*` would have absorbed it). And on
+      // "<br>" + spaces + "x", each backtrack step in the whitespace after a
+      // <br> let the next repetition's own `\s*` rescan the rest of it; with
+      // the whitespace only after the tag, each step checks for `<br` once.
+      .replace(/(?<!\s)\s*(?:<br\s*\/?>\s*)+$/gi, "")
       // Collapse 3+ newlines into 2
       .replace(/\n{3,}/g, "\n\n")
       .trim()

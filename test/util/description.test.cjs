@@ -666,6 +666,32 @@ describe("plainTextDescription Markdown parse limit", () => {
     assert.ok(out.endsWith("x a < b and c > d bold y"), out.slice(-40));
   });
 
+  for (const text of [
+    "a </ b > c",
+    "wow <! fun > yes",
+    "is x <? y > z",
+    "a <b.c> d",
+    "mail <foo@bar.com> or <https://a.co> ok",
+  ]) {
+    it(`keeps ${JSON.stringify(text)} in the unparsed rest`, () => {
+      const filler = "word ".repeat(250).trim();
+      const out = plainTextDescription({
+        description: `**B** ${filler}\n${text}`,
+        descriptionFormat: "markdown",
+      });
+      assert.ok(out.endsWith(` ${text}`), out.slice(-50));
+    });
+  }
+
+  it("still strips tags, comments, and self-closing tags in the unparsed rest", () => {
+    const filler = "word ".repeat(250).trim();
+    const out = plainTextDescription({
+      description: `**B** ${filler}\nx <b>bold</b> <br/> <!-- c --> <!DOCTYPE html> y`,
+      descriptionFormat: "markdown",
+    });
+    assert.ok(out.endsWith("word x bold y"), out.slice(-30));
+  });
+
   it("parses a long Markdown paragraph that follows a short first line", () => {
     const paragraph = "**w** [l](https://a.co) ".repeat(60).trim();
     const out = plainTextDescription({

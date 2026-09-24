@@ -492,11 +492,11 @@ const MARKDOWN_PARSE_LIMIT = 500;
  * space, whichever is later, if that is in the second half, so a line or word
  * is not split in two. If there is neither, it cuts at the limit, never
  * inside a surrogate pair. A cut in the first half is never used because it
- * would leave most of the parse budget unused. The rest is appended unparsed, with only a `<`
- * that cannot start a tag escaped. The caller strips tags and decodes
- * entities from the whole result, so that rest still comes out as readable
- * text; only its Markdown syntax (such as `**` or `[text](url)`) is left in
- * place.
+ * would leave most of the parse budget unused. The rest is appended
+ * unparsed, with every `<` that does not start a tag, comment, or doctype
+ * escaped. The caller strips tags and decodes entities from the whole
+ * result, so that rest still comes out as readable text; only its Markdown
+ * syntax (such as `**` or `[text](url)`) is left in place.
  */
 function markdownToHtmlBounded(text) {
   if (text.length <= MARKDOWN_PARSE_LIMIT) return marked.parse(text);
@@ -515,10 +515,12 @@ function markdownToHtmlBounded(text) {
   return `${marked.parse(text.slice(0, cut))}\n${escapeNonTagLt(text.slice(cut))}`;
 }
 
-// A `<` that cannot start a tag, such as the one in "a < b", escaped so the
-// caller's tag stripping does not treat "< b and c >" as a tag. marked does
-// the same for the parsed head, so both parts keep such text.
-const NON_TAG_LT_RE = /<(?![a-z/!?])/gi;
+// Every `<` that does not start a tag, an HTML comment, or a doctype is
+// escaped, so the caller's tag stripping keeps text such as "a < b and c > d",
+// "a </ b > c", "<? y >", "<b.c>", and "<foo@bar.com>". A tag here is `<`,
+// an optional `/`, a letter, then letters, digits, or `-`, then whitespace,
+// `/`, or `>`. The parsed head keeps the same text through marked.
+const NON_TAG_LT_RE = /<(?!\/?[a-z][a-z0-9-]*[\s/>]|!--|!doctype)/gi;
 
 function escapeNonTagLt(text) {
   return text.replace(NON_TAG_LT_RE, "&lt;");

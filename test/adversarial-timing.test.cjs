@@ -3,12 +3,22 @@ const assert = require("node:assert");
 
 // Server-side consumers run enrichGoogleEvent and plainTextDescription on
 // event descriptions that anyone who can edit a calendar controls. Each input
-// below once made one of the regexes or marked.parse super-linear, taking
-// from hundreds of milliseconds to minutes at this length. Every one now
-// finishes in a few milliseconds; the 200 ms bound is loose so a slow CI
-// machine does not fail it, while a quadratic regression still does.
-const LENGTH = 64000;
-const BOUND_MS = 200;
+// below once made one of the regexes or marked.parse super-linear. Each test
+// times the input at 128,000 and at 512,000 characters, best of three runs
+// taken alternately so a burst of machine load hits both lengths, and
+// requires the longer to take less than 8 times as long, plus a few
+// milliseconds for timer noise on inputs that finish in under a millisecond.
+// Linear work grows about 4 times over that step and quadratic work about 16
+// times, so the ratio separates them without depending on how fast the
+// machine is. The absolute ceiling at 512,000 characters catches a cost that
+// is large at both lengths, such as a Markdown parse limit raised far enough
+// that marked's cubic cost dominates.
+const SHORT = 128000;
+const LONG = 512000;
+const MAX_GROWTH = 8;
+const NOISE_MS = 10;
+const CEILING_MS = 1000;
+const RUNS = 3;
 
 function repeatTo(unit, length) {
   return unit.repeat(Math.ceil(length / unit.length)).slice(0, length);
@@ -48,7 +58,14 @@ const INPUTS = {
   "distinct directives": (n) => sequenceTo((i) => `#already:tag:t${i}\n`, n),
 };
 
-describe(`adversarial ${LENGTH}-character descriptions`, () => {
+function time(enrichGoogleEvent, plainTextDescription, description) {
+  const start = performance.now();
+  const event = enrichGoogleEvent({ id: "e", description }, {});
+  plainTextDescription(event);
+  return performance.now() - start;
+}
+
+describe("adversarial descriptions", () => {
   let enrichGoogleEvent;
   let plainTextDescription;
   before(async () => {
@@ -58,23 +75,32 @@ describe(`adversarial ${LENGTH}-character descriptions`, () => {
     // Warm up so one-time JIT and regex compilation isn't timed below.
     for (const make of Object.values(INPUTS)) {
       plainTextDescription(
-        enrichGoogleEvent({ id: "w", description: make(200) }, {}),
+        enrichGoogleEvent({ id: "w", description: make(1000) }, {}),
       );
     }
   });
 
   for (const [label, make] of Object.entries(INPUTS)) {
-    it(`${label}: enrichGoogleEvent plus plainTextDescription under ${BOUND_MS} ms`, () => {
-      const description = make(LENGTH);
-      assert.strictEqual(description.length, LENGTH);
-      const start = performance.now();
-      const event = enrichGoogleEvent({ id: "e", description }, {});
-      plainTextDescription(event);
-      const elapsed = performance.now() - start;
-      assert.ok(
-        elapsed < BOUND_MS,
-        `expected under ${BOUND_MS} ms, took ${elapsed.toFixed(1)} ms`,
-      );
+    it(`${label}: time grows less than ${MAX_GROWTH}x from ${SHORT} to ${LONG} characters`, () => {
+      const short = make(SHORT);
+      const long = make(LONG);
+      assert.strictEqual(short.length, SHORT);
+      assert.strictEqual(long.length, LONG);
+      let tShort = Number.POSITIVE_INFINITY;
+      let tLong = Number.POSITIVE_INFINITY;
+      for (let run = 0; run < RUNS; run++) {
+        tShort = Math.min(
+          tShort,
+          time(enrichGoogleEvent, plainTextDescription, short),
+        );
+        tLong = Math.min(
+          tLong,
+          time(enrichGoogleEvent, plainTextDescription, long),
+        );
+      }
+      const times = `${tShort.toFixed(1)} ms at ${SHORT}, ${tLong.toFixed(1)} ms at ${LONG}`;
+      assert.ok(tLong < MAX_GROWTH * tShort + NOISE_MS, times);
+      assert.ok(tLong < CEILING_MS, times);
     });
   }
 });

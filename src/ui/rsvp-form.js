@@ -40,6 +40,7 @@ function field(form, name, labelText, attrs) {
 function createRsvpForm(event, config, onClose) {
   const i18n = config.i18n || {};
   const invalidText = i18n.rsvpInvalid || "Check your name and email address.";
+  const startedText = i18n.rsvpStarted || "This event has already started.";
   const failedText = i18n.rsvpFailed || "Could not save your RSVP. Try again.";
   // novalidate: this function is the one validator, so the message a
   // visitor sees is the widget's (translatable) one, not the browser's.
@@ -143,10 +144,10 @@ function createRsvpForm(event, config, onClose) {
         i18n.rsvpDone || "You're on the list: {count} going"
       ).replaceAll("{count}", String(count));
       form.replaceWith(done);
-    } catch {
+    } catch (err) {
       submit.disabled = false;
       cancel.disabled = false;
-      showError(failedText);
+      showError(err && err.code === "event_started" ? startedText : failedText);
     }
   });
 

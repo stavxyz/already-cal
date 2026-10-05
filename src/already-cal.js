@@ -118,6 +118,7 @@ const I18N_DEFAULTS = {
   rsvpCancel: "Cancel",
   rsvpDone: "You're on the list: {count} going",
   rsvpInvalid: "Check your name and email address.",
+  rsvpStarted: "This event has already started.",
   rsvpFailed: "Could not save your RSVP. Try again.",
 };
 

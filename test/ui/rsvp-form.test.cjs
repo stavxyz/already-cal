@@ -279,6 +279,33 @@ describe("appendRsvpControl", () => {
     );
   });
 
+  it("shows rsvpStarted when onRsvp rejects with an event_started error", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    appendRsvpControl(
+      host,
+      flagged(),
+      cfg({
+        i18n: { ...i18n, rsvpStarted: "Started" },
+        onRsvp: async () => {
+          const err = new Error("rsvp: event_started");
+          err.code = "event_started";
+          throw err;
+        },
+      }),
+    ).click();
+    const form = host.querySelector("form");
+    form.querySelector('input[name="name"]').value = "Larry";
+    form.querySelector('input[name="email"]').value = "larry@example.com";
+    form.dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    await flush();
+    const err = form.querySelector(".already-rsvp__error");
+    assert.strictEqual(err.hidden, false);
+    assert.strictEqual(err.textContent, "Started");
+  });
+
   it("does not call onRsvp with an empty name or a malformed email, and says what to fix", async () => {
     let calls = 0;
     const host = document.createElement("div");

@@ -51,6 +51,7 @@ Directives let you control already-cal behavior using `#already:<type>:<value>` 
 #already:tag:fundraiser            → filterable tag badge
 #already:featured                  → pins event to top
 #already:hidden                    → hides from views
+#already:image-rotate              → picks a different one of the event's images per occurrence
 ```
 
 All 18 built-in platforms are supported, plus aliases. For the complete reference including all platforms, URL construction, tag types, and deduplication rules, see the **[Directives Reference](directives.md)**.

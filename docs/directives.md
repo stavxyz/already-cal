@@ -55,7 +55,7 @@ Add a platform button to an event without pasting the full URL. The directive va
 
 ## Image Directives
 
-Add images to an event's gallery without pasting the full URL into the description body.
+Add images to an event's gallery without pasting the full URL into the description body. A long list of image directives can trip the "Text too long. Remove text or style to avoid truncation." warning in Google Calendar's description editor (seen with 22 Google Photos URLs), so keep the list short.
 
 ### Direct URL
 
@@ -73,6 +73,14 @@ The URL is added to the event's `images` array. Standard image normalization app
 
 Converted to `https://lh3.googleusercontent.com/d/FILE_ID`. The file must be publicly shared.
 
+### Rotate the card image
+
+```
+#already:image-rotate
+```
+
+A flag directive for recurring events with several `#already:image:` directives. Without it, the card always shows the first image listed, so a grid of a weekly event is one photo repeated down the page. With it, the card image is chosen per occurrence by a stable hash of the event's own id: the same occurrence always shows the same photo (consistent across renders), while different occurrences show different photos from the same list. The detail view's gallery starts from the chosen image instead of always the first one. The rotation applies to the event's images from any source: image directives, image URLs in the description, image attachments, or a host-supplied `images` array. It keys on the event `id`, so occurrences must have distinct ids (Google's expanded instances of a recurring event do). An event with fewer than two images, or one that already has an explicit `image` set, is unaffected. Only host-supplied event JSON can carry an explicit `image`, since events read from Google Calendar never do.
+
 ## Tag Directives
 
 Tags are metadata labels attached to events. They appear as pills in the detail view, on badge and compact cards, and in the tag filter bar.
@@ -88,7 +96,7 @@ Produces a tag with `key: "tag"` and `value: "fundraiser"`. Rendered as a simple
 
 ### Key-value tags
 
-Any directive type that isn't a recognized platform, `image`, `tag`, `featured`, or `hidden` is treated as a key-value tag:
+Any directive type that isn't a recognized platform, `image`, `tag`, `featured`, `hidden`, or `image-rotate` is treated as a key-value tag:
 
 ```
 #already:cost:$25              → badge pill "cost: $25"
@@ -128,6 +136,8 @@ These are flag directives — they have no value, just the keyword after `#alrea
 - Removes the event from all views (grid, list, month, week, day)
 - The event is still accessible via direct link (`#event/<id>` or `/event/<id>`)
 - Sets `event.hidden = true` on the event object
+
+`#already:image-rotate` is a third flag directive; see [Rotate the card image](#rotate-the-card-image).
 
 ## Deduplication
 

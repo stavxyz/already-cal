@@ -6,6 +6,7 @@ import {
 import { stripComments } from "./util/comments.js";
 import { detectFormat } from "./util/description.js";
 import { extractDirectives } from "./util/directives.js";
+import { stableIndex } from "./util/hash.js";
 import { extractImageTokens, normalizeImageUrl } from "./util/images.js";
 import { extractLinkTokens } from "./util/links.js";
 import { TokenSet } from "./util/tokens.js";
@@ -67,6 +68,7 @@ export function enrichEvent(event, config) {
   let links = event.links && event.links.length > 0 ? event.links : [];
   let featured = event.featured || false;
   let hidden = event.hidden || false;
+  let imageRotate = event.imageRotate || false;
 
   const tokenSet = new TokenSet();
 
@@ -80,6 +82,7 @@ export function enrichEvent(event, config) {
     tokenSet.addAll(result.tokens);
     if (result.featured) featured = true;
     if (result.hidden) hidden = true;
+    if (result.imageRotate) imageRotate = true;
   }
 
   // Step 2: Extract images from description if not already set
@@ -133,6 +136,14 @@ export function enrichEvent(event, config) {
   if (imageTokens.length > 0 && images.length === 0) {
     images = imageTokens.map((t) => t.url);
   }
+  // #already:image-rotate: pick which image leads per occurrence instead of
+  // always the first directive. Keyed by the occurrence's own id: the same
+  // id always gives the same index, so the same occurrence always leads
+  // with the same image.
+  if (imageRotate && images.length > 1 && !image) {
+    const i = stableIndex(event.id, images.length);
+    images = [images[i], ...images.slice(0, i), ...images.slice(i + 1)];
+  }
   if (!image && images.length > 0) image = images[0];
 
   const linkTokens = tokenSet.ofType("link");
@@ -174,6 +185,7 @@ export function enrichEvent(event, config) {
     tags,
     featured,
     hidden,
+    imageRotate,
     htmlLink: event.htmlLink || "",
   };
 }

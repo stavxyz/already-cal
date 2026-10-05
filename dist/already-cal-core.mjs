@@ -3148,12 +3148,19 @@ function parseDirective(body) {
 }
 function extractDirectives(description) {
   if (!description)
-    return { tokens: [], description, featured: false, hidden: false };
+    return {
+      tokens: [],
+      description,
+      featured: false,
+      hidden: false,
+      imageRotate: false
+    };
   description = decodeAmp(description);
   const tokens = [];
   const seen = /* @__PURE__ */ new Set();
   let featured = false;
   let hidden = false;
+  let imageRotate = false;
   const matches = [...description.matchAll(DIRECTIVE_PATTERN)];
   for (const match of matches) {
     const body = match[1];
@@ -3164,6 +3171,10 @@ function extractDirectives(description) {
     }
     if (bodyLower === "hidden") {
       hidden = true;
+      continue;
+    }
+    if (bodyLower === "image-rotate") {
+      imageRotate = true;
       continue;
     }
     const token = parseDirective(body);
@@ -3179,7 +3190,19 @@ function extractDirectives(description) {
       matches.map((m) => ({ index: m.index, text: m[0] }))
     )
   );
-  return { tokens, description: cleaned, featured, hidden };
+  return { tokens, description: cleaned, featured, hidden, imageRotate };
+}
+
+// src/util/hash.js
+function stableIndex(key, length) {
+  if (!(length > 1)) return 0;
+  const str = String(key ?? "");
+  let hash = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) % length;
 }
 
 // src/data.js
@@ -3190,6 +3213,7 @@ function enrichEvent(event, config) {
   let links = event.links && event.links.length > 0 ? event.links : [];
   let featured = event.featured || false;
   let hidden = event.hidden || false;
+  let imageRotate = event.imageRotate || false;
   const tokenSet = new TokenSet();
   description = stripComments(description);
   if (description) {
@@ -3198,6 +3222,7 @@ function enrichEvent(event, config) {
     tokenSet.addAll(result.tokens);
     if (result.featured) featured = true;
     if (result.hidden) hidden = true;
+    if (result.imageRotate) imageRotate = true;
   }
   if (images.length === 0 && description) {
     const result = extractImageTokens(description, config);
@@ -3240,6 +3265,10 @@ function enrichEvent(event, config) {
   if (imageTokens.length > 0 && images.length === 0) {
     images = imageTokens.map((t) => t.url);
   }
+  if (imageRotate && images.length > 1 && !image) {
+    const i = stableIndex(event.id, images.length);
+    images = [images[i], ...images.slice(0, i), ...images.slice(i + 1)];
+  }
   if (!image && images.length > 0) image = images[0];
   const linkTokens = tokenSet.ofType("link");
   if (linkTokens.length > 0 && links.length === 0) {
@@ -3273,6 +3302,7 @@ function enrichEvent(event, config) {
     tags,
     featured,
     hidden,
+    imageRotate,
     htmlLink: event.htmlLink || ""
   };
 }

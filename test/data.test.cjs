@@ -412,6 +412,7 @@ describe("enrichGoogleEvent", () => {
     tags: [{ key: "tag", value: "food" }],
     featured: false,
     hidden: false,
+    imageRotate: false,
   };
 
   it("matches the pinned pre-refactor output for a representative item", () => {

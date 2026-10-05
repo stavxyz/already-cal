@@ -397,7 +397,7 @@ already-cal collects images from three sources:
 3. **Dropbox links in the description** — URLs containing `/scl/fi/`, `/s/`, or on `dl.dropboxusercontent.com` are recognized and normalized to `?raw=1` for direct serving. The file must be publicly shared.
 4. **Attachments** with `image/*` MIME type — from Google Calendar or your own data (Drive and Dropbox attachment URLs are also normalized)
 
-The first image is the thumbnail (grid/list views). Multiple images show as a gallery in detail view. Tapping any gallery image opens a fullscreen lightbox overlay:
+The first image is the thumbnail (grid/list views). Multiple images show as a gallery in detail view. Tapping any gallery image opens a fullscreen lightbox overlay. For a recurring event, add the `#already:image-rotate` flag directive to give each occurrence a different thumbnail from the event's images, whatever their source, instead of always the first one (see [directives reference](docs/directives.md#rotate-the-card-image)).
 
 - **Navigation:** Left/Right arrow keys, or on-screen prev/next buttons
 - **Dismiss:** Close button, backdrop click, image click, or Escape key
@@ -430,6 +430,7 @@ Directives let you control already-cal behavior directly from event descriptions
 #already:cost:$25                  → key-value tag badge "cost: $25"
 #already:featured                  → pins event to top, adds star badge
 #already:hidden                    → hides from views (still accessible via direct link)
+#already:image-rotate              → picks a different one of the event's images per occurrence
 ```
 
 All 18 built-in platforms are supported as directives, plus aliases (`twitter` → X, `meet` → Google Meet, `forms` → Google Forms, `maps` → Google Maps). Directives and URLs are deduplicated — `#already:instagram:foo` and `https://instagram.com/foo` produce one button, not two.

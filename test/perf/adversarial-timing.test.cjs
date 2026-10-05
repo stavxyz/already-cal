@@ -52,12 +52,11 @@ const INPUTS = {
   "one long URL": (n) => `https://example.com/${"a".repeat(n - 20)}`,
   '"#already:" repeated': (n) => repeatTo("#already:", n),
   '"#already:x" lines': (n) => repeatTo("#already:x \n", n),
-  '"#already:x:<a href=\"h\"" repeated': (n) =>
+  '"#already:x:<a href="h"" repeated': (n) =>
     repeatTo('#already:x:<a href="h"', n),
-  '"#already:x:<a href=\"" repeated': (n) =>
-    repeatTo('#already:x:<a href="', n),
+  '"#already:x:<a href="" repeated': (n) => repeatTo('#already:x:<a href="', n),
   '"#already:x:<a " repeated': (n) => repeatTo("#already:x:<a ", n),
-  '"#already:x:<a " then "href=\"x\" " repeated': (n) =>
+  '"#already:x:<a " then "href="x" " repeated': (n) =>
     `#already:x:<a ${repeatTo('href="x" ', n - 14)}`,
   '"#already:x:<a href=\'" then one long run': (n) =>
     `#already:x:<a href='${"a".repeat(n - 27)}">x</a>`,

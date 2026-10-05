@@ -131,6 +131,7 @@ function createRsvpForm(event, config, onClose) {
       return showError(invalidText);
     error.hidden = true;
     submit.disabled = true;
+    cancel.disabled = true;
     try {
       const result = await config.onRsvp(event, fields);
       const count =
@@ -144,6 +145,7 @@ function createRsvpForm(event, config, onClose) {
       form.replaceWith(done);
     } catch {
       submit.disabled = false;
+      cancel.disabled = false;
       showError(failedText);
     }
   });

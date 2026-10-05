@@ -212,6 +212,43 @@ describe("appendRsvpControl", () => {
     );
   });
 
+  it("disables cancel while onRsvp is pending and re-enables both on rejection", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    let reject;
+    appendRsvpControl(
+      host,
+      flagged(),
+      cfg({
+        onRsvp: () =>
+          new Promise((_resolve, _reject) => {
+            reject = _reject;
+          }),
+      }),
+    ).click();
+    const form = host.querySelector("form");
+    form.querySelector('input[name="name"]').value = "Larry";
+    form.querySelector('input[name="email"]').value = "larry@example.com";
+    form.dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    await flush();
+    assert.strictEqual(
+      form.querySelector(".already-rsvp__cancel").disabled,
+      true,
+    );
+    reject(new Error("rsvp: failed"));
+    await flush();
+    assert.strictEqual(
+      form.querySelector(".already-rsvp__submit").disabled,
+      false,
+    );
+    assert.strictEqual(
+      form.querySelector(".already-rsvp__cancel").disabled,
+      false,
+    );
+  });
+
   it("shows the error and keeps the values when onRsvp rejects", async () => {
     const host = document.createElement("div");
     document.body.appendChild(host);

@@ -55,7 +55,7 @@ Add a platform button to an event without pasting the full URL. The directive va
 
 ## Image Directives
 
-Add images to an event's gallery without pasting the full URL into the description body.
+Add images to an event's gallery without pasting the full URL into the description body. Google Calendar's description editor warns "Text too long" and truncates past a few thousand characters, so a long image list should stay under that; a Google Photos URL is about 160 characters.
 
 ### Direct URL
 
@@ -72,6 +72,14 @@ The URL is added to the event's `images` array. Standard image normalization app
 ```
 
 Converted to `https://lh3.googleusercontent.com/d/FILE_ID`. The file must be publicly shared.
+
+### Rotate the card image
+
+```
+#already:image-rotate
+```
+
+A flag directive for recurring events with several `#already:image:` directives. Without it, the card always shows the first image listed, so a grid of a weekly event is one photo repeated down the page. With it, the card image is chosen per occurrence by a stable hash of the event's own id: the same occurrence always shows the same photo (consistent across renders and in share previews), while different occurrences show different photos from the same list. The detail view's gallery starts from the chosen image instead of always the first one. An event with fewer than two images, or one that already has an explicit `image` set, is unaffected.
 
 ## Tag Directives
 

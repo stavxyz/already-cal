@@ -162,6 +162,7 @@ Already.init({
     rsvpCancel: 'Cancel',
     rsvpDone: "You're on the list: {count} going",
     rsvpInvalid: 'Check your name, email and party size.',
+    rsvpStarted: 'This event has already started.',
     rsvpFailed: 'Could not save your RSVP. Try again.',
   },
 
@@ -445,6 +446,7 @@ Directives let you control already-cal behavior directly from event descriptions
 #already:featured                  → pins event to top, adds star badge
 #already:hidden                    → hides from views (still accessible via direct link)
 #already:image-shuffle             → a stable image per occurrence, chosen from the list by a hash of the occurrence id
+#already:rsvp                      → the event takes RSVPs when the host configured onRsvp
 ```
 
 A URL-valued directive pasted into Google Calendar is read from the link the editor turns it into (see [docs/directives.md](docs/directives.md)).
@@ -465,7 +467,11 @@ Already.init({
 });
 ```
 
-`Already.rsvpViaFetch(url)` posts `{ eventId, name, email, partySize, website }` as JSON and resolves with the response body; the done line shows `partySize` from the response. Write your own `onRsvp(event, fields)` for any other transport: resolve with `{ partySize }` to confirm, reject to show the failure message. `website` is a honeypot field; a real visitor never fills it. Labels come from `i18n` (`rsvp`, `rsvpName`, `rsvpEmail`, `rsvpPartySize`, `rsvpSubmit`, `rsvpCancel`, `rsvpDone`, `rsvpFailed`), and the Badge footer's link to the Google event page is labeled `i18n.details`.
+`Already.rsvpViaFetch(url)` posts `{ eventId, name, email, partySize, website }` as JSON and resolves with the response body; the done line shows `partySize` from the response. Write your own `onRsvp(event, fields)` for any other transport: resolve with `{ partySize }` to confirm, reject to show the failure message. `website` is a honeypot field; a real visitor never fills it. Labels come from `i18n` (`rsvp`, `rsvpName`, `rsvpEmail`, `rsvpPartySize`, `rsvpSubmit`, `rsvpCancel`, `rsvpDone`, `rsvpInvalid`, `rsvpStarted`, `rsvpFailed`), and the Badge footer's link to the Google event page is labeled `i18n.details`.
+
+Badge's footer link to the Google event page, previously labeled RSVP, is now labeled Details (i18n.details); the RSVP button is separate and appears only when onRsvp is configured.
+
+Rejections from rsvpViaFetch carry code and status; the form shows rsvpStarted for event_started and rsvpFailed for everything else.
 
 ## Tag Filtering
 

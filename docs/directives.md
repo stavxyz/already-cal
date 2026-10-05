@@ -117,7 +117,7 @@ URL-valued tags are excluded from the tag filter bar and from card pills.
 
 ## Featured and Hidden
 
-These are flag directives — they have no value, just the keyword after `#already:`.
+These are flag directives — they have no value, just the keyword after `#already:`. `#already:rsvp` is a further flag directive, documented under RSVP below.
 
 ### Featured
 

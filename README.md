@@ -433,6 +433,8 @@ Directives let you control already-cal behavior directly from event descriptions
 #already:image-shuffle             → a stable image per occurrence, chosen from the list by a hash of the occurrence id
 ```
 
+A URL-valued directive pasted into Google Calendar is read from the link the editor turns it into (see [docs/directives.md](docs/directives.md)).
+
 All 18 built-in platforms are supported as directives, plus aliases (`twitter` → X, `meet` → Google Meet, `forms` → Google Forms, `maps` → Google Maps). Directives and URLs are deduplicated — `#already:instagram:foo` and `https://instagram.com/foo` produce one button, not two.
 
 For the complete reference including all platforms, URL construction, tag types, and deduplication rules, see the **[directives reference](docs/directives.md)**.

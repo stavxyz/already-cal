@@ -188,6 +188,30 @@ describe("appendRsvpControl", () => {
     );
   });
 
+  it("replaces every {count} placeholder in the done line", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    appendRsvpControl(
+      host,
+      flagged(),
+      cfg({
+        i18n: { ...i18n, rsvpDone: "{count} and {count}" },
+        onRsvp: async () => ({ partySize: 3 }),
+      }),
+    ).click();
+    const form = host.querySelector("form");
+    form.querySelector('input[name="name"]').value = "Larry";
+    form.querySelector('input[name="email"]').value = "larry@example.com";
+    form.dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    await flush();
+    assert.strictEqual(
+      host.querySelector(".already-rsvp__done").textContent,
+      "3 and 3",
+    );
+  });
+
   it("shows the error and keeps the values when onRsvp rejects", async () => {
     const host = document.createElement("div");
     document.body.appendChild(host);

@@ -140,7 +140,7 @@ function createRsvpForm(event, config, onClose) {
       const done = createElement("p", "already-rsvp__done", { role: "status" });
       done.textContent = (
         i18n.rsvpDone || "You're on the list: {count} going"
-      ).replace("{count}", String(count));
+      ).replaceAll("{count}", String(count));
       form.replaceWith(done);
     } catch {
       submit.disabled = false;

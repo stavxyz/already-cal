@@ -39,7 +39,8 @@ function field(form, name, labelText, attrs) {
 
 function createRsvpForm(event, config, onClose) {
   const i18n = config.i18n || {};
-  const invalidText = i18n.rsvpInvalid || "Check your name and email address.";
+  const invalidText =
+    i18n.rsvpInvalid || "Check your name, email and party size.";
   const startedText = i18n.rsvpStarted || "This event has already started.";
   const failedText = i18n.rsvpFailed || "Could not save your RSVP. Try again.";
   // novalidate: this function is the one validator, so the message a

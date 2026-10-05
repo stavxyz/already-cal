@@ -279,6 +279,30 @@ describe("appendRsvpControl", () => {
     );
   });
 
+  it("falls back to the submitted count when onRsvp resolves without one", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    appendRsvpControl(
+      host,
+      flagged(),
+      cfg({
+        onRsvp: async () => ({}),
+      }),
+    ).click();
+    const form = host.querySelector("form");
+    form.querySelector('input[name="name"]').value = "Larry";
+    form.querySelector('input[name="email"]').value = "larry@example.com";
+    form.querySelector('input[name="partySize"]').value = "4";
+    form.dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    await flush();
+    assert.strictEqual(
+      host.querySelector(".already-rsvp__done").textContent,
+      "4 going",
+    );
+  });
+
   it("shows rsvpStarted when onRsvp rejects with an event_started error", async () => {
     const host = document.createElement("div");
     document.body.appendChild(host);

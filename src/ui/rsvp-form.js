@@ -106,10 +106,14 @@ function createRsvpForm(event, config, onClose) {
 
   // The card around this form navigates on click, Space and Enter
   // (bindEventClick). Nothing typed or clicked inside the form may reach it.
+  let pending = false;
   form.addEventListener("click", (e) => e.stopPropagation());
   form.addEventListener("keydown", (e) => {
     e.stopPropagation();
-    if (e.key === "Escape") onClose();
+    if (e.key !== "Escape") return;
+    // Mirrors the disabled Cancel button: a pending submit can't be aborted.
+    if (pending) return;
+    onClose();
   });
   cancel.addEventListener("click", onClose);
 
@@ -134,6 +138,7 @@ function createRsvpForm(event, config, onClose) {
     error.hidden = true;
     submit.disabled = true;
     cancel.disabled = true;
+    pending = true;
     try {
       const result = await config.onRsvp(event, fields);
       const count =
@@ -146,6 +151,7 @@ function createRsvpForm(event, config, onClose) {
       ).replaceAll("{count}", String(count));
       form.replaceWith(done);
     } catch (err) {
+      pending = false;
       submit.disabled = false;
       cancel.disabled = false;
       showError(err && err.code === "event_started" ? startedText : failedText);

@@ -249,6 +249,40 @@ describe("appendRsvpControl", () => {
     );
   });
 
+  it("ignores Escape while onRsvp is pending, then closes on it after rejection", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    let reject;
+    appendRsvpControl(
+      host,
+      flagged(),
+      cfg({
+        onRsvp: () =>
+          new Promise((_resolve, _reject) => {
+            reject = _reject;
+          }),
+      }),
+    ).click();
+    const form = host.querySelector("form");
+    form.querySelector('input[name="name"]').value = "Larry";
+    form.querySelector('input[name="email"]').value = "larry@example.com";
+    form.dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    await flush();
+    form.dispatchEvent(
+      new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    assert.ok(host.querySelector("form"));
+    reject(new Error("rsvp: failed"));
+    await flush();
+    form.dispatchEvent(
+      new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    assert.ok(!host.querySelector("form"));
+    assert.ok(host.querySelector(".already-rsvp__open"));
+  });
+
   it("shows the error and keeps the values when onRsvp rejects", async () => {
     const host = document.createElement("div");
     document.body.appendChild(host);

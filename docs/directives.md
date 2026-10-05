@@ -2,6 +2,8 @@
 
 Directives let you control already-cal behavior directly from event descriptions using a hashtag syntax. This is useful when you don't have access to code — you can add platform links, images, and metadata tags right inside a Google Calendar event description.
 
+Google Calendar's editor turns a pasted URL into a link, so a directive typed as `#already:image:https://example.com/a.jpg` is stored as `#already:image:<a href="https://example.com/a.jpg">https://example.com/a.jpg</a>`. The widget reads the link's `href` as the directive value, so paste URLs as you normally would. This applies to any directive whose value is a URL (`image`, `preorder`, `rsvp`, and platform directives given as full URLs). Only a plain `<a href="...">text</a>` is recognized; an anchor with no `href`, or with markup inside the link text, is left as written.
+
 ## Syntax
 
 ```

@@ -264,3 +264,31 @@ describe("enrichEvent: image-shuffle propagation", () => {
     assert.strictEqual(event.image, event.images[0]);
   });
 });
+
+describe("enrichEvent: Google auto-linked image directives", () => {
+  it("collects every linked image and picks a lead image", () => {
+    const urls = [1, 2, 3].map(
+      (n) => `https://lh3.googleusercontent.com/pw/img${n}=w1600`,
+    );
+    const description =
+      "Hello<br>#already:image-shuffle<br>" +
+      urls
+        .map((u, i) => `#already:image:<a href="${u}">photo ${i + 1}</a>`)
+        .join("<br>");
+    const event = enrichEvent(
+      {
+        id: "g1",
+        title: "Test",
+        start: "2026-04-15T10:00:00Z",
+        end: "2026-04-15T11:00:00Z",
+        description,
+      },
+      {},
+    );
+    assert.deepStrictEqual(event.images, urls);
+    assert.ok(urls.includes(event.image));
+    assert.ok(!event.description.includes("photo"));
+    assert.ok(!event.description.includes("#already"));
+    assert.ok(!event.description.includes("<a"));
+  });
+});

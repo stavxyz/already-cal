@@ -3024,6 +3024,8 @@ ${text}</tr>
 
   // src/util/directives.js
   var DIRECTIVE_PATTERN = /#already:([^\s<>]+)/gi;
+  var LINKED_VALUE = /(#already:[a-z0-9-]+:)<a\b([^<>]*)>[^<]*<\/a>/gi;
+  var LINKED_HREF = /(?:^|\s)href\s*=\s*(["'])([^"']*)\1/i;
   var DIRECTIVE_PLATFORMS = {
     instagram: {
       label: (v) => `Follow @${v} on Instagram`,
@@ -3205,7 +3207,13 @@ ${text}</tr>
         hidden: false,
         imageShuffle: false
       };
-    description = decodeAmp(description);
+    description = decodeAmp(description).replace(
+      LINKED_VALUE,
+      (m, key, attrs) => {
+        const href = LINKED_HREF.exec(attrs);
+        return href ? key + href[2] : m;
+      }
+    );
     const tokens = [];
     const seen = /* @__PURE__ */ new Set();
     let featured = false;
@@ -6282,7 +6290,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.11.3" : "unknown"
+        true ? "0.11.4" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

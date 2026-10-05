@@ -48,4 +48,22 @@ describe("stableIndex", () => {
     }
     assert.strictEqual(seen.size, 3, `only hit indices ${[...seen]}`);
   });
+
+  it("matches the standard FNV-1a 32-bit vectors", () => {
+    // FNV-1a 32-bit of "a" is 0xe40c292c and of the empty string is the
+    // offset basis 0x811c9dc5 (published test vectors).
+    assert.strictEqual(stableIndex("a", 1000003), 0xe40c292c % 1000003);
+    assert.strictEqual(stableIndex("", 1000003), 0x811c9dc5 % 1000003);
+  });
+
+  it("gives a deterministic in-range index for a non-ASCII key", () => {
+    const idx = stableIndex("café-2026", 7);
+    assert.ok(Number.isInteger(idx) && idx >= 0 && idx < 7);
+    assert.strictEqual(idx, stableIndex("café-2026", 7));
+  });
+
+  it("returns 0 for a NaN or undefined length", () => {
+    assert.strictEqual(stableIndex("x", NaN), 0);
+    assert.strictEqual(stableIndex("x", undefined), 0);
+  });
 });

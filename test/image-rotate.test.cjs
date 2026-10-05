@@ -1,18 +1,20 @@
 const { describe, it, before } = require("node:test");
 const assert = require("node:assert");
 
-let extractDirectives, enrichEvent;
+let extractDirectives, enrichEvent, enrichGoogleEvent, stableIndex;
 
 before(async () => {
   const dirMod = await import("../src/util/directives.js");
   extractDirectives = dirMod.extractDirectives;
   const dataMod = await import("../src/data.js");
   enrichEvent = dataMod.enrichEvent;
+  enrichGoogleEvent = dataMod.enrichGoogleEvent;
+  stableIndex = (await import("../src/util/hash.js")).stableIndex;
 });
 
 // --- extractDirectives flag tests ---
 
-describe("extractDirectives — image-rotate flag", () => {
+describe("extractDirectives: image-rotate flag", () => {
   it("extracts imageRotate from #already:image-rotate", () => {
     const result = extractDirectives("Event info #already:image-rotate");
     assert.strictEqual(result.imageRotate, true);
@@ -47,7 +49,7 @@ describe("extractDirectives — image-rotate flag", () => {
 
 // --- enrichEvent propagation + rotation tests ---
 
-describe("enrichEvent — image-rotate propagation", () => {
+describe("enrichEvent: image-rotate propagation", () => {
   const baseEvent = {
     id: "1",
     title: "Test",
@@ -86,34 +88,37 @@ describe("enrichEvent — image-rotate propagation", () => {
     assert.strictEqual(a.image, b.image);
   });
 
-  it("six occurrences with different ids pick at least two distinct images", () => {
-    const images = ["a", "b", "c", "d", "e", "f"].map(
-      (id) =>
+  it("across 30 ids, every one of the three images is chosen at least once", () => {
+    const chosen = new Set();
+    for (let n = 1; n <= 30; n++) {
+      chosen.add(
         enrichEvent(
-          { ...baseEvent, id, description: threeImageDescription },
+          { ...baseEvent, id: `occ-${n}`, description: threeImageDescription },
           {},
         ).image,
-    );
-    const distinct = new Set(images);
-    assert.ok(
-      distinct.size >= 2,
-      `expected at least 2 distinct images, got ${[...distinct]}`,
-    );
+      );
+    }
+    assert.strictEqual(chosen.size, 3, `only chose ${[...chosen]}`);
   });
 
-  it("the chosen image is images[0], and the other two follow in order", () => {
+  it("the chosen image leads and the other two follow in original order", () => {
+    const id = "occurrence-B";
     const event = enrichEvent(
-      { ...baseEvent, id: "occurrence-B", description: threeImageDescription },
+      { ...baseEvent, id, description: threeImageDescription },
       {},
     );
-    assert.strictEqual(event.image, event.images[0]);
-    assert.strictEqual(event.images.length, 3);
     const all = [
       "https://example.com/a.png",
       "https://example.com/b.png",
       "https://example.com/c.png",
     ];
-    assert.deepStrictEqual(new Set(event.images), new Set(all));
+    const i = stableIndex(id, all.length);
+    assert.deepStrictEqual(event.images, [
+      all[i],
+      ...all.slice(0, i),
+      ...all.slice(i + 1),
+    ]);
+    assert.strictEqual(event.image, all[i]);
   });
 
   it("with one image, rotation has nothing to do and the result is that image", () => {
@@ -158,5 +163,104 @@ describe("enrichEvent — image-rotate propagation", () => {
       {},
     );
     assert.strictEqual(event.image, "https://example.com/explicit.png");
+  });
+
+  const three = [
+    "https://example.com/a.png",
+    "https://example.com/b.png",
+    "https://example.com/c.png",
+  ];
+  const rotated = (id) => {
+    const i = stableIndex(id, three.length);
+    return [three[i], ...three.slice(0, i), ...three.slice(i + 1)];
+  };
+
+  it("rotates a host-supplied images array", () => {
+    const event = enrichEvent(
+      {
+        ...baseEvent,
+        id: "host-1",
+        description: "",
+        images: [...three],
+        imageRotate: true,
+      },
+      {},
+    );
+    assert.deepStrictEqual(event.images, rotated("host-1"));
+    assert.strictEqual(event.image, event.images[0]);
+  });
+
+  it("rotates attachment images combined with the directive", () => {
+    const description =
+      "#already:image-rotate #already:image:https://example.com/a.png";
+    const event = enrichEvent(
+      {
+        ...baseEvent,
+        id: "att-1",
+        description,
+        attachments: [
+          { mimeType: "image/png", url: "https://example.com/b.png" },
+          { mimeType: "image/png", url: "https://example.com/c.png" },
+        ],
+      },
+      {},
+    );
+    assert.deepStrictEqual(event.images, rotated("att-1"));
+    assert.strictEqual(event.image, event.images[0]);
+  });
+
+  it("enriching an already-enriched rotated event leaves image and images unchanged", () => {
+    const once = enrichEvent(
+      { ...baseEvent, id: "twice-1", description: threeImageDescription },
+      {},
+    );
+    const twice = enrichEvent(once, {});
+    assert.strictEqual(twice.image, once.image);
+    assert.deepStrictEqual(twice.images, once.images);
+  });
+
+  it("keeps the original images order when an explicit image is set", () => {
+    const event = enrichEvent(
+      {
+        ...baseEvent,
+        id: "explicit-1",
+        image: "https://example.com/explicit.png",
+        images: [...three],
+        imageRotate: true,
+      },
+      {},
+    );
+    assert.deepStrictEqual(event.images, three);
+    assert.strictEqual(event.image, "https://example.com/explicit.png");
+  });
+
+  it("does not throw when the event has no id, and treats it as an empty id", () => {
+    const { id: _id, ...noId } = baseEvent;
+    const event = enrichEvent(
+      { ...noId, description: threeImageDescription },
+      {},
+    );
+    assert.deepStrictEqual(event.images, rotated(""));
+    assert.strictEqual(event.image, event.images[0]);
+  });
+
+  it("enrichGoogleEvent applies the directive and rotates", () => {
+    const event = enrichGoogleEvent(
+      {
+        id: "g-1",
+        summary: "Weekly",
+        description:
+          "#already:image-rotate " +
+          "#already:image:https://example.com/a.png " +
+          "#already:image:https://example.com/b.png " +
+          "#already:image:https://example.com/c.png",
+        start: { dateTime: "2026-04-04T16:00:00-05:00" },
+        end: { dateTime: "2026-04-04T19:00:00-05:00" },
+      },
+      {},
+    );
+    assert.strictEqual(event.imageRotate, true);
+    assert.deepStrictEqual(event.images, rotated("g-1"));
+    assert.strictEqual(event.image, event.images[0]);
   });
 });

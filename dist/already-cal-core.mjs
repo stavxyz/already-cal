@@ -3155,7 +3155,8 @@ function extractDirectives(description) {
       description,
       featured: false,
       hidden: false,
-      imageShuffle: false
+      imageShuffle: false,
+      rsvp: false
     };
   description = decodeAmp(description).replace(
     LINKED_VALUE,
@@ -3169,6 +3170,7 @@ function extractDirectives(description) {
   let featured = false;
   let hidden = false;
   let imageShuffle = false;
+  let rsvp = false;
   const matches = [...description.matchAll(DIRECTIVE_PATTERN)];
   for (const match of matches) {
     const body = match[1];
@@ -3185,6 +3187,10 @@ function extractDirectives(description) {
       imageShuffle = true;
       continue;
     }
+    if (bodyLower === "rsvp") {
+      rsvp = true;
+      continue;
+    }
     const token = parseDirective(body);
     if (!token) continue;
     if (!seen.has(token.canonicalId)) {
@@ -3198,7 +3204,7 @@ function extractDirectives(description) {
       matches.map((m) => ({ index: m.index, text: m[0] }))
     )
   );
-  return { tokens, description: cleaned, featured, hidden, imageShuffle };
+  return { tokens, description: cleaned, featured, hidden, imageShuffle, rsvp };
 }
 
 // src/util/hash.js
@@ -3222,6 +3228,7 @@ function enrichEvent(event, config) {
   let featured = event.featured || false;
   let hidden = event.hidden || false;
   let imageShuffle = event.imageShuffle || false;
+  let rsvp = event.rsvp || false;
   const tokenSet = new TokenSet();
   description = stripComments(description);
   if (description) {
@@ -3231,6 +3238,7 @@ function enrichEvent(event, config) {
     if (result.featured) featured = true;
     if (result.hidden) hidden = true;
     if (result.imageShuffle) imageShuffle = true;
+    if (result.rsvp) rsvp = true;
   }
   if (images.length === 0 && description) {
     const result = extractImageTokens(description, config);
@@ -3311,6 +3319,7 @@ function enrichEvent(event, config) {
     featured,
     hidden,
     imageShuffle,
+    rsvp,
     htmlLink: event.htmlLink || ""
   };
 }

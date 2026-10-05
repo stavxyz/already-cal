@@ -413,6 +413,7 @@ describe("enrichGoogleEvent", () => {
     featured: false,
     hidden: false,
     imageShuffle: false,
+    rsvp: false,
   };
 
   it("matches the pinned pre-refactor output for a representative item", () => {

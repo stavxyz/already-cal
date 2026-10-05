@@ -212,6 +212,7 @@ export function extractDirectives(description) {
       featured: false,
       hidden: false,
       imageShuffle: false,
+      rsvp: false,
     };
   description = decodeAmp(description).replace(
     LINKED_VALUE,
@@ -226,6 +227,7 @@ export function extractDirectives(description) {
   let featured = false;
   let hidden = false;
   let imageShuffle = false;
+  let rsvp = false;
 
   const matches = [...description.matchAll(DIRECTIVE_PATTERN)];
   for (const match of matches) {
@@ -246,6 +248,12 @@ export function extractDirectives(description) {
       imageShuffle = true;
       continue;
     }
+    // A bare `rsvp` is the native-RSVP flag; `rsvp:<url>` keeps falling
+    // through to parseDirective as a URL-valued tag (a link button).
+    if (bodyLower === "rsvp") {
+      rsvp = true;
+      continue;
+    }
 
     const token = parseDirective(body);
     if (!token) continue;
@@ -263,5 +271,5 @@ export function extractDirectives(description) {
       matches.map((m) => ({ index: m.index, text: m[0] })),
     ),
   );
-  return { tokens, description: cleaned, featured, hidden, imageShuffle };
+  return { tokens, description: cleaned, featured, hidden, imageShuffle, rsvp };
 }

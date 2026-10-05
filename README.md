@@ -109,6 +109,10 @@ Already.init({
   headerIcon: null,                    // URL to icon/logo
   subscribeUrl: null,                  // auto-generated from calendarId if not set
 
+  // --- RSVP (see "RSVP" below) ---
+  rsvpAllEvents: false,                // every event takes RSVPs; otherwise only events flagged #already:rsvp
+  onRsvp: null,                        // async (event, { name, email, partySize, website }) => ({ partySize })
+
   // --- Views ---
   defaultView: 'month',
   views: ['month', 'week', 'day', 'grid', 'list'],
@@ -149,6 +153,16 @@ Already.init({
     clearFilter: 'Clear',
     loadMore: 'Load more',
     showEarlier: 'Show earlier',
+    rsvp: 'RSVP',
+    details: 'Details',
+    rsvpName: 'Name',
+    rsvpEmail: 'Email',
+    rsvpPartySize: 'How many are coming?',
+    rsvpSubmit: 'RSVP',
+    rsvpCancel: 'Cancel',
+    rsvpDone: "You're on the list: {count} going",
+    rsvpInvalid: 'Check your name and email address.',
+    rsvpFailed: 'Could not save your RSVP. Try again.',
   },
 
   // --- Responsive ---

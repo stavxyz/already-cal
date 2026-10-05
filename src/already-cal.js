@@ -62,6 +62,11 @@ const DEFAULTS = {
   onViewChange: null,
   onError: null,
   onDataLoad: null,
+  // Native RSVP: the view-wide switch and the host's submit function. Flat
+  // keys on purpose: init merges one level deep, so a nested object a host
+  // passed would replace the whole default.
+  rsvpAllEvents: false,
+  onRsvp: null, // async (event, { name, email, partySize, website }) => ({ partySize })
   showHeader: true,
   headerTitle: null, // override calendar name
   headerDescription: null, // override calendar description
@@ -104,6 +109,16 @@ const I18N_DEFAULTS = {
   clearFilter: "Clear",
   loadMore: "Load more",
   showEarlier: "Show earlier",
+  rsvp: "RSVP",
+  details: "Details",
+  rsvpName: "Name",
+  rsvpEmail: "Email",
+  rsvpPartySize: "How many are coming?",
+  rsvpSubmit: "RSVP",
+  rsvpCancel: "Cancel",
+  rsvpDone: "You're on the list: {count} going",
+  rsvpInvalid: "Check your name and email address.",
+  rsvpFailed: "Could not save your RSVP. Try again.",
 };
 
 // Expose defaults so consumers can extend rather than copy them

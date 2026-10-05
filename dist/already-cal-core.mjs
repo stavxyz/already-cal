@@ -2974,7 +2974,8 @@ function plainTextDescription(event) {
 
 // src/util/directives.js
 var DIRECTIVE_PATTERN = /#already:([^\s<>]+)/gi;
-var LINKED_VALUE = /(#already:[a-z0-9-]+:)<a\b[^>]*\bhref=(["'])([^"']*)\2[^>]*>[^<]*<\/a>/gi;
+var LINKED_VALUE = /(#already:[a-z0-9-]+:)<a\b([^<>]*)>[^<]*<\/a>/gi;
+var LINKED_HREF = /(?:^|\s)href\s*=\s*(["'])([^"']*)\1/i;
 var DIRECTIVE_PLATFORMS = {
   instagram: {
     label: (v) => `Follow @${v} on Instagram`,
@@ -3158,7 +3159,10 @@ function extractDirectives(description) {
     };
   description = decodeAmp(description).replace(
     LINKED_VALUE,
-    (_m, key, _q, href) => key + href
+    (m, key, attrs) => {
+      const href = LINKED_HREF.exec(attrs);
+      return href ? key + href[2] : m;
+    }
   );
   const tokens = [];
   const seen = /* @__PURE__ */ new Set();

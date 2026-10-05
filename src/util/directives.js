@@ -7,9 +7,14 @@ import { cleanupHtml, stripMatches } from "./sanitize.js";
 const DIRECTIVE_PATTERN = /#already:([^\s<>]+)/gi;
 
 // Google Calendar's editor turns a pasted URL into a link, which puts a `<`
-// right where the directive's value starts. Read the href as the value.
-const LINKED_VALUE =
-  /(#already:[a-z0-9-]+:)<a\b[^>]*\bhref=(["'])([^"']*)\2[^>]*>[^<]*<\/a>/gi;
+// right where the directive's value starts. Read the href as the value. The
+// attribute scan stops at the next `<` or `>`, so a description that never
+// closes the tag costs one pass per directive instead of one per character
+// (see #79 for this repo's history with super-linear patterns on untrusted
+// text). The href is read from the attribute string separately; `(?:^|\s)`
+// keeps `data-href` from matching.
+const LINKED_VALUE = /(#already:[a-z0-9-]+:)<a\b([^<>]*)>[^<]*<\/a>/gi;
+const LINKED_HREF = /(?:^|\s)href\s*=\s*(["'])([^"']*)\1/i;
 
 // Map directive platform names to their labels, canonical prefix, and URL builder.
 // The url function constructs a real link from the directive value so that
@@ -210,7 +215,10 @@ export function extractDirectives(description) {
     };
   description = decodeAmp(description).replace(
     LINKED_VALUE,
-    (_m, key, _q, href) => key + href,
+    (m, key, attrs) => {
+      const href = LINKED_HREF.exec(attrs);
+      return href ? key + href[2] : m;
+    },
   );
 
   const tokens = [];

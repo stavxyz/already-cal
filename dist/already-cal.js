@@ -5402,10 +5402,13 @@ ${text}</tr>
       error.textContent = text;
       error.hidden = false;
     }
+    let pending = false;
     form.addEventListener("click", (e) => e.stopPropagation());
     form.addEventListener("keydown", (e) => {
       e.stopPropagation();
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      if (pending) return;
+      onClose();
     });
     cancel.addEventListener("click", onClose);
     form.addEventListener("submit", async (e) => {
@@ -5425,6 +5428,7 @@ ${text}</tr>
       error.hidden = true;
       submit.disabled = true;
       cancel.disabled = true;
+      pending = true;
       try {
         const result = await config.onRsvp(event, fields);
         const count = result && Number.isInteger(result.partySize) ? result.partySize : fields.partySize;
@@ -5432,6 +5436,7 @@ ${text}</tr>
         done.textContent = (i18n.rsvpDone || "You're on the list: {count} going").replaceAll("{count}", String(count));
         form.replaceWith(done);
       } catch (err) {
+        pending = false;
         submit.disabled = false;
         cancel.disabled = false;
         showError(err && err.code === "event_started" ? startedText : failedText);

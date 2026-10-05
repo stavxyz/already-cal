@@ -256,7 +256,7 @@ Themes have two independent axes: **layouts** (card structure) and **palettes** 
 |--------|-------------|
 | `clean` | Image, title, date, location. Minimal and fast to scan. **(default)** |
 | `hero` | Large image, bold uppercase title, description preview, footer with icons |
-| `badge` | Date badge overlay on image, tags, description, RSVP action footer |
+| `badge` | Date badge overlay on image, tags, description, action footer (Details link, RSVP button when enabled) |
 | `compact` | No image, inline date badge, dense info. Great for text-heavy calendars |
 
 ### Palettes

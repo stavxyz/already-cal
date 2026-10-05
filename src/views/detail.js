@@ -1,3 +1,4 @@
+import { appendRsvpControl } from "../ui/rsvp-form.js";
 import { createShareButton } from "../ui/share-button.js";
 import { formatEventWhen } from "../util/dates.js";
 import { renderDescription } from "../util/description.js";
@@ -232,6 +233,11 @@ export function renderDetailView(container, event, timezone, onBack, config) {
     }
     content.appendChild(linksDiv);
   }
+
+  // Same mount path as the cards (decorateRsvp); the detail view only
+  // supplies its own row, and keeps it only when a button was mounted.
+  const rsvpRow = createElement("div", "already-detail-rsvp");
+  if (appendRsvpControl(rsvpRow, event, config)) content.appendChild(rsvpRow);
 
   body.appendChild(content);
   detail.appendChild(body);

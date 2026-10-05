@@ -1,6 +1,7 @@
 import { safeRenderCard } from "../layouts/helpers.js";
 import { getLayout } from "../layouts/registry.js";
 import { THEME_DEFAULTS } from "../theme.js";
+import { decorateRsvp } from "../ui/rsvp-form.js";
 import {
   createElement,
   decorateCard,
@@ -34,6 +35,7 @@ export function renderListView(container, events, timezone, config) {
       config,
     });
     decorateCard(card, event, "list", config);
+    decorateRsvp(card, event, config);
     list.appendChild(card);
   }
 

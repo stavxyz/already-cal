@@ -1,6 +1,7 @@
 import { safeRenderCard } from "../layouts/helpers.js";
 import { getLayout } from "../layouts/registry.js";
 import { THEME_DEFAULTS } from "../theme.js";
+import { decorateRsvp } from "../ui/rsvp-form.js";
 import {
   createElement,
   decorateCard,
@@ -31,6 +32,7 @@ export function renderGridView(container, events, timezone, config) {
       config,
     });
     decorateCard(card, event, "grid", config);
+    decorateRsvp(card, event, config);
     grid.appendChild(card);
   }
 

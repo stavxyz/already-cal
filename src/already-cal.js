@@ -33,6 +33,7 @@ import {
   postInteractionToParent,
   postReadyToParent,
 } from "./util/ready-handshake.js";
+import { rsvpViaFetch } from "./util/rsvp-transport.js";
 import { makeThrottle } from "./util/throttle.js";
 import { renderDayView } from "./views/day.js";
 import { renderDetailView } from "./views/detail.js";
@@ -122,7 +123,6 @@ const I18N_DEFAULTS = {
   rsvpFailed: "Could not save your RSVP. Try again.",
 };
 
-export { rsvpViaFetch } from "./util/rsvp-transport.js";
 // Expose defaults so consumers can extend rather than copy them
 // (e.g. `Already.DEFAULTS.knownPlatforms`, `Already.DEFAULT_ALLOWED_TAGS`).
 // Sanitizer constants are frozen at the source (see description.js).
@@ -132,6 +132,7 @@ export {
   DEFAULT_ALLOWED_URL_SCHEMES,
   DEFAULT_RAW_TEXT_ELEMENTS,
   DEFAULTS,
+  rsvpViaFetch,
 };
 
 /**

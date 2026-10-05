@@ -397,7 +397,7 @@ already-cal collects images from three sources:
 3. **Dropbox links in the description** — URLs containing `/scl/fi/`, `/s/`, or on `dl.dropboxusercontent.com` are recognized and normalized to `?raw=1` for direct serving. The file must be publicly shared.
 4. **Attachments** with `image/*` MIME type — from Google Calendar or your own data (Drive and Dropbox attachment URLs are also normalized)
 
-The first image is the thumbnail (grid/list views). Multiple images show as a gallery in detail view. Tapping any gallery image opens a fullscreen lightbox overlay. For a recurring event, add the `#already:image-rotate` flag directive to give each occurrence a different thumbnail from the list instead of always the first one (see [directives reference](docs/directives.md#rotate-the-card-image)).
+The first image is the thumbnail (grid/list views). Multiple images show as a gallery in detail view. Tapping any gallery image opens a fullscreen lightbox overlay. For a recurring event, add the `#already:image-rotate` flag directive to give each occurrence a different thumbnail from the event's images, whatever their source, instead of always the first one (see [directives reference](docs/directives.md#rotate-the-card-image)).
 
 - **Navigation:** Left/Right arrow keys, or on-screen prev/next buttons
 - **Dismiss:** Close button, backdrop click, image click, or Escape key

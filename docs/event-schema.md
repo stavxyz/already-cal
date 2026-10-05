@@ -23,6 +23,7 @@ After enrichment, each event has these fields:
 | `tags` | `object[]` | Tags from directives: `[{ key, value }]`. Pre-set tags pass through unchanged. A tag renders as a pill only if it is a non-blank string, or has a string key and a non-blank string or numeric value that is not a URL. |
 | `featured` | `boolean` | `true` if `#already:featured` directive is present |
 | `hidden` | `boolean` | `true` if `#already:hidden` directive is present |
+| `imageRotate` | `boolean` | `true` if the `#already:image-rotate` directive is present or the host set it |
 | `htmlLink` | `string` | Google Calendar web link (empty string if not available) |
 | `_sourceTimeZone` | `string` (optional) | IANA zone for this event's own source calendar, e.g. `"America/New_York"` |
 
@@ -57,7 +58,7 @@ The `enrichEvent()` function processes each event's description in this order:
 
 All extraction stages decode `&amp;` to `&` before pattern matching, since HTML-rendered descriptions from Google Calendar may contain encoded ampersands.
 
-1. **Directives** — `#already:` tokens are extracted and removed from the description. Platform directives become links, image directives become images, tag directives become tags, and `featured`/`hidden` flags are set. See the **[directives reference](directives.md)** for the full syntax and supported types.
+1. **Directives** — `#already:` tokens are extracted and removed from the description. Platform directives become links, image directives become images, tag directives become tags, and the `featured`, `hidden` and `imageRotate` flags are set. See the **[directives reference](directives.md)** for the full syntax and supported types.
 
 2. **Images** — URLs ending in image extensions (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`) and Google Drive/Dropbox links are extracted from the description and removed from the rendered text. Image attachments from Google Calendar with `image/*` MIME types are also included.
 
@@ -109,6 +110,7 @@ When using `config.data`, provide this structure:
       tags: [],
       featured: false,
       hidden: false,
+      imageRotate: false,
     },
   ],
   calendar: {

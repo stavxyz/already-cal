@@ -3203,14 +3203,14 @@ ${text}</tr>
         description,
         featured: false,
         hidden: false,
-        imageRotate: false
+        imageShuffle: false
       };
     description = decodeAmp(description);
     const tokens = [];
     const seen = /* @__PURE__ */ new Set();
     let featured = false;
     let hidden = false;
-    let imageRotate = false;
+    let imageShuffle = false;
     const matches = [...description.matchAll(DIRECTIVE_PATTERN)];
     for (const match of matches) {
       const body = match[1];
@@ -3223,8 +3223,8 @@ ${text}</tr>
         hidden = true;
         continue;
       }
-      if (bodyLower === "image-rotate") {
-        imageRotate = true;
+      if (bodyLower === "image-shuffle") {
+        imageShuffle = true;
         continue;
       }
       const token = parseDirective(body);
@@ -3240,7 +3240,7 @@ ${text}</tr>
         matches.map((m) => ({ index: m.index, text: m[0] }))
       )
     );
-    return { tokens, description: cleaned, featured, hidden, imageRotate };
+    return { tokens, description: cleaned, featured, hidden, imageShuffle };
   }
 
   // src/util/hash.js
@@ -3296,7 +3296,7 @@ ${text}</tr>
     let links = event.links && event.links.length > 0 ? event.links : [];
     let featured = event.featured || false;
     let hidden = event.hidden || false;
-    let imageRotate = event.imageRotate || false;
+    let imageShuffle = event.imageShuffle || false;
     const tokenSet = new TokenSet();
     description = stripComments(description);
     if (description) {
@@ -3305,7 +3305,7 @@ ${text}</tr>
       tokenSet.addAll(result.tokens);
       if (result.featured) featured = true;
       if (result.hidden) hidden = true;
-      if (result.imageRotate) imageRotate = true;
+      if (result.imageShuffle) imageShuffle = true;
     }
     if (images.length === 0 && description) {
       const result = extractImageTokens(description, config);
@@ -3348,7 +3348,7 @@ ${text}</tr>
     if (imageTokens.length > 0 && images.length === 0) {
       images = imageTokens.map((t) => t.url);
     }
-    if (imageRotate && images.length > 1 && !image) {
+    if (imageShuffle && images.length > 1 && !image) {
       const i = stableIndex(event.id, images.length);
       images = [images[i], ...images.slice(0, i), ...images.slice(i + 1)];
     }
@@ -3385,7 +3385,7 @@ ${text}</tr>
       tags,
       featured,
       hidden,
-      imageRotate,
+      imageShuffle,
       htmlLink: event.htmlLink || ""
     };
   }
@@ -6282,7 +6282,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.11.2" : "unknown"
+        true ? "0.11.3" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

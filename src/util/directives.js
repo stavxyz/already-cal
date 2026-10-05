@@ -201,7 +201,7 @@ export function extractDirectives(description) {
       description,
       featured: false,
       hidden: false,
-      imageRotate: false,
+      imageShuffle: false,
     };
   description = decodeAmp(description);
 
@@ -209,13 +209,13 @@ export function extractDirectives(description) {
   const seen = new Set();
   let featured = false;
   let hidden = false;
-  let imageRotate = false;
+  let imageShuffle = false;
 
   const matches = [...description.matchAll(DIRECTIVE_PATTERN)];
   for (const match of matches) {
     const body = match[1];
 
-    // Intercept featured/hidden/image-rotate flags before parseDirective
+    // Intercept featured/hidden/image-shuffle flags before parseDirective
     // (they have no colon in body)
     const bodyLower = body.toLowerCase();
     if (bodyLower === "featured") {
@@ -226,8 +226,8 @@ export function extractDirectives(description) {
       hidden = true;
       continue;
     }
-    if (bodyLower === "image-rotate") {
-      imageRotate = true;
+    if (bodyLower === "image-shuffle") {
+      imageShuffle = true;
       continue;
     }
 
@@ -247,5 +247,5 @@ export function extractDirectives(description) {
       matches.map((m) => ({ index: m.index, text: m[0] })),
     ),
   );
-  return { tokens, description: cleaned, featured, hidden, imageRotate };
+  return { tokens, description: cleaned, featured, hidden, imageShuffle };
 }

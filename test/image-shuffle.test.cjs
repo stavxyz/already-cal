@@ -14,42 +14,42 @@ before(async () => {
 
 // --- extractDirectives flag tests ---
 
-describe("extractDirectives: image-rotate flag", () => {
-  it("extracts imageRotate from #already:image-rotate", () => {
-    const result = extractDirectives("Event info #already:image-rotate");
-    assert.strictEqual(result.imageRotate, true);
+describe("extractDirectives: image-shuffle flag", () => {
+  it("extracts imageShuffle from #already:image-shuffle", () => {
+    const result = extractDirectives("Event info #already:image-shuffle");
+    assert.strictEqual(result.imageShuffle, true);
     assert.ok(!result.description.includes("#already"));
     assert.ok(result.description.includes("Event info"));
   });
 
   it("is case-insensitive for the keyword", () => {
-    const result = extractDirectives("#already:IMAGE-ROTATE");
-    assert.strictEqual(result.imageRotate, true);
+    const result = extractDirectives("#already:IMAGE-SHUFFLE");
+    assert.strictEqual(result.imageShuffle, true);
   });
 
   it("coexists with image directives without consuming them", () => {
     const result = extractDirectives(
-      "#already:image-rotate #already:image:https://example.com/a.png",
+      "#already:image-shuffle #already:image:https://example.com/a.png",
     );
-    assert.strictEqual(result.imageRotate, true);
+    assert.strictEqual(result.imageShuffle, true);
     assert.strictEqual(result.tokens.length, 1);
     assert.strictEqual(result.tokens[0].type, "image");
   });
 
   it("returns false for plain description", () => {
     const result = extractDirectives("Just text");
-    assert.strictEqual(result.imageRotate, false);
+    assert.strictEqual(result.imageShuffle, false);
   });
 
   it("returns false for null description", () => {
     const result = extractDirectives(null);
-    assert.strictEqual(result.imageRotate, false);
+    assert.strictEqual(result.imageShuffle, false);
   });
 });
 
-// --- enrichEvent propagation + rotation tests ---
+// --- enrichEvent propagation + shuffle tests ---
 
-describe("enrichEvent: image-rotate propagation", () => {
+describe("enrichEvent: image-shuffle propagation", () => {
   const baseEvent = {
     id: "1",
     title: "Test",
@@ -58,22 +58,22 @@ describe("enrichEvent: image-rotate propagation", () => {
   };
 
   const threeImageDescription =
-    "#already:image-rotate " +
+    "#already:image-shuffle " +
     "#already:image:https://example.com/a.png " +
     "#already:image:https://example.com/b.png " +
     "#already:image:https://example.com/c.png";
 
-  it("sets event.imageRotate from #already:image-rotate directive", () => {
+  it("sets event.imageShuffle from #already:image-shuffle directive", () => {
     const event = enrichEvent(
-      { ...baseEvent, description: "#already:image-rotate" },
+      { ...baseEvent, description: "#already:image-shuffle" },
       {},
     );
-    assert.strictEqual(event.imageRotate, true);
+    assert.strictEqual(event.imageShuffle, true);
   });
 
-  it("defaults imageRotate to false when absent", () => {
+  it("defaults imageShuffle to false when absent", () => {
     const event = enrichEvent({ ...baseEvent, description: "Plain text" }, {});
-    assert.strictEqual(event.imageRotate, false);
+    assert.strictEqual(event.imageShuffle, false);
   });
 
   it("two occurrences with the same id get the same image", () => {
@@ -121,13 +121,13 @@ describe("enrichEvent: image-rotate propagation", () => {
     assert.strictEqual(event.image, all[i]);
   });
 
-  it("with one image, rotation has nothing to do and the result is that image", () => {
+  it("with one image, shuffling has nothing to do and the result is that image", () => {
     const event = enrichEvent(
       {
         ...baseEvent,
         id: "occurrence-C",
         description:
-          "#already:image-rotate #already:image:https://example.com/only.png",
+          "#already:image-shuffle #already:image:https://example.com/only.png",
       },
       {},
     );
@@ -152,7 +152,7 @@ describe("enrichEvent: image-rotate propagation", () => {
     ]);
   });
 
-  it("an event with an explicit image field keeps it despite image-rotate", () => {
+  it("an event with an explicit image field keeps it despite image-shuffle", () => {
     const event = enrichEvent(
       {
         ...baseEvent,
@@ -170,29 +170,29 @@ describe("enrichEvent: image-rotate propagation", () => {
     "https://example.com/b.png",
     "https://example.com/c.png",
   ];
-  const rotated = (id) => {
+  const shuffled = (id) => {
     const i = stableIndex(id, three.length);
     return [three[i], ...three.slice(0, i), ...three.slice(i + 1)];
   };
 
-  it("rotates a host-supplied images array", () => {
+  it("shuffles a host-supplied images array", () => {
     const event = enrichEvent(
       {
         ...baseEvent,
         id: "host-1",
         description: "",
         images: [...three],
-        imageRotate: true,
+        imageShuffle: true,
       },
       {},
     );
-    assert.deepStrictEqual(event.images, rotated("host-1"));
+    assert.deepStrictEqual(event.images, shuffled("host-1"));
     assert.strictEqual(event.image, event.images[0]);
   });
 
-  it("rotates attachment images combined with the directive", () => {
+  it("shuffles attachment images combined with the directive", () => {
     const description =
-      "#already:image-rotate #already:image:https://example.com/a.png";
+      "#already:image-shuffle #already:image:https://example.com/a.png";
     const event = enrichEvent(
       {
         ...baseEvent,
@@ -205,11 +205,11 @@ describe("enrichEvent: image-rotate propagation", () => {
       },
       {},
     );
-    assert.deepStrictEqual(event.images, rotated("att-1"));
+    assert.deepStrictEqual(event.images, shuffled("att-1"));
     assert.strictEqual(event.image, event.images[0]);
   });
 
-  it("enriching an already-enriched rotated event leaves image and images unchanged", () => {
+  it("enriching an already-enriched shuffled event leaves image and images unchanged", () => {
     const once = enrichEvent(
       { ...baseEvent, id: "twice-1", description: threeImageDescription },
       {},
@@ -226,7 +226,7 @@ describe("enrichEvent: image-rotate propagation", () => {
         id: "explicit-1",
         image: "https://example.com/explicit.png",
         images: [...three],
-        imageRotate: true,
+        imageShuffle: true,
       },
       {},
     );
@@ -240,17 +240,17 @@ describe("enrichEvent: image-rotate propagation", () => {
       { ...noId, description: threeImageDescription },
       {},
     );
-    assert.deepStrictEqual(event.images, rotated(""));
+    assert.deepStrictEqual(event.images, shuffled(""));
     assert.strictEqual(event.image, event.images[0]);
   });
 
-  it("enrichGoogleEvent applies the directive and rotates", () => {
+  it("enrichGoogleEvent applies the directive and shuffles", () => {
     const event = enrichGoogleEvent(
       {
         id: "g-1",
         summary: "Weekly",
         description:
-          "#already:image-rotate " +
+          "#already:image-shuffle " +
           "#already:image:https://example.com/a.png " +
           "#already:image:https://example.com/b.png " +
           "#already:image:https://example.com/c.png",
@@ -259,8 +259,8 @@ describe("enrichEvent: image-rotate propagation", () => {
       },
       {},
     );
-    assert.strictEqual(event.imageRotate, true);
-    assert.deepStrictEqual(event.images, rotated("g-1"));
+    assert.strictEqual(event.imageShuffle, true);
+    assert.deepStrictEqual(event.images, shuffled("g-1"));
     assert.strictEqual(event.image, event.images[0]);
   });
 });

@@ -272,7 +272,9 @@ describe("enrichEvent: Google auto-linked image directives", () => {
     );
     const description =
       "Hello<br>#already:image-shuffle<br>" +
-      urls.map((u) => `#already:image:<a href="${u}">${u}</a>`).join("<br>");
+      urls
+        .map((u, i) => `#already:image:<a href="${u}">photo ${i + 1}</a>`)
+        .join("<br>");
     const event = enrichEvent(
       {
         id: "g1",
@@ -283,7 +285,10 @@ describe("enrichEvent: Google auto-linked image directives", () => {
       },
       {},
     );
-    assert.strictEqual(event.images.length, urls.length);
-    assert.notStrictEqual(event.image, null);
+    assert.deepStrictEqual(event.images, urls);
+    assert.ok(urls.includes(event.image));
+    assert.ok(!event.description.includes("photo"));
+    assert.ok(!event.description.includes("#already"));
+    assert.ok(!event.description.includes("<a"));
   });
 });

@@ -378,4 +378,47 @@ describe("extractDirectives: auto-linked values", () => {
     );
     assert.ok(result.description.includes('<a href="https://x.example/">'));
   });
+
+  const URL_VALUE = "https://cdn.example/a.jpg";
+  const anchorVariants = [
+    ["single-quoted href", `<a href='${URL_VALUE}'>${URL_VALUE}</a>`],
+    ["uppercase tag and attribute", `<A HREF="${URL_VALUE}">${URL_VALUE}</A>`],
+    [
+      "attributes before href",
+      `<a target="_blank" rel="noopener" href="${URL_VALUE}">${URL_VALUE}</a>`,
+    ],
+    [
+      "attributes after href",
+      `<a href="${URL_VALUE}" target="_blank">${URL_VALUE}</a>`,
+    ],
+    [
+      "data-href before the real href",
+      `<a data-href="https://wrong.example/" href="${URL_VALUE}">${URL_VALUE}</a>`,
+    ],
+    ["whitespace around =", `<a href = "${URL_VALUE}">${URL_VALUE}</a>`],
+    ["entities in the link text", `<a href="${URL_VALUE}">a &amp; b</a>`],
+  ];
+
+  for (const [name, anchor] of anchorVariants) {
+    it(`unwraps an anchor with ${name}`, () => {
+      const result = extractDirectives(`#already:image:${anchor}`);
+      assert.strictEqual(result.tokens[0].type, "image");
+      assert.strictEqual(result.tokens[0].url, URL_VALUE);
+      assert.ok(!result.description.includes("<a"));
+      assert.ok(!result.description.includes("</a>"));
+      assert.ok(!result.description.includes("#already"));
+    });
+  }
+
+  it("leaves an anchor with no href as written", () => {
+    const result = extractDirectives('#already:image:<a name="n">x</a>');
+    assert.ok(result.description.includes('<a name="n">x</a>'));
+  });
+
+  it("leaves an anchor with nested markup in the link text as written", () => {
+    const result = extractDirectives(
+      `#already:image:<a href="${URL_VALUE}"><b>x</b></a>`,
+    );
+    assert.ok(result.description.includes(`<a href="${URL_VALUE}">`));
+  });
 });

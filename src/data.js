@@ -137,9 +137,9 @@ export function enrichEvent(event, config) {
     images = imageTokens.map((t) => t.url);
   }
   // #already:image-rotate: pick which image leads per occurrence instead of
-  // always the first directive. Keyed by the occurrence's own id, so the
-  // same occurrence (same id) always lands on the same image across
-  // renders and share previews, while sibling occurrences differ.
+  // always the first directive. Keyed by the occurrence's own id: the same
+  // id always gives the same index, so the same occurrence always leads
+  // with the same image.
   if (imageRotate && images.length > 1 && !image) {
     const i = stableIndex(event.id, images.length);
     images = [images[i], ...images.slice(0, i), ...images.slice(i + 1)];

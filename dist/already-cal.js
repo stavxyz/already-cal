@@ -3245,7 +3245,7 @@ ${text}</tr>
 
   // src/util/hash.js
   function stableIndex(key, length) {
-    if (length <= 1) return 0;
+    if (!(length > 1)) return 0;
     const str = String(key ?? "");
     let hash = 2166136261;
     for (let i = 0; i < str.length; i++) {

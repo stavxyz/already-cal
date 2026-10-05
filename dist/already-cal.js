@@ -5201,6 +5201,42 @@ ${text}</tr>
     }
   }
 
+  // src/util/rsvp-transport.js
+  function rsvpViaFetch(url, fetchImpl = globalThis.fetch) {
+    return async function onRsvp(event, fields) {
+      let res;
+      try {
+        res = await fetchImpl(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId: event.id, ...fields })
+        });
+      } catch (cause) {
+        throw rsvpError("network_error", 0, cause);
+      }
+      let body = null;
+      try {
+        body = await res.json();
+      } catch {
+        body = null;
+      }
+      if (!res.ok) {
+        const code = body && typeof body.error === "string" ? body.error : `http_${res.status}`;
+        throw rsvpError(code, res.status);
+      }
+      if (!body || typeof body !== "object")
+        throw rsvpError("bad_response", res.status);
+      return body;
+    };
+  }
+  function rsvpError(code, status, cause) {
+    const err = new Error(`rsvp: ${code}`);
+    err.code = code;
+    err.status = status;
+    if (cause) err.cause = cause;
+    return err;
+  }
+
   // src/util/throttle.js
   function makeThrottle({ thresholdMs, now }) {
     let lastAdmittedAt = -Infinity;
@@ -5311,7 +5347,8 @@ ${text}</tr>
   }
   function createRsvpForm(event, config, onClose) {
     const i18n = config.i18n || {};
-    const invalidText = i18n.rsvpInvalid || "Check your name and email address.";
+    const invalidText = i18n.rsvpInvalid || "Check your name, email and party size.";
+    const startedText = i18n.rsvpStarted || "This event has already started.";
     const failedText = i18n.rsvpFailed || "Could not save your RSVP. Try again.";
     const form = createElement("form", "already-rsvp", { novalidate: "" });
     const name = field(form, "name", i18n.rsvpName || "Name", {
@@ -5387,15 +5424,17 @@ ${text}</tr>
         return showError(invalidText);
       error.hidden = true;
       submit.disabled = true;
+      cancel.disabled = true;
       try {
         const result = await config.onRsvp(event, fields);
         const count = result && Number.isInteger(result.partySize) ? result.partySize : fields.partySize;
         const done = createElement("p", "already-rsvp__done", { role: "status" });
-        done.textContent = (i18n.rsvpDone || "You're on the list: {count} going").replace("{count}", String(count));
+        done.textContent = (i18n.rsvpDone || "You're on the list: {count} going").replaceAll("{count}", String(count));
         form.replaceWith(done);
-      } catch {
+      } catch (err) {
         submit.disabled = false;
-        showError(failedText);
+        cancel.disabled = false;
+        showError(err && err.code === "event_started" ? startedText : failedText);
       }
     });
     return { form, focus: () => name.focus() };
@@ -5997,42 +6036,6 @@ ${text}</tr>
     container.appendChild(week);
   }
 
-  // src/util/rsvp-transport.js
-  function rsvpViaFetch(url, fetchImpl = globalThis.fetch) {
-    return async function onRsvp(event, fields) {
-      let res;
-      try {
-        res = await fetchImpl(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ eventId: event.id, ...fields })
-        });
-      } catch (cause) {
-        throw rsvpError("network_error", 0, cause);
-      }
-      let body = null;
-      try {
-        body = await res.json();
-      } catch {
-        body = null;
-      }
-      if (!res.ok) {
-        const code = body && typeof body.error === "string" ? body.error : `http_${res.status}`;
-        throw rsvpError(code, res.status);
-      }
-      if (!body || typeof body !== "object")
-        throw rsvpError("bad_response", res.status);
-      return body;
-    };
-  }
-  function rsvpError(code, status, cause) {
-    const err = new Error(`rsvp: ${code}`);
-    err.code = code;
-    err.status = status;
-    if (cause) err.cause = cause;
-    return err;
-  }
-
   // src/already-cal.js
   var DEFAULTS = {
     defaultView: "month",
@@ -6118,7 +6121,8 @@ ${text}</tr>
     rsvpSubmit: "RSVP",
     rsvpCancel: "Cancel",
     rsvpDone: "You're on the list: {count} going",
-    rsvpInvalid: "Check your name and email address.",
+    rsvpInvalid: "Check your name, email and party size.",
+    rsvpStarted: "This event has already started.",
     rsvpFailed: "Could not save your RSVP. Try again."
   };
   function registerLayout(name, renderFn) {

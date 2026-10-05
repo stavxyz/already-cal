@@ -55,7 +55,7 @@ Add a platform button to an event without pasting the full URL. The directive va
 
 ## Image Directives
 
-Add images to an event's gallery without pasting the full URL into the description body. Google Calendar's description editor warns "Text too long" and truncates past a few thousand characters, so a long image list should stay under that; a Google Photos URL is about 160 characters.
+Add images to an event's gallery without pasting the full URL into the description body. A long list of image directives can trip the "Text too long" warning in Google Calendar's description editor, which then truncates the text (22 Google Photos URLs of about 160 characters each did), so keep the list well short of that.
 
 ### Direct URL
 

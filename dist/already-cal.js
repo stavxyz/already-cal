@@ -3024,6 +3024,7 @@ ${text}</tr>
 
   // src/util/directives.js
   var DIRECTIVE_PATTERN = /#already:([^\s<>]+)/gi;
+  var LINKED_VALUE = /(#already:[a-z0-9-]+:)<a\b[^>]*\bhref=(["'])([^"']*)\2[^>]*>[^<]*<\/a>/gi;
   var DIRECTIVE_PLATFORMS = {
     instagram: {
       label: (v) => `Follow @${v} on Instagram`,
@@ -3205,7 +3206,10 @@ ${text}</tr>
         hidden: false,
         imageShuffle: false
       };
-    description = decodeAmp(description);
+    description = decodeAmp(description).replace(
+      LINKED_VALUE,
+      (_m, key, _q, href) => key + href
+    );
     const tokens = [];
     const seen = /* @__PURE__ */ new Set();
     let featured = false;

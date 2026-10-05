@@ -305,3 +305,77 @@ describe("extractDirectives — edge cases", () => {
     assert.strictEqual(result.description, "x  y");
   });
 });
+
+describe("extractDirectives: auto-linked values", () => {
+  const link = (href, text = href) => `<a href="${href}">${text}</a>`;
+  const shape = (t) => ({
+    type: t.type,
+    url: t.url,
+    label: t.label,
+    canonicalId: t.canonicalId,
+  });
+
+  it("reads an auto-linked image URL from the href", () => {
+    const href = "https://lh3.googleusercontent.com/pw/abc=w1600";
+    const result = extractDirectives(`#already:image:${link(href)}`);
+    assert.strictEqual(result.tokens.length, 1);
+    assert.strictEqual(result.tokens[0].type, "image");
+    assert.strictEqual(result.tokens[0].url, href);
+    assert.ok(!result.description.includes("#already"));
+    assert.ok(!result.description.includes("<a"));
+  });
+
+  it("reads a linked preorder like the plain form", () => {
+    const url = "https://example.com/burgers";
+    const linked = extractDirectives(`#already:preorder:${link(url)}`);
+    const plain = extractDirectives(`#already:preorder:${url}`);
+    assert.strictEqual(linked.tokens.length, 1);
+    assert.deepStrictEqual(shape(linked.tokens[0]), shape(plain.tokens[0]));
+  });
+
+  it("reads a linked platform directive like the plain form", () => {
+    const url = "https://www.eventbrite.com/e/123";
+    const linked = extractDirectives(`#already:eventbrite:${link(url)}`);
+    const plain = extractDirectives(`#already:eventbrite:${url}`);
+    assert.strictEqual(linked.tokens.length, 1);
+    assert.deepStrictEqual(shape(linked.tokens[0]), shape(plain.tokens[0]));
+  });
+
+  it("uses the href when the link text differs", () => {
+    const result = extractDirectives(
+      `#already:image:${link("https://cdn.example/a.jpg", "photo")}`,
+    );
+    assert.strictEqual(result.tokens[0].url, "https://cdn.example/a.jpg");
+    assert.ok(!result.description.includes("photo"));
+  });
+
+  it("decodes &amp; inside the href", () => {
+    const result = extractDirectives(
+      `#already:image:${link("https://cdn.example/a.jpg?a=1&amp;b=2")}`,
+    );
+    assert.strictEqual(
+      result.tokens[0].url,
+      "https://cdn.example/a.jpg?a=1&b=2",
+    );
+  });
+
+  it("handles the shuffle flag with <br>-separated linked images", () => {
+    const a = "https://cdn.example/a.jpg";
+    const b = "https://cdn.example/b.jpg";
+    const result = extractDirectives(
+      `#already:image-shuffle<br>#already:image:${link(a)}<br>#already:image:${link(b)}`,
+    );
+    assert.strictEqual(result.imageShuffle, true);
+    assert.deepStrictEqual(
+      result.tokens.map((t) => t.url),
+      [a, b],
+    );
+  });
+
+  it("leaves anchors elsewhere in the description alone", () => {
+    const result = extractDirectives(
+      `<a href="https://x.example/">site</a> #already:image:${link("https://cdn.example/a.jpg")}`,
+    );
+    assert.ok(result.description.includes('<a href="https://x.example/">'));
+  });
+});

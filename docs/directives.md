@@ -55,7 +55,7 @@ Add a platform button to an event without pasting the full URL. The directive va
 
 ## Image Directives
 
-Add images to an event's gallery without pasting the full URL into the description body. A long list of image directives can trip the "Text too long. Remove text or style to avoid truncation." warning in Google Calendar's description editor (seen with 22 Google Photos URLs), so keep the list short.
+Add images to an event's gallery without pasting the full URL into the description body. A long list of image directives can trip the "Text too long. Remove text or style to avoid truncation." warning in Google Calendar's description editor (seen with 22 Google Photos URLs), so keep the list short. Google Calendar's editor turns a pasted URL into a link; a directive whose value became a link is read from the link, so paste URLs as you normally would.
 
 ### Direct URL
 

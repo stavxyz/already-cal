@@ -121,6 +121,7 @@ const I18N_DEFAULTS = {
   rsvpFailed: "Could not save your RSVP. Try again.",
 };
 
+export { rsvpViaFetch } from "./util/rsvp-transport.js";
 // Expose defaults so consumers can extend rather than copy them
 // (e.g. `Already.DEFAULTS.knownPlatforms`, `Already.DEFAULT_ALLOWED_TAGS`).
 // Sanitizer constants are frozen at the source (see description.js).

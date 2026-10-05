@@ -453,6 +453,20 @@ All 18 built-in platforms are supported as directives, plus aliases (`twitter` â
 
 For the complete reference including all platforms, URL construction, tag types, and deduplication rules, see the **[directives reference](docs/directives.md)**.
 
+## RSVP
+
+Events flagged `#already:rsvp` (or every event, with `rsvpAllEvents: true`) get an RSVP button on Badge cards and in the event detail view when you supply `onRsvp`. The widget collects a name, an email and a party size and hands them to your function; it never knows where they go.
+
+```js
+Already.init({
+  el: '#cal',
+  google: { apiKey, calendarId },
+  onRsvp: Already.rsvpViaFetch('https://your-server.example/rsvp'),
+});
+```
+
+`Already.rsvpViaFetch(url)` posts `{ eventId, name, email, partySize, website }` as JSON and resolves with the response body; the done line shows `partySize` from the response. Write your own `onRsvp(event, fields)` for any other transport: resolve with `{ partySize }` to confirm, reject to show the failure message. `website` is a honeypot field; a real visitor never fills it. Labels come from `i18n` (`rsvp`, `rsvpName`, `rsvpEmail`, `rsvpPartySize`, `rsvpSubmit`, `rsvpCancel`, `rsvpDone`, `rsvpFailed`), and the Badge footer's link to the Google event page is labeled `i18n.details`.
+
 ## Tag Filtering
 
 When events have tags (via `#already:tag:` directives or key-value directives), a filter bar appears above the view. Tags display as clickable pills ordered by frequency.

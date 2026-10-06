@@ -458,7 +458,7 @@ For the complete reference including all platforms, URL construction, tag types,
 
 ## RSVP
 
-Events flagged `#already:rsvp` (or every event, with `rsvpAllEvents: true`) get an RSVP button when you supply `onRsvp`. Every card layout shows it: beside Badge's Details link when the event has one, otherwise in a row of its own at the bottom of the card. Opening it shows the form across the card's full width, below the Details link when there is one. The event detail view shows it as a button. The widget collects a name, an email and a party size and hands them to your function; it never knows where they go.
+Events flagged `#already:rsvp` (or every event, with `rsvpAllEvents: true`) get an RSVP button when you supply `onRsvp`. Every card layout shows it: beside Badge's Details link when the event has one, otherwise in a row of its own at the bottom of the card. Opening it shows the form on its own line, below the Details link when there is one, with its fields at most 24rem wide; on a screen 768px or narrower, a horizontal card hides its image while the form is open so the form gets the card's width. The event detail view shows it as a button. The widget collects a name, an email and a party size and hands them to your function; it never knows where they go.
 
 ```js
 Already.init({

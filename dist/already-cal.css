@@ -1349,10 +1349,8 @@ button.already-card__action {
   border-top: none;
   padding-top: 0;
 }
-@media (max-width: 768px) {
-  .already-card--horizontal.already-card--rsvp-open .already-card__image {
-    display: none;
-  }
+.already-card--horizontal.already-card--rsvp-cramped .already-card__image {
+  display: none;
 }
 .already-detail-rsvp {
   margin-top: 1rem;

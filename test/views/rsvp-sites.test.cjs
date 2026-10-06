@@ -64,7 +64,7 @@ describe("RSVP button sites", () => {
     assert.ok(c.querySelector(".already-card__footer .already-rsvp__open"));
   });
 
-  it("a layout without a footer gets no button", () => {
+  it("list view gives a layout without a footer its own RSVP row", () => {
     const c = document.createElement("div");
     renderListView(
       c,
@@ -78,7 +78,7 @@ describe("RSVP button sites", () => {
         },
       }),
     );
-    assert.strictEqual(c.querySelector(".already-rsvp__open"), null);
+    assert.ok(c.querySelector(".already-card__rsvp .already-rsvp__open"));
   });
 
   it("the detail view offers the button in its own row", () => {
@@ -115,5 +115,134 @@ describe("RSVP button sites", () => {
     const card = root.querySelector(".already-event-popover__card");
     assert.ok(card.querySelector(".already-card__action"));
     assert.strictEqual(card.querySelector(".already-rsvp__open"), null);
+  });
+});
+
+function gridCard(layout, event, over = {}) {
+  const c = document.createElement("div");
+  document.body.appendChild(c);
+  renderGridView(
+    c,
+    [event],
+    "UTC",
+    badge({
+      _theme: { layout, orientation: "vertical", imagePosition: "left" },
+      ...over,
+    }),
+  );
+  return c.querySelector(".already-card");
+}
+
+describe("RSVP card placement per layout", () => {
+  it("Badge with a Details link: one footer holds the link and the button", () => {
+    const card = gridCard("badge", flagged());
+    const footers = card.querySelectorAll(".already-card__footer");
+    assert.strictEqual(footers.length, 1);
+    const footer = footers[0];
+    assert.ok(footer.classList.contains("already-card__footer--rsvp"));
+    assert.ok(footer.querySelector("a.already-card__action"));
+    assert.ok(footer.querySelector(".already-rsvp__open"));
+    assert.strictEqual(card.querySelector(".already-card__rsvp"), null);
+  });
+
+  it("Badge without a Details link: a footer row holds only the button", () => {
+    const card = gridCard("badge", createTestEvent({ rsvp: true }));
+    const row = card.querySelector(".already-card__footer");
+    assert.ok(row);
+    assert.ok(row.classList.contains("already-card__footer--rsvp"));
+    assert.ok(row.querySelector(".already-rsvp__open"));
+    assert.strictEqual(row.querySelector("a"), null);
+  });
+
+  it("Hero: the button is in its own row after the location and date footer", () => {
+    const card = gridCard(
+      "hero",
+      createTestEvent({ rsvp: true, location: "The Hall" }),
+    );
+    const info = card
+      .querySelector(".already-card__location")
+      .closest(".already-card__footer");
+    assert.ok(info.querySelector(".already-card__meta"));
+    assert.strictEqual(info.querySelector(".already-rsvp__open"), null);
+    assert.ok(!info.classList.contains("already-card__footer--rsvp"));
+    const row = card.querySelector(".already-card__rsvp");
+    assert.ok(row.querySelector(".already-rsvp__open"));
+    assert.ok(
+      info.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it("Clean: the card gets an RSVP row with the button", () => {
+    const card = gridCard("clean", createTestEvent({ rsvp: true }));
+    const row = card.querySelector(".already-card__body > .already-card__rsvp");
+    assert.ok(row);
+    assert.ok(row.querySelector(".already-rsvp__open"));
+  });
+
+  it("Compact: the card gets an RSVP row with the button", () => {
+    const card = gridCard("compact", createTestEvent({ rsvp: true }));
+    const row = card.querySelector(".already-card__body > .already-card__rsvp");
+    assert.ok(row);
+    assert.ok(row.querySelector(".already-rsvp__open"));
+  });
+
+  for (const layout of ["badge", "hero", "clean", "compact"]) {
+    it(`${layout}: no row and no button when the event does not offer RSVP`, () => {
+      const cases = [
+        [createTestEvent({ htmlLink: "https://calendar.google.com/x" }), {}],
+        [
+          createTestEvent({
+            rsvp: true,
+            htmlLink: "https://calendar.google.com/x",
+            start: "2000-01-01T10:00:00Z",
+            end: "2000-01-01T11:00:00Z",
+          }),
+          {},
+        ],
+        [flagged(), { onRsvp: null }],
+      ];
+      for (const [event, over] of cases) {
+        const card = gridCard(layout, event, over);
+        assert.strictEqual(card.querySelector(".already-card__rsvp"), null);
+        assert.strictEqual(card.querySelector(".already-rsvp__open"), null);
+        assert.strictEqual(
+          card.querySelector(".already-card__footer--rsvp"),
+          null,
+        );
+        document.body.innerHTML = "";
+      }
+    });
+  }
+});
+
+describe("RSVP form in a decorator-created row", () => {
+  const fill = (form) => {
+    form.querySelector('input[name="name"]').value = "Larry";
+    form.querySelector('input[name="email"]').value = "larry@example.com";
+  };
+
+  it("opens, cancels and confirms inside that row", async () => {
+    const card = gridCard("clean", createTestEvent({ rsvp: true }), {
+      onRsvp: async () => ({ partySize: 2 }),
+    });
+    const row = card.querySelector(".already-card__rsvp");
+    row.querySelector(".already-rsvp__open").click();
+    assert.ok(row.querySelector("form.already-rsvp"));
+    assert.strictEqual(row.querySelector(".already-rsvp__open"), null);
+
+    row.querySelector(".already-rsvp__cancel").click();
+    assert.strictEqual(row.querySelector("form"), null);
+    assert.ok(row.querySelector(".already-rsvp__open"));
+
+    row.querySelector(".already-rsvp__open").click();
+    const form = row.querySelector("form");
+    fill(form);
+    form.dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    assert.strictEqual(row.querySelector("form"), null);
+    assert.ok(row.querySelector(".already-rsvp__done"));
+    assert.strictEqual(card.querySelectorAll(".already-rsvp__done").length, 1);
   });
 });

@@ -193,11 +193,28 @@ export function appendRsvpControl(container, event, config) {
 
 /**
  * Card decoration, applied by the list and grid views beside decorateCard.
- * Layouts know nothing about RSVP: the button lands in whatever action
- * footer the layout rendered, so only Badge gets it today.
+ * Layouts know nothing about RSVP, so the decorator owns the row: if the
+ * layout rendered a footer holding an action (Badge's Details link), the
+ * button joins it; otherwise the button gets a footer row of its own at the
+ * end of the body. A footer without an action is not reused because it
+ * holds information (Hero's location and date), not things to click. Every
+ * layout that renders cards therefore offers the button, always in a row
+ * meant for actions.
  */
 export function decorateRsvp(card, event, config) {
-  const footer = card.querySelector(".already-card__footer");
-  if (!footer) return;
-  appendRsvpControl(footer, event, config);
+  if (!offersRsvp(event, config)) return;
+  const actionFooter = [...card.querySelectorAll(".already-card__footer")].find(
+    (footer) => footer.querySelector(".already-card__action"),
+  );
+  if (actionFooter) {
+    actionFooter.classList.add("already-card__footer--rsvp");
+    appendRsvpControl(actionFooter, event, config);
+    return;
+  }
+  const row = createElement(
+    "div",
+    "already-card__footer already-card__footer--rsvp already-card__rsvp",
+  );
+  appendRsvpControl(row, event, config);
+  (card.querySelector(".already-card__body") || card).appendChild(row);
 }

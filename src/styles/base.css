@@ -1638,6 +1638,21 @@ button.already-card__action {
   font-size: var(--already-font-size-sm);
   color: var(--already-text);
 }
+.already-card__footer--rsvp {
+  flex-wrap: wrap;
+}
+/* The open form takes a line of its own below any sibling action, at the
+   card's full content width. */
+.already-card__footer--rsvp > .already-rsvp {
+  flex: 1 0 100%;
+}
+/* A layout footer above the RSVP row (Hero's location and date) already
+   draws the divider; a second rule right under it would read as an empty
+   section. */
+.already-card__footer + .already-card__rsvp {
+  border-top: none;
+  padding-top: 0;
+}
 .already-detail-rsvp {
   margin-top: 1rem;
 }

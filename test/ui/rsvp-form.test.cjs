@@ -402,25 +402,55 @@ describe("appendRsvpControl", () => {
 });
 
 describe("decorateRsvp", () => {
-  function cardWithFooter() {
-    const card = document.createElement("div");
-    card.className = "already-card";
-    const footer = document.createElement("div");
-    footer.className = "already-card__footer";
-    card.appendChild(footer);
-    return card;
+  function card({ body = true, footer = null } = {}) {
+    const el = document.createElement("div");
+    el.className = "already-card";
+    const inner = body ? document.createElement("div") : el;
+    if (body) {
+      inner.className = "already-card__body";
+      el.appendChild(inner);
+    }
+    if (footer) {
+      const f = document.createElement("div");
+      f.className = "already-card__footer";
+      f.innerHTML = footer;
+      inner.appendChild(f);
+    }
+    return el;
   }
-  it("appends the button into an existing footer when offered", () => {
-    const card = cardWithFooter();
-    decorateRsvp(card, flagged(), cfg());
-    assert.ok(card.querySelector(".already-card__footer .already-rsvp__open"));
+  it("mounts beside an existing action in the footer and marks it", () => {
+    const el = card({
+      footer: '<a class="already-card__action" href="#">Details</a>',
+    });
+    decorateRsvp(el, flagged(), cfg());
+    const footers = el.querySelectorAll(".already-card__footer");
+    assert.strictEqual(footers.length, 1);
+    assert.ok(footers[0].classList.contains("already-card__footer--rsvp"));
+    assert.ok(footers[0].querySelector(".already-rsvp__open"));
   });
-  it("does nothing without a footer or when not offered", () => {
-    const bare = document.createElement("div");
-    decorateRsvp(bare, flagged(), cfg());
-    assert.strictEqual(bare.querySelector(".already-rsvp__open"), null);
-    const off = cardWithFooter();
-    decorateRsvp(off, flagged({ rsvp: false }), cfg());
-    assert.strictEqual(off.querySelector(".already-rsvp__open"), null);
+  it("leaves a footer with no action alone and adds its own row to the body", () => {
+    const el = card({ footer: "<span>Somewhere</span>" });
+    decorateRsvp(el, flagged(), cfg());
+    const row = el.querySelector(".already-card__body > .already-card__rsvp");
+    assert.ok(row.classList.contains("already-card__footer"));
+    assert.ok(row.classList.contains("already-card__footer--rsvp"));
+    assert.ok(row.querySelector(".already-rsvp__open"));
+    assert.strictEqual(el.querySelectorAll(".already-rsvp__open").length, 1);
+  });
+  it("adds the row to the card itself when there is no body", () => {
+    const el = card({ body: false });
+    decorateRsvp(el, flagged(), cfg());
+    assert.ok(
+      el.querySelector(":scope > .already-card__rsvp .already-rsvp__open"),
+    );
+  });
+  it("adds nothing when the event does not offer RSVP", () => {
+    const el = card({
+      footer: '<a class="already-card__action" href="#">Details</a>',
+    });
+    decorateRsvp(el, flagged({ rsvp: false }), cfg());
+    assert.strictEqual(el.querySelector(".already-rsvp__open"), null);
+    assert.strictEqual(el.querySelector(".already-card__rsvp"), null);
+    assert.strictEqual(el.querySelector(".already-card__footer--rsvp"), null);
   });
 });

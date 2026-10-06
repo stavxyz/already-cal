@@ -1452,7 +1452,8 @@ button.already-card__action {
     outline-offset: 2px;
   }
 }
-.already-control {
+.already-control,
+.already-link-host .already-card__description a {
   position: relative;
   z-index: 1;
 }

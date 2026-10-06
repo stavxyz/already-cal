@@ -1,6 +1,8 @@
 require("../setup-dom.cjs");
 const { describe, it, before, afterEach } = require("node:test");
 const assert = require("node:assert");
+const fs = require("node:fs");
+const path = require("node:path");
 const { createTestEvent, createComposite } = require("../helpers.cjs");
 
 let renderGridView, renderListView, register;
@@ -211,5 +213,42 @@ describe("a card opens through its title link", () => {
       c.querySelector(".already-sr-only").textContent,
       "Abrir",
     );
+  });
+});
+
+describe("the stretched link leaves a description's own links reachable", () => {
+  it("renders a Badge card's description anchor beside the event link, with no handler on the card", () => {
+    const c = grid(
+      [
+        createTestEvent({
+          id: "d1",
+          description: 'See <a href="https://example.com/x">the site</a>',
+        }),
+      ],
+      cfg("badge"),
+    );
+    const card = c.querySelector(".already-card");
+    const anchor = card.querySelector(".already-card__description a");
+    assert.strictEqual(anchor.getAttribute("href"), "https://example.com/x");
+    assert.strictEqual(
+      card.querySelector("a.already-card__link").getAttribute("href"),
+      "#event/d1",
+    );
+    anchor.click();
+    assert.strictEqual(window.location.hash, "");
+  });
+
+  it("lifts a description anchor above the stretch with the same rule as a control", () => {
+    const css = fs.readFileSync(
+      path.join(__dirname, "../../src/styles/base.css"),
+      "utf8",
+    );
+    const selector =
+      ".already-control,\n.already-link-host .already-card__description a {";
+    const start = css.indexOf(selector);
+    assert.notStrictEqual(start, -1, "no shared rule lifts description links");
+    const block = css.slice(start, css.indexOf("}", start));
+    assert.ok(block.includes("position: relative;"));
+    assert.ok(block.includes("z-index: 1;"));
   });
 });

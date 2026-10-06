@@ -1804,8 +1804,10 @@ button.already-card__action {
 
 /* A control inside a host must sit above the stretched link or it cannot be
    clicked. This one class is the contract for that; custom layouts put it
-   on their own controls. */
-.already-control {
+   on their own controls. Anchors inside a description are the author's
+   content and cannot carry the class, so the selector lifts them too. */
+.already-control,
+.already-link-host .already-card__description a {
   position: relative;
   z-index: 1;
 }

@@ -19,7 +19,7 @@ After enrichment, each event has these fields:
 | `image` | `string \| null` | First image URL, or `null` |
 | `images` | `string[]` | All image URLs (from description, directives, and attachments) |
 | `links` | `object[]` | Extracted platform links: `[{ label, url }]` |
-| `website` | `string \| null` | The event's own web page: a pre-set value, the `website` directive, or the first plain URL in the description |
+| `website` | `string \| null` | The event's own web page: a pre-set value (counted only when it is a string starting with `http`), the `website` directive, or the first plain URL in the description |
 | `attachments` | `object[]` | File attachments: `[{ label, url, type }]` |
 | `tags` | `object[]` | Tags from directives: `[{ key, value }]`. Pre-set tags pass through unchanged. A tag renders as a pill only if it is a non-blank string, or has a string key and a non-blank string or numeric value that is not a URL. |
 | `featured` | `boolean` | `true` if `#already:featured` directive is present |

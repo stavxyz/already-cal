@@ -211,6 +211,8 @@ The widget tells calendars apart by the optional `_sourceKey` field on each even
 - The detail view's title links to this page, opening in a new tab. Cards and the other views do not link.
 - Without the directive, the title links to the first plain `http(s)` URL left in the description after platform links, images, and attachments are extracted, with trailing punctuation trimmed. The URL stays in the description text.
 - With neither, the title is plain text.
+- A value that is not a URL (`#already:website:example.com`) is ignored for the title; it still shows as a pill. When there are several `website` directives, the first wins.
+- The fallback can pick any plain link the other extractors did not claim, such as a Google Doc, a Drive file, or a short link. Use the directive when the first link in the description is not the event's page.
 - A pre-set `website` on the event takes priority over both.
 - The directive is still a URL-valued tag, so it also renders as a "Website" link button like any other (see [URL-valued tags](#url-valued-tags)).
 
@@ -242,5 +244,6 @@ Within `enrichEvent()`, the description is processed in this order:
 2. **Images** — Image URLs (by extension), Google Drive URLs, and Dropbox URLs extracted and removed
 3. **Platform links** — URLs matching known platforms extracted and removed
 4. **File attachments** — URLs ending in file extensions (`.pdf`, `.doc`, etc.) extracted and removed
+5. **Website**: a pre-set `website`, a `website` tag already on the event, the `website` directive, or the first plain URL left in the description, in that order. Nothing is removed from the description.
 
 All extractors decode `&amp;` to `&` before matching. Tokens from all stages are collected in a shared `TokenSet` that enforces deduplication by canonical ID.

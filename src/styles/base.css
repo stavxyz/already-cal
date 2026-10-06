@@ -1823,10 +1823,14 @@ button.already-card__action {
 }
 
 /* A hidden link (a host with no usable title) covers the host itself rather
-   than sitting in its flow; see ui/event-link.js. */
+   than sitting in its flow; see ui/event-link.js. It is the host's first
+   child, so without a z-index every later positioned element (the Badge
+   layout's image) would paint above it and swallow the click. Controls
+   carry the same z-index and come later in the tree, so they stay on top. */
 .already-event-link--hidden {
   position: absolute;
   inset: 0;
+  z-index: 1;
 }
 
 /* The ring belongs on the host, which is what the visitor sees as the

@@ -1460,6 +1460,7 @@ button.already-card__action {
 .already-event-link--hidden {
   position: absolute;
   inset: 0;
+  z-index: 1;
 }
 .already-event-link:focus-visible {
   outline: none;

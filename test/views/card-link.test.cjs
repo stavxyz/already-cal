@@ -307,12 +307,13 @@ describe("the stylesheet holds its own in a host page", () => {
     assert.ok(blockFor(".already-link-host").includes("isolation: isolate;"));
   });
 
-  it("takes the hidden event link out of the host's flow", () => {
+  it("takes the hidden event link out of the host's flow, above its positioned content", () => {
     // An in-flow anchor with no visible content is still a flex item, and a
     // day row's gap would push its time column aside.
     const block = blockFor(".already-event-link--hidden");
     assert.ok(block.includes("position: absolute;"));
     assert.ok(block.includes("inset: 0;"));
+    assert.ok(block.includes("z-index: 1;"));
   });
 
   it("lets a click on the popover's chevron fall through to the event link", () => {

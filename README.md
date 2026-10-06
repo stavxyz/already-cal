@@ -108,6 +108,7 @@ Already.init({
   headerDescription: null,             // override calendar description from data
   headerIcon: null,                    // URL to icon/logo
   subscribeUrl: null,                  // auto-generated from calendarId if not set
+  shareUrl: null,                      // canonical page URL to share; falls back to current page URL
 
   // --- RSVP (see "RSVP" below) ---
   rsvpAllEvents: false,                // every event takes RSVPs; otherwise only events flagged #already:rsvp
@@ -165,6 +166,14 @@ Already.init({
     rsvpStarted: 'This event has already started.',
     rsvpClosed: 'This event is not taking RSVPs.',
     rsvpFailed: 'Could not save your RSVP. Try again.',
+    moreParts: '+{count} more',
+    compositeParts: 'Schedule',
+    subscribeApple: 'Apple Calendar',
+    subscribeGoogle: 'Google Calendar',
+    subscribeOutlook: 'Outlook',
+    subscribeCopy: 'Copy iCal link',
+    share: 'Share',
+    copied: '📋 Copied!',
   },
 
   // --- Responsive ---
@@ -235,6 +244,7 @@ The most common options are also available as HTML `data-` attributes for zero-J
 | `data-calendar-id` | `google.calendarId` |
 | `data-max-results` | `google.maxResults` |
 | `data-fetch-url` | `fetchUrl` |
+| `data-share-url` | `shareUrl` |
 | `data-default-view` | `defaultView` |
 | `data-views` | `views` (comma-separated: `"month,week,list"`) |
 | `data-locale` | `locale` |
@@ -298,7 +308,7 @@ Grid view uses the theme's orientation (default: vertical). List view always ren
 
 Palettes set these properties. Override any of them in the theme config:
 
-`primary`, `primaryText`, `background`, `surface`, `text`, `textSecondary`, `border`, `fontFamily`, `fontWeightNormal`, `fontWeightBold`, `fontSizeSm`, `fontSizeBase`, `fontSizeLg`, `radius`, `radiusSm`, `shadow`, `shadowHover`, `highlight`, `spacing`
+`primary`, `primaryText`, `background`, `surface`, `text`, `textSecondary`, `border`, `borderControl`, `borderGrid`, `error`, `fontFamily`, `fontWeightNormal`, `fontWeightBold`, `fontSizeSm`, `fontSizeBase`, `fontSizeLg`, `radius`, `radiusSm`, `shadow`, `shadowHover`, `highlight`, `spacing`
 
 ### Customizing Beyond Built-in Palettes
 

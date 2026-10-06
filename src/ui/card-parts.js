@@ -78,7 +78,7 @@ export function decorateParts(card, event, config, { timezone } = {}) {
   }
   if (listed.length > MAX_PARTS) {
     const more = createElement("div", "already-card__parts-more");
-    more.textContent = (i18n.moreParts || "+{count} more").replace(
+    more.textContent = (i18n.moreParts || "+{count} more").replaceAll(
       "{count}",
       listed.length - MAX_PARTS,
     );

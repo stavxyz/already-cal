@@ -241,4 +241,22 @@ describe("renderMonthView", () => {
       container.querySelector(".already-month-more").textContent.includes("1"),
     );
   });
+
+  it("replaces every {count} in i18n.moreEvents", () => {
+    const container = document.createElement("div");
+    const events = [
+      createTestEvent({ id: "1", start: "2026-04-15T08:00:00Z" }),
+      createTestEvent({ id: "2", start: "2026-04-15T10:00:00Z" }),
+      createTestEvent({ id: "3", start: "2026-04-15T12:00:00Z" }),
+      createTestEvent({ id: "4", start: "2026-04-15T14:00:00Z" }),
+    ];
+    renderMonthView(container, place(events), "UTC", april2026, {
+      i18n: { moreEvents: "{count} more ({count})" },
+      maxEventsPerDay: 3,
+    });
+    assert.strictEqual(
+      container.querySelector(".already-month-more").textContent,
+      "1 more (1)",
+    );
+  });
 });

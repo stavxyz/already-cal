@@ -168,7 +168,7 @@ export function renderMonthView(
 
     if (dayEvents.length > maxEventsPerDay) {
       const more = createElement("div", "already-month-more");
-      more.textContent = moreEventsTemplate.replace(
+      more.textContent = moreEventsTemplate.replaceAll(
         "{count}",
         dayEvents.length - maxEventsPerDay,
       );

@@ -4639,7 +4639,7 @@ ${text}</tr>
     }
     if (listed.length > MAX_PARTS) {
       const more = createElement("div", "already-card__parts-more");
-      more.textContent = (i18n.moreParts || "+{count} more").replace(
+      more.textContent = (i18n.moreParts || "+{count} more").replaceAll(
         "{count}",
         listed.length - MAX_PARTS
       );
@@ -6453,7 +6453,7 @@ ${text}</tr>
       }
       if (dayEvents.length > maxEventsPerDay) {
         const more = createElement("div", "already-month-more");
-        more.textContent = moreEventsTemplate.replace(
+        more.textContent = moreEventsTemplate.replaceAll(
           "{count}",
           dayEvents.length - maxEventsPerDay
         );

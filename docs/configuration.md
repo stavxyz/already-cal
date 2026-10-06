@@ -123,7 +123,7 @@ You can also override these directly in CSS:
 | `noEventsThisDay` | `'No events this day.'` | Day view empty state |
 | `back` | `'← Back'` | Detail view back button |
 | `moreEvents` | `'+{count} more'` | Month view overflow (`{count}` is replaced) |
-| `moreParts` | `'+{count} more'` | Composite card with more than three parts (`{count}` is replaced) |
+| `moreParts` | `'+{count} more'` | Composite card with more than three parts to list (`{count}` is replaced) |
 | `compositeParts` | `'Schedule'` | Accessible label of a composite's parts list in the detail view |
 | `subscribe` | `'Subscribe'` | Header subscribe button |
 | `clearFilter` | `'Clear'` | Tag filter clear button |
@@ -470,7 +470,7 @@ slot.className = 'already-card__parts';
 card.appendChild(slot);
 ```
 
-The view fills that element, and removes it when the event has no parts. Without one, the parts are appended to the element with the class `already-card__body`, or to the card itself when it has none.
+The view fills that element, and removes it when the event has no parts to list. Without one, the parts are appended to the element with the class `already-card__body`, or to the card itself when it has none.
 
 On a composed parent, `event.image` and `event.tags` are the parent's own. A layout that wants the composite's combined images or tags derives them from `event.parts`.
 

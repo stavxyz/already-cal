@@ -40,7 +40,7 @@ Passed to onDataLoad as data.events
   │
   ▼
 composeEvents() (src/composite.js), once per load
-  1. visibility: entries with event.hidden === true leave
+  1. visibility: entries with a truthy event.hidden leave
   2. grouping: an entry flagged composite takes the entries that start
      inside its hours as its parts, and the parts leave the top level
   The widget keeps the composed result and the calendar's metadata as its

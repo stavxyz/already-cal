@@ -155,10 +155,10 @@ Some occasions are described by more than one calendar entry: a weekly dinner an
 - An entry starts inside the hours when its start is at or after the parent's start and before the parent's end. A parent with no end takes no parts
 - An all-day parent takes the entries whose date falls on its dates. An all-day entry joins an all-day parent only, never a timed one
 - The composite's place in a list, its featured state, and the moment it counts as past are the parent's. Its parts are shown with it for as long as it is shown
-- The parent keeps its card. The card lists up to three parts with their start times, then a "+N more" line
-- A part has no card of its own in the grid and list views. In the month, week, and day views a part is folded on the day its parent is shown, and appears on its own on any other day
+- The parent keeps its card. The card lists up to three parts, each with its start time, then a "+N more" line. A part on a day other than the parent's shows its date as well
+- A part has no card of its own in the grid and list views. In the month and week views a part that starts on its parent's first day has no chip of its own, and in the day view it is a row under the parent. A part that starts on any other day appears on its own on that day
 - The detail view shows the parent, then each part with its own time, description, links, attachments, and RSVP button. A link to a part opens the parent's detail at that part
-- A part whose title matches the parent's, ignoring case, punctuation, accents, and emoji, is treated as a second listing of the same occasion, and its title is not repeated
+- A part whose title matches the parent's, ignoring case, punctuation, accents, and emoji, is treated as a second listing of the same occasion. It gets no line on the card and no row of its own on the parent's first day, and the detail view shows its details without repeating the title
 - On a recurring event the flag applies to every occurrence
 - A parent never becomes a part. An entry inside two parents joins a parent from its own calendar before one from another calendar, and between two from the same side it joins the one with the shorter window
 - A hidden entry is never a parent and never a part

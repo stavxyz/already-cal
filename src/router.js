@@ -76,6 +76,19 @@ export function setDayView(dateStr, config) {
   localStorage.setItem(key, "day");
 }
 
+/**
+ * The href that opens an entry's detail view: the one writer of the event
+ * route that parseHash reads. A part with no id of its own links to its
+ * parent, where it is shown. An entry with neither has no route, so this
+ * returns null and the caller renders nothing activatable in place of a
+ * link to nowhere. The id is written as it is, without encoding, because
+ * parseHash reads it as it is.
+ */
+export function eventHref(entry) {
+  const id = entry?.id ?? entry?.parentId;
+  return id == null ? null : `#event/${id}`;
+}
+
 /** Navigate to an event's detail view by setting the URL hash. */
 export function setEventDetail(eventId) {
   window.location.hash = `event/${eventId}`;

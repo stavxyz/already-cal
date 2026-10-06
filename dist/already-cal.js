@@ -5879,6 +5879,7 @@ ${text}</tr>
       if (part.id != null) item.dataset.eventId = part.id;
       if (focusPartId != null && part.id === focusPartId) {
         item.classList.add("already-detail-part--target");
+        item.setAttribute("aria-current", "true");
       }
       const showTitle = Boolean(part.title) && !isSecondListing(part, event);
       const showTime = !(sameInstant(part.start, event.start) && sameInstant(part.end, event.end));

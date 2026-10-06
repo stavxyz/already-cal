@@ -62,6 +62,7 @@ export function renderDetailParts(
     if (part.id != null) item.dataset.eventId = part.id;
     if (focusPartId != null && part.id === focusPartId) {
       item.classList.add("already-detail-part--target");
+      item.setAttribute("aria-current", "true");
     }
 
     // An untitled part has nothing to print, and is not a second listing.

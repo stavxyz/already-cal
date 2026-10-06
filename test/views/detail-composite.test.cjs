@@ -289,6 +289,11 @@ describe("detail view of a composite", () => {
     const targets = c.querySelectorAll(".already-detail-part--target");
     assert.strictEqual(targets.length, 1);
     assert.strictEqual(targets[0].dataset.eventId, "part-2");
+    // Only the class would give a screen reader no cue which part was named.
+    const current = c.querySelectorAll("[aria-current]");
+    assert.strictEqual(current.length, 1);
+    assert.strictEqual(current[0], targets[0]);
+    assert.strictEqual(current[0].getAttribute("aria-current"), "true");
   });
 
   it("marks no part without an id when the link named the parent", () => {

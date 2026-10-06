@@ -14,7 +14,7 @@ beforeEach(() => {
   window.location.hash = "";
 });
 
-// Card/date grouping is now keyed by the VIEWER's zone (see getEventDateParts),
+// Card/date grouping is now keyed by the VIEWER's zone (see eventDayKey),
 // so the ambient TZ decides which date bucket an event falls in. Pin it to UTC
 // — the zone these fixtures are written against — so the assertions below are
 // deterministic on every machine and in CI, and restore it afterward so no

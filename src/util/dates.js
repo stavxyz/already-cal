@@ -84,7 +84,7 @@ export function wallClockDiffers(isoString, zoneA, zoneB, locale) {
  * belongs to, and stays current through, the viewer's calendar day. Do NOT make
  * the date-only branch UTC, or all-day events flip to past in the evening of
  * their last day in negative-offset (US) zones. Timed values parse to their
- * instant. Shared by `isPast` and the day view.
+ * instant. Shared by `isPast`, `startOrder`, and the RSVP form.
  */
 export function parseEventDate(value) {
   return DATE_ONLY_RE.test(value)
@@ -315,8 +315,7 @@ export function getDatePartsInTz(isoString, timezone) {
  * with the viewer-local time `formatEventWhen` prints on it; before this, a
  * merged multi-calendar feed placed events by the FIRST calendar's zone while
  * labelling them viewer-local, so a late-evening event could sit in one day's
- * cell showing the next day's time. (The day view already bucketed viewer-local
- * via `isSameDay(parseEventDate(...))`; this brings the rest in line.)
+ * cell showing the next day's time.
  *
  * All-day (date-only) values stay ABSOLUTE — `getDatePartsInTz` routes them
  * through `zoneFor` → UTC — so they never shift a day. Passing the viewer zone

@@ -85,7 +85,7 @@ export function sortFeatured(events) {
 /**
  * Sort events so featured events come first within each date group. Groups are
  * keyed by the VIEWER's day (all-day values stay absolute) to match the
- * viewer-local time shown on each card — see eventDayKey.
+ * viewer-local time shown on each card. See eventDayKey.
  */
 export function sortFeaturedByDate(events) {
   const dateKey = (e) => eventDayKey(e.start);

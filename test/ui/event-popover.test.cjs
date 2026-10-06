@@ -215,7 +215,7 @@ describe("event popover", () => {
 });
 
 // M6: the popover claimed to render "the same component" the grid does, but it
-// skipped decorateCard, so it lacked the past and featured modifiers and the
+// skipped the card decoration step, so it lacked the past and featured modifiers and the
 // data-event-id hook. Compare the two directly rather than asserting a list.
 describe("popover card matches the grid card", () => {
   let renderGridView;

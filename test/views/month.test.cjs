@@ -1,4 +1,4 @@
-// Month cells are keyed by the VIEWER's day (see getEventDateParts), so the
+// Month cells are keyed by the VIEWER's day (see eventDayKey), so the
 // ambient TZ decides which cell a timed event lands in. Pin it here — and pin
 // it BEFORE anything else in this file, because the `new Date(2026, 3, 1)`
 // literal in the describe body below is evaluated at load time, so a `before`

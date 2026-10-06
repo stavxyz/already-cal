@@ -231,6 +231,8 @@ Already.init({
 });
 ```
 
+The header's Subscribe button opens a menu with Apple Calendar, Google Calendar, Outlook and Copy iCal link. The four labels come from the `i18n` keys `subscribeApple`, `subscribeGoogle`, `subscribeOutlook` and `subscribeCopy`.
+
 For detailed descriptions of every option, callback signatures, custom renderer examples, and data hook behavior, see the **[full configuration reference](docs/configuration.md)**.
 
 The most common options are also available as HTML `data-` attributes for zero-JS setup. See the [data attributes table](#data-attributes) below. Some options (callbacks, custom renderers, sticky, pageSize, and others) require JavaScript initialization — see the [full data attributes reference](docs/configuration.md#data-attributes) for details.

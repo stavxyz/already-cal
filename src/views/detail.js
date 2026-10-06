@@ -150,7 +150,27 @@ export function renderDetailView(
   const content = createElement("div", "already-detail-content");
 
   const titleEl = createElement("h2", "already-detail-title");
-  titleEl.textContent = event.title;
+  if (event.website) {
+    const link = createElement("a", "already-detail-title-link", {
+      href: event.website,
+      target: "_blank",
+      rel: "noopener",
+    });
+    const text = createElement("span", "already-detail-title-text");
+    text.textContent = event.title;
+    link.appendChild(text);
+    // The mark is decorative; the link's accessible name stays the title.
+    const mark = createElement("span", "already-detail-title-mark", {
+      "aria-hidden": "true",
+    });
+    // The word joiner keeps the arrow from wrapping onto a line of its own;
+    // it only works while the mark is inline, in the same run as the text.
+    mark.textContent = "\u2060\u2197";
+    link.appendChild(mark);
+    titleEl.appendChild(link);
+  } else {
+    titleEl.textContent = event.title;
+  }
   content.appendChild(titleEl);
 
   const meta = createElement("div", "already-detail-meta");

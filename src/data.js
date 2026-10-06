@@ -9,6 +9,7 @@ import { extractDirectives, FLAG_FIELDS } from "./util/directives.js";
 import { stableIndex } from "./util/hash.js";
 import { extractImageTokens, normalizeImageUrl } from "./util/images.js";
 import { extractLinkTokens } from "./util/links.js";
+import { URL_PATTERN } from "./util/sanitize.js";
 import { TokenSet } from "./util/tokens.js";
 
 /** Load event data from the configured source (pre-loaded, fetch URL, or Google Calendar API). */
@@ -58,6 +59,55 @@ export async function loadData(config) {
   }
 
   return data;
+}
+
+function isHttpString(value) {
+  return typeof value === "string" && value.startsWith("http");
+}
+
+const TRAILING_PUNCTUATION = ".,;:!?'*";
+const IMG_SRC_PREFIX_RE = /\bsrc\s*=\s*["']?$/i;
+const HOSTED_URL_RE = /^https?:\/\/[^/\s?#:]/i;
+
+function countChar(text, ch) {
+  let n = 0;
+  for (let i = text.indexOf(ch); i !== -1; i = text.indexOf(ch, i + 1)) n++;
+  return n;
+}
+
+/**
+ * Drops trailing prose punctuation and unbalanced `)`, each of which can
+ * expose the other, in one backward pass. Moving an end index instead of
+ * re-slicing or re-matching keeps a long run of either character linear.
+ */
+function trimProse(url) {
+  let unbalanced = countChar(url, ")") - countChar(url, "(");
+  let end = url.length;
+  while (end > 0) {
+    const ch = url[end - 1];
+    if (TRAILING_PUNCTUATION.includes(ch)) end--;
+    else if (ch === ")" && unbalanced > 0) {
+      end--;
+      unbalanced--;
+    } else break;
+  }
+  return url.slice(0, end);
+}
+
+/**
+ * First plain URL in the text. A URL that is an <img> src is page furniture,
+ * not the event's page. Only the first candidate is considered on purpose: a
+ * description whose first link is junk is one the owner should fix with the
+ * `website` directive, not one we guess a better link for.
+ */
+function firstPlainUrl(text) {
+  for (const match of text.matchAll(URL_PATTERN)) {
+    const before = text.slice(Math.max(0, match.index - 16), match.index);
+    if (IMG_SRC_PREFIX_RE.test(before)) continue;
+    const url = trimProse(match[0]);
+    return HOSTED_URL_RE.test(url) ? url : null;
+  }
+  return null;
 }
 
 /** Enrich a raw event: extract directives, images, links, attachments, and tags from description. */
@@ -173,6 +223,24 @@ export function enrichEvent(event, config) {
   const descriptionFormat =
     event.descriptionFormat || detectFormat(description);
 
+  // Pre-set wins, then the website directive, then the first plain URL left
+  // in the description after every other extractor has taken its share.
+  const directiveWebsite = tagTokens.find(
+    (t) => t.metadata.key === "website" && isHttpString(t.metadata.value),
+  );
+  // An event enriched earlier (an older core.js, a cached fetchUrl payload)
+  // arrives with the directive stripped and its tag already in place.
+  const existingWebsiteTag = existingTags.find(
+    (t) => t.key === "website" && isHttpString(t.value),
+  );
+  const website = isHttpString(event.website)
+    ? event.website
+    : existingWebsiteTag
+      ? existingWebsiteTag.value
+      : directiveWebsite
+        ? directiveWebsite.metadata.value
+        : firstPlainUrl(description);
+
   const { _imageAttachments, ...rest } = event;
   return {
     ...rest,
@@ -181,6 +249,7 @@ export function enrichEvent(event, config) {
     image,
     images,
     links,
+    website,
     attachments,
     tags,
     ...flags,

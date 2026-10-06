@@ -451,9 +451,12 @@ Directives let you control already-cal behavior directly from event descriptions
 #already:hidden                    → hides from views (still accessible via direct link)
 #already:image-shuffle             → a stable image per occurrence, chosen from the list by a hash of the occurrence id
 #already:rsvp                      → the event takes RSVPs when the host configured onRsvp
+#already:website:https://example.com/fest → the detail title links to this page
 ```
 
 A URL-valued directive pasted into Google Calendar is read from the link the editor turns it into (see [docs/directives.md](docs/directives.md)).
+
+Without the directive, the detail title links to the first plain web link in the description; platform links (Instagram, Zoom, Eventbrite and the rest) stay as their own buttons.
 
 All 18 built-in platforms are supported as directives, plus aliases (`twitter` → X, `meet` → Google Meet, `forms` → Google Forms, `maps` → Google Maps). Directives and URLs are deduplicated — `#already:instagram:foo` and `https://instagram.com/foo` produce one button, not two.
 

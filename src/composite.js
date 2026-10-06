@@ -116,7 +116,8 @@ export function selectVisible(events) {
 export function groupParts(visible, { timeZone } = {}) {
   const parents = [];
   for (const [index, entry] of visible.entries()) {
-    if (entry.composite !== true) continue;
+    // Parts point at their parent by id, so a parent needs one.
+    if (entry.composite !== true || entry.id == null) continue;
     const win = windowOf(entry);
     if (!win) continue;
     parents.push({
@@ -175,10 +176,12 @@ export function groupParts(visible, { timeZone } = {}) {
 /**
  * A composed parent's parts, or an empty list. Only what composition built
  * counts: a host's data may carry its own field named `parts`, and that is
- * not a composite.
+ * not a composite. An event with no id is never a composite: its parts could
+ * not point at it.
  */
 export function partsOf(event) {
   const parts = event?.parts;
+  if (event?.id == null) return NO_PARTS;
   if (!Array.isArray(parts) || parts.length === 0) return NO_PARTS;
   return parts.every((p) => p && p.parentId === event.id) ? parts : NO_PARTS;
 }

@@ -445,6 +445,27 @@ describe("inputs the rules do not spell out", () => {
     assert.deepStrictEqual(partIds(events[0]), ["early"]);
   });
 
+  it("gives no parts to a flagged entry that has no id", () => {
+    // Parts point at their parent by id, so a parent without one could not
+    // be told apart from an event whose host put its own `parts` on it.
+    const noId = {
+      ...parent("p", "2099-06-15T22:00:00Z", "2099-06-16T02:00:00Z"),
+      id: undefined,
+    };
+    const part = ev("x", "2099-06-15T23:00:00Z", "2099-06-16T00:00:00Z");
+    const { events } = compose([noId, part]);
+    assert.strictEqual(events.length, 2);
+    assert.strictEqual(events[0], noId);
+    assert.strictEqual(events[1], part);
+  });
+
+  it("does not take a host's own parts field for a composite when ids are missing", () => {
+    assert.deepStrictEqual(
+      partsOf({ title: "host", parts: [{ title: "tier" }] }),
+      [],
+    );
+  });
+
   it("groups the same way through groupParts alone", () => {
     const out = groupParts(
       [

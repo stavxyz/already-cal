@@ -1,6 +1,6 @@
 {
   "name": "already-cal",
-  "version": "0.13.1",
+  "version": "0.14.0",
   "description": "Open-source Google Calendar event display widget",
   "type": "module",
   "main": "dist/already-cal.js",
@@ -10,9 +10,9 @@
     "dev": "node build.cjs --watch",
     "format": "biome check --write .",
     "lint": "biome ci .",
-    "test": "node --test test/*.test.cjs test/util/*.test.cjs test/views/*.test.cjs test/ui/*.test.cjs test/layouts/*.test.cjs test/themes/*.test.cjs",
+    "test": "node --test test/*.test.cjs test/util/*.test.cjs test/views/*.test.cjs test/ui/*.test.cjs test/layouts/*.test.cjs test/themes/*.test.cjs test/a11y/*.test.cjs",
     "test:perf": "node --test --test-concurrency=1 test/perf/*.test.cjs",
-    "test:coverage": "c8 node --test test/*.test.cjs test/util/*.test.cjs test/views/*.test.cjs test/ui/*.test.cjs test/layouts/*.test.cjs test/themes/*.test.cjs"
+    "test:coverage": "c8 node --test test/*.test.cjs test/util/*.test.cjs test/views/*.test.cjs test/ui/*.test.cjs test/layouts/*.test.cjs test/themes/*.test.cjs test/a11y/*.test.cjs"
   },
   "repository": {
     "type": "git",
@@ -40,6 +40,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.12",
+    "axe-core": "^4.14.0",
     "c8": "^11.0.0",
     "esbuild": "^0.25.0",
     "jsdom": "^29.0.2"

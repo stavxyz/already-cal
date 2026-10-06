@@ -85,7 +85,7 @@ export function render(event, options) {
   // RSVP button is a decoration the views add (src/ui/rsvp-form.js).
   if (event.htmlLink) {
     const actions = createElement("div", "already-card__footer");
-    const details = createElement("a", "already-card__action", {
+    const details = createElement("a", "already-card__action already-control", {
       href: event.htmlLink,
       target: "_blank",
       rel: "noopener noreferrer",

@@ -4064,8 +4064,12 @@ ${text}</tr>
     const key = storageKey(config);
     localStorage.setItem(key, "day");
   }
-  function setEventDetail(eventId) {
-    window.location.hash = `event/${eventId}`;
+  function eventHref(entry) {
+    const id = entry?.id || entry?.parentId;
+    if (!id) return null;
+    const fragment = `#event/${id}`;
+    if (document.querySelector("base[href]") === null) return fragment;
+    return new URL(fragment, window.location.href).href;
   }
   function onHashChange(callback) {
     const handler = () => {
@@ -4075,9 +4079,6 @@ ${text}</tr>
     window.addEventListener("hashchange", handler);
     return () => window.removeEventListener("hashchange", handler);
   }
-
-  // src/ui/rsvp-state.js
-  var RSVP_OPEN_CLASS = "already-card--rsvp-open";
 
   // src/views/helpers.js
   function createElement(tag2, className, attrs) {
@@ -4090,6 +4091,9 @@ ${text}</tr>
     }
     return el;
   }
+  function eventLinkText(entry, config) {
+    return String(entry?.title ?? "").trim() || config?.i18n?.openEvent || "Open event";
+  }
   function createTagPills(event, wrapperClass, pillClass) {
     const tags = compositeTags(event).filter(isCategoryTag);
     if (tags.length === 0) return null;
@@ -4101,28 +4105,20 @@ ${text}</tr>
     }
     return wrapper;
   }
-  function bindEventClick(el, event, viewName, config, { stopPropagation = false } = {}) {
-    const rsvpOpen = () => el.classList.contains(RSVP_OPEN_CLASS);
-    function handleClick(e) {
-      if (rsvpOpen()) return;
-      if (stopPropagation) e.stopPropagation();
+  function bindEventClick(el, event, viewName, config, { canNavigate } = {}) {
+    if (el === null || !el.hasAttribute("href")) return;
+    el.addEventListener("click", (e) => {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+        return;
+      }
+      e.preventDefault();
+      if (canNavigate && !canNavigate()) return;
       if (config.onEventClick) {
         const result = config.onEventClick(event, viewName);
         if (result === false) return;
       }
-      setEventDetail(event.id ?? event.parentId);
-    }
-    el.addEventListener("click", handleClick);
-    el.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        if (rsvpOpen()) return;
-        e.preventDefault();
-        if (stopPropagation) e.stopPropagation();
-        handleClick(e);
-      }
+      window.location.hash = new URL(el.href).hash;
     });
-    el.setAttribute("tabindex", "0");
-    el.setAttribute("role", "button");
   }
   function applyEventClasses(el, event, baseClass) {
     let cls = baseClass;
@@ -4273,7 +4269,7 @@ ${text}</tr>
     }
     if (event.htmlLink) {
       const actions = createElement("div", "already-card__footer");
-      const details = createElement("a", "already-card__action", {
+      const details = createElement("a", "already-card__action already-control", {
         href: event.htmlLink,
         target: "_blank",
         rel: "noopener noreferrer"
@@ -4643,7 +4639,7 @@ ${text}</tr>
     }
     if (listed.length > MAX_PARTS) {
       const more = createElement("div", "already-card__parts-more");
-      more.textContent = (i18n.moreParts || "+{count} more").replace(
+      more.textContent = (i18n.moreParts || "+{count} more").replaceAll(
         "{count}",
         listed.length - MAX_PARTS
       );
@@ -4653,6 +4649,45 @@ ${text}</tr>
       (card.querySelector(".already-card__body") || card).appendChild(block2);
     }
   }
+
+  // src/ui/event-link.js
+  var LINK_HOST_CLASS = "already-link-host";
+  var CONTROL_SELECTOR = 'a, button, input, select, textarea, [tabindex], [role="button"], [role="link"]';
+  function hiddenName(text) {
+    const span = createElement("span", "already-sr-only");
+    span.textContent = text;
+    return span;
+  }
+  function linkTitle(host, href, { titleSelector, linkClass, fallbackText }) {
+    if (href == null) return null;
+    const link2 = createElement("a", `already-event-link ${linkClass}`, { href });
+    const title = host.querySelector(titleSelector);
+    const holdsControl = title !== null && (title.matches(CONTROL_SELECTOR) || title.querySelector(CONTROL_SELECTOR) !== null);
+    const holdsText = title !== null && title.textContent.trim() !== "";
+    if (holdsText && !holdsControl) {
+      while (title.firstChild) link2.appendChild(title.firstChild);
+      title.appendChild(link2);
+    } else {
+      link2.appendChild(hiddenName(fallbackText));
+      link2.classList.add("already-event-link--hidden");
+      host.prepend(link2);
+    }
+    host.classList.add(LINK_HOST_CLASS);
+    return link2;
+  }
+  function fillEventAnchor(el, title, fallbackText) {
+    const text = String(title ?? "");
+    el.textContent = text;
+    if (text.trim() !== "" || !el.hasAttribute("href")) return;
+    el.appendChild(hiddenName(fallbackText));
+  }
+  function eventAnchor(href, className) {
+    if (href == null) return createElement("div", className);
+    return createElement("a", className, { href });
+  }
+
+  // src/ui/rsvp-state.js
+  var RSVP_OPEN_CLASS = "already-card--rsvp-open";
 
   // src/ui/rsvp-form.js
   var NAME_MAX = 80;
@@ -4746,9 +4781,7 @@ ${text}</tr>
       error.hidden = false;
     }
     let pending = false;
-    form.addEventListener("click", (e) => e.stopPropagation());
     form.addEventListener("keydown", (e) => {
-      e.stopPropagation();
       if (e.key !== "Escape") return;
       if (pending) return;
       onClose();
@@ -4800,7 +4833,20 @@ ${text}</tr>
       "already-card__action already-rsvp__open",
       { type: "button" }
     );
-    button.textContent = i18n.rsvp || "RSVP";
+    const visible = i18n.rsvp || "RSVP";
+    button.textContent = visible;
+    const title = String(event.title ?? "").trim();
+    if (title) {
+      const named = (i18n.rsvpFor || "RSVP for {title}").replaceAll(
+        "{title}",
+        () => title
+      );
+      const containsVisible = named.toLowerCase().includes(visible.toLowerCase());
+      button.setAttribute(
+        "aria-label",
+        containsVisible ? named : `${visible}: ${title}`
+      );
+    }
     const setOpen = (open) => {
       const card = container.closest(".already-card");
       if (!card) return;
@@ -4809,8 +4855,7 @@ ${text}</tr>
       card.classList.toggle(RSVP_OPEN_CLASS, open);
       card.classList.toggle("already-card--rsvp-cramped", cramped);
     };
-    button.addEventListener("click", (e) => {
-      e.stopPropagation();
+    button.addEventListener("click", () => {
       const { form, focus } = createRsvpForm(event, config, {
         onClose: () => {
           form.replaceWith(button);
@@ -4823,7 +4868,6 @@ ${text}</tr>
       setOpen(true);
       focus();
     });
-    button.addEventListener("keydown", (e) => e.stopPropagation());
     container.appendChild(button);
     return button;
   }
@@ -4838,29 +4882,39 @@ ${text}</tr>
       (footer) => footer.querySelector(".already-card__action")
     );
     if (actionFooter) {
-      actionFooter.classList.add("already-card__footer--rsvp");
+      actionFooter.classList.add("already-card__footer--rsvp", "already-control");
       appendRsvpControl(actionFooter, event, config);
       return;
     }
     const row = createElement(
       "div",
-      "already-card__footer already-card__footer--rsvp already-card__rsvp"
+      "already-card__footer already-card__footer--rsvp already-card__rsvp already-control"
     );
     appendRsvpControl(row, event, config);
     (card.querySelector(".already-card__body") || card).appendChild(row);
   }
 
   // src/views/card-decoration.js
-  function applyCardState(card, event, viewName, config) {
+  function applyCardState(card, event) {
     if (isPast(event.end || event.start))
       card.classList.add("already-card--past");
     if (event.featured) card.classList.add("already-card--featured");
     card.dataset.eventId = event.id;
-    bindEventClick(card, event, viewName, config);
+  }
+  function linkCard(card, event, viewName, config) {
+    const link2 = linkTitle(card, eventHref(event), {
+      titleSelector: ".already-card__title",
+      linkClass: "already-card__link",
+      fallbackText: eventLinkText(event, config)
+    });
+    bindEventClick(link2, event, viewName, config, {
+      canNavigate: () => !card.classList.contains(RSVP_OPEN_CLASS)
+    });
   }
   function decorateEventCard(card, event, viewName, config, { timezone, rsvp = true } = {}) {
     if (card.classList.contains("already-card--error")) return;
-    applyCardState(card, event, viewName, config);
+    applyCardState(card, event);
+    linkCard(card, event, viewName, config);
     decorateParts(card, event, config, { timezone });
     if (rsvp) decorateRsvp(card, event, config);
   }
@@ -5815,7 +5869,6 @@ ${text}</tr>
       const item = createElement("div");
       applyEventClasses(item, entry, "already-day-event");
       if (isPart) item.classList.add("already-day-event--part");
-      bindEventClick(item, entry, "day", config);
       const timeEl = createElement("div", "already-day-event-time");
       timeEl.textContent = formatScheduleTime(entry, {
         sourceZoneFallback: timezone,
@@ -5833,6 +5886,12 @@ ${text}</tr>
         info.appendChild(loc);
       }
       item.appendChild(info);
+      const link2 = linkTitle(item, eventHref(entry), {
+        titleSelector: ".already-day-event-title",
+        linkClass: "already-day-event__link",
+        fallbackText: eventLinkText(entry, config)
+      });
+      bindEventClick(link2, entry, "day", config);
       return item;
     }
     if (dayEvents.length === 0) {
@@ -6210,7 +6269,7 @@ ${text}</tr>
     dateDiv.textContent = dateStr;
     meta.appendChild(dateDiv);
     if (event.location) {
-      const mapsUrl = locationTemplate.replace(
+      const mapsUrl = locationTemplate.replaceAll(
         "{location}",
         encodeURIComponent(event.location)
       );
@@ -6383,18 +6442,18 @@ ${text}</tr>
         setDayView(toDateKey(cellDate), config);
       });
       for (const event of dayEvents.slice(0, maxEventsPerDay)) {
-        const chip = createElement(
-          "div",
+        const chip = eventAnchor(
+          eventHref(event),
           "already-month-chip" + (event.featured ? " already-month-chip--featured" : "")
         );
-        chip.textContent = event.title;
+        fillEventAnchor(chip, event.title, eventLinkText(event, config));
         bindEventClick(chip, event, "month", config);
         bindEventPopover(chip, event, popoverRoot, config, "month", timezone);
         cell.appendChild(chip);
       }
       if (dayEvents.length > maxEventsPerDay) {
         const more = createElement("div", "already-month-more");
-        more.textContent = moreEventsTemplate.replace(
+        more.textContent = moreEventsTemplate.replaceAll(
           "{count}",
           dayEvents.length - maxEventsPerDay
         );
@@ -6515,11 +6574,11 @@ ${text}</tr>
       col.appendChild(header);
       const dayEvents = sortFeatured(byDay.get(toDateKey(date)) || []);
       for (const event of dayEvents) {
-        const block2 = createElement(
-          "div",
+        const block2 = eventAnchor(
+          eventHref(event),
           "already-week-event" + (event.featured ? " already-week-event--featured" : "")
         );
-        block2.textContent = event.title;
+        fillEventAnchor(block2, event.title, eventLinkText(event, config));
         bindEventClick(block2, event, "week", config);
         bindEventPopover(block2, event, popoverRoot, config, "week", timezone);
         col.appendChild(block2);
@@ -6616,7 +6675,9 @@ ${text}</tr>
     loadMore: "Load more",
     showEarlier: "Show earlier",
     rsvp: "RSVP",
+    rsvpFor: "RSVP for {title}",
     details: "Details",
+    openEvent: "Open event",
     rsvpName: "Name",
     rsvpEmail: "Email",
     rsvpPartySize: "How many are coming?",
@@ -7028,7 +7089,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.13.1" : "unknown"
+        true ? "0.14.0" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

@@ -84,6 +84,52 @@ describe("renderWeekView", () => {
     assert.strictEqual(window.location.hash, "#event/week-click");
   });
 
+  it("renders a block as a link with no role", () => {
+    const container = document.createElement("div");
+    const events = [
+      createTestEvent({ id: "w-link", start: "2026-04-15T10:00:00Z" }),
+    ];
+    renderWeekView(container, place(events), "UTC", wednesday, {});
+    const block = container.querySelector(".already-week-event");
+    assert.strictEqual(block.tagName, "A");
+    assert.strictEqual(block.getAttribute("href"), "#event/w-link");
+    assert.strictEqual(block.getAttribute("role"), null);
+    assert.strictEqual(block.getAttribute("tabindex"), null);
+  });
+
+  it("names a block whose title is blank", () => {
+    const container = document.createElement("div");
+    const events = [
+      createTestEvent({
+        id: "w-blank",
+        title: "  ",
+        start: "2026-04-15T10:00:00Z",
+      }),
+    ];
+    renderWeekView(container, place(events), "UTC", wednesday, {
+      i18n: { openEvent: "Abrir" },
+    });
+    const block = container.querySelector(".already-week-event");
+    assert.strictEqual(
+      block.querySelector(".already-sr-only").textContent,
+      "Abrir",
+    );
+    assert.strictEqual(block.textContent.trim(), "Abrir");
+  });
+
+  it("renders an entry with no route as a plain block", () => {
+    const container = document.createElement("div");
+    const orphan = {
+      ...createTestEvent({ start: "2026-04-15T10:00:00Z" }),
+      id: undefined,
+    };
+    renderWeekView(container, place([orphan]), "UTC", wednesday, {});
+    const block = container.querySelector(".already-week-event");
+    assert.strictEqual(block.tagName, "DIV");
+    block.click();
+    assert.strictEqual(window.location.hash, "");
+  });
+
   it("adds --featured class to featured events", () => {
     const container = document.createElement("div");
     const events = [

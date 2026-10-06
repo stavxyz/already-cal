@@ -51,6 +51,12 @@ src/
 ├── ui/
 │   ├── header.js           # Calendar name, description, subscribe button
 │   ├── card-parts.js       # The parts block on a composite's card
+│   ├── event-link.js       # linkTitle, eventAnchor, and fillEventAnchor: the event's link in a card, a row, a chip, or a block
+│   ├── event-popover.js    # The card shown on hover or tap from the month and week views
+│   ├── rsvp-form.js        # The RSVP button, form, and done line a card or the detail view mounts
+│   ├── rsvp-state.js       # The class a card carries while its RSVP form is open
+│   ├── share-button.js     # Share button (Web Share API, with copy as the fallback)
+│   ├── subscribe-menu.js   # Subscribe menu: Apple Calendar, Google Calendar, Outlook, Copy iCal link
 │   ├── view-selector.js    # View tabs with SVG icons
 │   ├── tag-filter.js       # Clickable tag pills with OR filtering
 │   ├── past-toggle.js      # Show/hide past events button
@@ -77,6 +83,7 @@ test/
 ├── helpers.cjs             # createTestEvent() factory, captureConsoleError() helper
 ├── set-config.test.cjs     # setConfig() and destroy() lifecycle tests
 ├── postmessage.test.cjs    # postMessage listener tests
+├── a11y/cards.test.cjs     # axe-core over every layout and view (see Accessibility check)
 └── ...                     # Mirrors src/ structure (directives, links, images, etc.)
 ```
 
@@ -117,6 +124,10 @@ npm run test:coverage    # run with c8 coverage report
 - `test/setup-dom.cjs` bootstraps a JSDOM environment and exposes browser globals (`document`, `window`, `HTMLElement`, `localStorage`, `navigator`, etc.)
 - Test files `require("./setup-dom.cjs")` as their first line, then dynamically `import()` the ES module source files
 - Tests use `node:test` (`describe`, `it`, `before`, `afterEach`) and `node:assert` — no third-party test framework
+
+### Accessibility check
+
+`test/a11y/cards.test.cjs` renders every built-in layout in the grid view with the RSVP form closed and then open, every built-in layout in the list view, the month, week, and day views, a composite's detail view, and the hover popover, and runs [axe-core](https://github.com/dequelabs/axe-core) over each with the rules `nested-interactive`, `button-name`, `link-name`, `aria-allowed-attr`, `aria-roles`, `aria-valid-attr-value`, and `duplicate-id-active`. A plain assertion in the same file checks that two RSVP buttons on one page are named after their own events, which axe cannot see. Colour-contrast rules are off because jsdom has no rendering engine, and `region` because it is a page-level landmark check that does not apply to a widget fragment. `focus-order-semantics` is left out although it runs under jsdom: axe tags it experimental, so a later axe release could change what it reports. It runs as part of `npm test`; to run it alone: `node --test test/a11y/cards.test.cjs`.
 
 ### Coverage thresholds
 

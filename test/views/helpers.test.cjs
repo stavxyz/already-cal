@@ -4,11 +4,13 @@ const assert = require("node:assert");
 
 let createElement, bindEventClick, applyEventClasses;
 let sortFeatured, sortFeaturedByDate;
+let eventLinkText;
 
 before(async () => {
   const mod = await import("../../src/views/helpers.js");
   createElement = mod.createElement;
   bindEventClick = mod.bindEventClick;
+  eventLinkText = mod.eventLinkText;
   applyEventClasses = mod.applyEventClasses;
   sortFeatured = mod.sortFeatured;
   sortFeaturedByDate = mod.sortFeaturedByDate;
@@ -16,6 +18,7 @@ before(async () => {
 
 beforeEach(() => {
   window.location.hash = "";
+  document.body.innerHTML = "";
 });
 
 // Card/date grouping is now keyed by the VIEWER's zone (see eventDayKey),
@@ -61,92 +64,162 @@ describe("createElement", () => {
   });
 });
 
-describe("bindEventClick", () => {
-  it("navigates to event detail on click", () => {
-    const el = document.createElement("div");
+describe("bindEventClick on a link", () => {
+  const link = (href = "#event/evt-1") => {
+    const a = document.createElement("a");
+    a.setAttribute("href", href);
+    a.textContent = "Event";
+    document.body.appendChild(a);
+    return a;
+  };
+  const click = (el, init = {}) => {
+    const e = new window.MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      ...init,
+    });
+    el.dispatchEvent(e);
+    return e;
+  };
+
+  it("navigates to the link's href on a plain click", () => {
+    const el = link();
     bindEventClick(el, { id: "evt-1" }, "grid", {});
-    el.click();
+    const e = click(el);
+    assert.strictEqual(e.defaultPrevented, true);
     assert.strictEqual(window.location.hash, "#event/evt-1");
   });
 
+  it("moves only the fragment of an absolute href into the hash", () => {
+    // eventHref returns the page's absolute URL when the document has a
+    // base element; the route is still only the fragment.
+    const el = link("http://localhost/#event/evt-9");
+    bindEventClick(el, { id: "evt-9" }, "grid", {});
+    click(el);
+    assert.strictEqual(window.location.hash, "#event/evt-9");
+  });
+
   it("calls onEventClick before navigating", () => {
-    const el = document.createElement("div");
-    let called = false;
-    const config = {
-      onEventClick: (_event, _view) => {
-        called = true;
-      },
-    };
-    bindEventClick(el, { id: "evt-1" }, "grid", config);
-    el.click();
-    assert.strictEqual(called, true);
+    const el = link();
+    const calls = [];
+    bindEventClick(el, { id: "evt-1" }, "grid", {
+      onEventClick: (event, view) => calls.push([event.id, view]),
+    });
+    click(el);
+    assert.deepStrictEqual(calls, [["evt-1", "grid"]]);
     assert.strictEqual(window.location.hash, "#event/evt-1");
   });
 
   it("prevents navigation when onEventClick returns false", () => {
-    const el = document.createElement("div");
-    const config = { onEventClick: () => false };
-    bindEventClick(el, { id: "evt-1" }, "grid", config);
-    el.click();
+    const el = link();
+    bindEventClick(el, { id: "evt-1" }, "grid", { onEventClick: () => false });
+    const e = click(el);
+    assert.strictEqual(e.defaultPrevented, true);
     assert.strictEqual(window.location.hash, "");
   });
 
-  it("sets tabindex and role", () => {
-    const el = document.createElement("div");
-    bindEventClick(el, { id: "evt-1" }, "grid", {});
-    assert.strictEqual(el.getAttribute("tabindex"), "0");
-    assert.strictEqual(el.getAttribute("role"), "button");
-  });
-
-  it("handles Enter key", () => {
-    const el = document.createElement("div");
-    bindEventClick(el, { id: "evt-1" }, "grid", {});
-    el.dispatchEvent(
-      new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
-    );
-    assert.strictEqual(window.location.hash, "#event/evt-1");
-  });
-
-  it("handles Space key", () => {
-    const el = document.createElement("div");
-    bindEventClick(el, { id: "evt-1" }, "grid", {});
-    el.dispatchEvent(
-      new window.KeyboardEvent("keydown", { key: " ", bubbles: true }),
-    );
-    assert.strictEqual(window.location.hash, "#event/evt-1");
-  });
-
-  it("stops propagation when stopPropagation option is true", () => {
-    const parent = document.createElement("div");
-    const child = document.createElement("div");
-    parent.appendChild(child);
-    let parentClicked = false;
-    parent.addEventListener("click", () => {
-      parentClicked = true;
-    });
+  it("prevents navigation when canNavigate says no, before asking the host", () => {
+    const el = link();
+    let asked = false;
     bindEventClick(
-      child,
+      el,
       { id: "evt-1" },
-      "month",
-      {},
-      { stopPropagation: true },
+      "grid",
+      { onEventClick: () => (asked = true) },
+      { canNavigate: () => false },
     );
-    child.click();
-    assert.strictEqual(parentClicked, false);
-    assert.strictEqual(window.location.hash, "#event/evt-1");
+    const e = click(el);
+    assert.strictEqual(e.defaultPrevented, true);
+    assert.strictEqual(asked, false);
+    assert.strictEqual(window.location.hash, "");
   });
 
-  it("does not stop propagation by default", () => {
+  it("leaves a modifier click to the browser", () => {
+    const el = link();
+    let asked = false;
+    bindEventClick(el, { id: "evt-1" }, "grid", {
+      onEventClick: () => (asked = true),
+    });
+    // An unprevented click queues jsdom's own navigation, which could land
+    // during a later test.
+    const decisions = [];
+    el.addEventListener("click", (e) => {
+      decisions.push(e.defaultPrevented);
+      e.preventDefault();
+    });
+    for (const init of [
+      { metaKey: true },
+      { ctrlKey: true },
+      { shiftKey: true },
+      { altKey: true },
+      { button: 1 },
+    ]) {
+      click(el, init);
+    }
+    assert.deepStrictEqual(decisions, [false, false, false, false, false]);
+    assert.strictEqual(asked, false);
+    assert.strictEqual(window.location.hash, "");
+  });
+
+  it("sets no role and no tabindex", () => {
+    const el = link();
+    bindEventClick(el, { id: "evt-1" }, "grid", {});
+    assert.strictEqual(el.getAttribute("role"), null);
+    assert.strictEqual(el.getAttribute("tabindex"), null);
+  });
+
+  it("lets the click bubble", () => {
     const parent = document.createElement("div");
-    const child = document.createElement("div");
-    parent.appendChild(child);
+    const el = link();
+    parent.appendChild(el);
+    document.body.appendChild(parent);
     let parentClicked = false;
     parent.addEventListener("click", () => {
       parentClicked = true;
     });
-    bindEventClick(child, { id: "evt-2" }, "grid", {});
-    child.click();
+    bindEventClick(el, { id: "evt-1" }, "month", {});
+    click(el);
     assert.strictEqual(parentClicked, true);
+  });
+
+  it("is a no-op for an entry with no link", () => {
+    assert.doesNotThrow(() =>
+      bindEventClick(null, { title: "No id" }, "grid", {}),
+    );
+    // A chip or block for an entry with no route is a plain div with no
+    // href (ui/event-link.js, eventAnchor); binding it must change nothing.
+    const plain = document.createElement("div");
+    document.body.appendChild(plain);
+    bindEventClick(plain, { title: "No id" }, "month", {});
+    const e = click(plain);
+    assert.strictEqual(e.defaultPrevented, false);
+    assert.strictEqual(plain.getAttribute("role"), null);
+    assert.strictEqual(window.location.hash, "");
+  });
+});
+
+describe("eventLinkText", () => {
+  it("is the entry's title", () => {
+    assert.strictEqual(
+      eventLinkText({ title: "Burger Night" }, {}),
+      "Burger Night",
+    );
+  });
+
+  it("falls back to the i18n openEvent text, then to the default", () => {
+    assert.strictEqual(
+      eventLinkText({ title: "" }, { i18n: { openEvent: "Abrir" } }),
+      "Abrir",
+    );
+    assert.strictEqual(eventLinkText({ title: "" }, {}), "Open event");
+    assert.strictEqual(eventLinkText({}, undefined), "Open event");
+  });
+
+  it("treats a whitespace-only title as missing", () => {
+    // A blank title is truthy, and a hidden link filled with spaces has no
+    // accessible name.
+    assert.strictEqual(eventLinkText({ title: "   " }, {}), "Open event");
   });
 });
 

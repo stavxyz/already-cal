@@ -118,12 +118,10 @@ function createRsvpForm(event, config, { onClose, onDone }) {
     error.hidden = false;
   }
 
-  // The card around this form navigates on click, Space and Enter
-  // (bindEventClick). Nothing typed or clicked inside the form may reach it.
+  // The form sits beside the card's event link, never inside it, so what is
+  // typed or clicked here reaches no navigation handler and may bubble.
   let pending = false;
-  form.addEventListener("click", (e) => e.stopPropagation());
   form.addEventListener("keydown", (e) => {
-    e.stopPropagation();
     if (e.key !== "Escape") return;
     // Mirrors the disabled Cancel button: a pending submit can't be aborted.
     if (pending) return;
@@ -199,7 +197,28 @@ export function appendRsvpControl(container, event, config) {
     "already-card__action already-rsvp__open",
     { type: "button" },
   );
-  button.textContent = i18n.rsvp || "RSVP";
+  const visible = i18n.rsvp || "RSVP";
+  button.textContent = visible;
+  // Every card's button reads "RSVP"; the name says which event, so a screen
+  // reader user hears the difference.
+  const title = String(event.title ?? "").trim();
+  if (title) {
+    // A function replacer, so a title containing `$&` or `$'` is inserted
+    // as it is instead of being read as a replacement pattern.
+    const named = (i18n.rsvpFor || "RSVP for {title}").replaceAll(
+      "{title}",
+      () => title,
+    );
+    // The name must contain the visible text, or a voice-control user who
+    // says what the button shows activates nothing (WCAG 2.5.3). A host that
+    // translated `rsvp` before `rsvpFor` existed gets the default `rsvpFor`,
+    // so the name is rebuilt from the two strings the host did supply.
+    const containsVisible = named.toLowerCase().includes(visible.toLowerCase());
+    button.setAttribute(
+      "aria-label",
+      containsVisible ? named : `${visible}: ${title}`,
+    );
+  }
   // The card is looked up per call: decorateRsvp mounts into a row before
   // attaching it to the card. Width is measured on open because the host's
   // column, not the window, decides how much room the card has.
@@ -211,8 +230,7 @@ export function appendRsvpControl(container, event, config) {
     card.classList.toggle(RSVP_OPEN_CLASS, open);
     card.classList.toggle("already-card--rsvp-cramped", cramped);
   };
-  button.addEventListener("click", (e) => {
-    e.stopPropagation();
+  button.addEventListener("click", () => {
     const { form, focus } = createRsvpForm(event, config, {
       onClose: () => {
         form.replaceWith(button);
@@ -225,7 +243,6 @@ export function appendRsvpControl(container, event, config) {
     setOpen(true);
     focus();
   });
-  button.addEventListener("keydown", (e) => e.stopPropagation());
   container.appendChild(button);
   return button;
 }
@@ -238,7 +255,10 @@ export function appendRsvpControl(container, event, config) {
  * end of the body. A footer without an action is not reused because it
  * holds information (Hero's location and date), not things to click. Every
  * layout that renders cards therefore offers the button, always in a row
- * meant for actions. The fallback card a failed layout renders says the
+ * meant for actions. The row carries already-control, which keeps it
+ * clickable above the card's stretched event link (ui/event-link.js); the
+ * controls inside it inherit that, so nothing else in this module knows
+ * about the link. The fallback card a failed layout renders says the
  * event could not be displayed, so it offers nothing to act on.
  */
 export function decorateRsvp(card, event, config) {
@@ -255,13 +275,13 @@ export function decorateRsvp(card, event, config) {
     (footer) => footer.querySelector(".already-card__action"),
   );
   if (actionFooter) {
-    actionFooter.classList.add("already-card__footer--rsvp");
+    actionFooter.classList.add("already-card__footer--rsvp", "already-control");
     appendRsvpControl(actionFooter, event, config);
     return;
   }
   const row = createElement(
     "div",
-    "already-card__footer already-card__footer--rsvp already-card__rsvp",
+    "already-card__footer already-card__footer--rsvp already-card__rsvp already-control",
   );
   appendRsvpControl(row, event, config);
   (card.querySelector(".already-card__body") || card).appendChild(row);

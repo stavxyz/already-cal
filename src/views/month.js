@@ -1,4 +1,5 @@
-import { setDayView } from "../router.js";
+import { eventHref, setDayView } from "../router.js";
+import { eventAnchor, fillEventAnchor } from "../ui/event-link.js";
 import { bindEventPopover, closeEventPopover } from "../ui/event-popover.js";
 import {
   getDayNames,
@@ -8,7 +9,12 @@ import {
   isToday,
   toDateKey,
 } from "../util/dates.js";
-import { bindEventClick, createElement, sortFeatured } from "./helpers.js";
+import {
+  bindEventClick,
+  createElement,
+  eventLinkText,
+  sortFeatured,
+} from "./helpers.js";
 
 /** Render the month calendar grid view. */
 export function renderMonthView(
@@ -134,9 +140,9 @@ export function renderMonthView(
 
     // Pointer-only affordance: no role="button" and no tabindex, because
     // there is deliberately no keyboard path here (adding 31 tab stops to a
-    // grid whose chips are already focusable costs more than it buys).
+    // grid whose chips are already focusable links costs more than it buys).
     // Claiming to be a button while unreachable by keyboard would be worse
-    // than not claiming it. Chips stopPropagation, so they win over the cell.
+    // than not claiming it. The handler bails on chip clicks by target.
     cell.addEventListener("click", (e) => {
       if (e.target.closest?.(".already-month-chip")) return;
       if (!dayViewEnabled) return;
@@ -144,15 +150,17 @@ export function renderMonthView(
     });
 
     for (const event of dayEvents.slice(0, maxEventsPerDay)) {
-      const chip = createElement(
-        "div",
+      // The chip is the event's link itself: one line of text, so nothing
+      // to stretch. An entry with no route gets a plain div (ui/event-link.js).
+      const chip = eventAnchor(
+        eventHref(event),
         "already-month-chip" +
           (event.featured ? " already-month-chip--featured" : ""),
       );
-      chip.textContent = event.title;
+      fillEventAnchor(chip, event.title, eventLinkText(event, config));
       // No stopPropagation: the click has to reach the root's interaction
       // listener, which posts the cross-origin engagement signal. The cell
-      // handler below bails on chip clicks by target instead.
+      // handler above bails on chip clicks by target instead.
       bindEventClick(chip, event, "month", config);
       bindEventPopover(chip, event, popoverRoot, config, "month", timezone);
       cell.appendChild(chip);
@@ -160,7 +168,7 @@ export function renderMonthView(
 
     if (dayEvents.length > maxEventsPerDay) {
       const more = createElement("div", "already-month-more");
-      more.textContent = moreEventsTemplate.replace(
+      more.textContent = moreEventsTemplate.replaceAll(
         "{count}",
         dayEvents.length - maxEventsPerDay,
       );

@@ -1,6 +1,4 @@
 import { compositeTags } from "../composite.js";
-import { setEventDetail } from "../router.js";
-import { RSVP_OPEN_CLASS } from "../ui/rsvp-state.js";
 import { eventDayKey, isPast } from "../util/dates.js";
 import { isCategoryTag, tagLabel } from "../util/tags.js";
 
@@ -14,6 +12,18 @@ export function createElement(tag, className, attrs) {
     }
   }
   return el;
+}
+
+/**
+ * The name of an event link that has no visible title to carry it: the
+ * hidden link of a card or row (a layout that rendered no usable title
+ * element), and the hidden text of a chip or block whose title is blank.
+ * One resolver for every host, so the rule cannot drift between them.
+ */
+export function eventLinkText(entry, config) {
+  return (
+    String(entry?.title ?? "").trim() || config?.i18n?.openEvent || "Open event"
+  );
 }
 
 /**
@@ -34,39 +44,43 @@ export function createTagPills(event, wrapperClass, pillClass) {
   return wrapper;
 }
 
-/** Bind click and keyboard handlers to navigate to an event's detail view. */
+/**
+ * Bind the activation of an event's link. On a plain activation (the primary
+ * button with no modifier key, which is also what Enter on a focused link
+ * produces) it asks the caller's `canNavigate` first (a card with its RSVP
+ * form open says no), then `config.onEventClick`, whose `false` return stops
+ * navigation, and then navigates by copying the fragment of the link's own
+ * href into the hash. That is the navigation the browser would have
+ * performed. It is done by hand so that the route changes synchronously and
+ * in the same order in every environment, and because `preventDefault()`,
+ * which a `false` from `onEventClick` needs, would otherwise stop it too. A
+ * middle or modifier click is left to the browser, which opens a new tab
+ * (browsers send those as auxclick, so the button check is a guard). An
+ * entry with no route (router.eventHref) has no link: `el` is then null, or a
+ * plain element with no href, and the call is a no-op.
+ */
 export function bindEventClick(
   el,
   event,
   viewName,
   config,
-  { stopPropagation = false } = {},
+  { canNavigate } = {},
 ) {
-  // A card with an open RSVP form stays put: navigating would discard what
-  // the visitor typed.
-  const rsvpOpen = () => el.classList.contains(RSVP_OPEN_CLASS);
-  function handleClick(e) {
-    if (rsvpOpen()) return;
-    if (stopPropagation) e.stopPropagation();
+  if (el === null || !el.hasAttribute("href")) return;
+  el.addEventListener("click", (e) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+      return;
+    }
+    e.preventDefault();
+    if (canNavigate && !canNavigate()) return;
     if (config.onEventClick) {
       const result = config.onEventClick(event, viewName);
       if (result === false) return;
     }
-    // A part with no id has no link of its own, so its click opens the
-    // parent's detail, where the part is shown.
-    setEventDetail(event.id ?? event.parentId);
-  }
-  el.addEventListener("click", handleClick);
-  el.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      if (rsvpOpen()) return;
-      e.preventDefault();
-      if (stopPropagation) e.stopPropagation();
-      handleClick(e);
-    }
+    // The route is the fragment of the link's href, whichever form eventHref
+    // gave it (router.eventHref).
+    window.location.hash = new URL(el.href).hash;
   });
-  el.setAttribute("tabindex", "0");
-  el.setAttribute("role", "button");
 }
 
 /** Apply base class plus --past and --featured modifier classes to an event element. */

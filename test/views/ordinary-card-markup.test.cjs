@@ -1,12 +1,14 @@
-// The decorated card of an event with no parts must be the markup v0.12.1
-// produced, byte for byte, in every built-in layout. The strings in the
-// fixture were captured from that release with this same event.
+// The decorated card of an event with no parts must be the markup v0.14.0
+// produces, byte for byte, in every built-in layout. The strings in the
+// fixture were captured from that release's branch with this same event.
+// v0.14.0 is where the title became the event link and the card stopped
+// being a button, so the v0.12.1 fixture was regenerated on purpose.
 process.env.TZ = "UTC";
 require("../setup-dom.cjs");
 const { describe, it, before } = require("node:test");
 const assert = require("node:assert");
 const { createTestEvent } = require("../helpers.cjs");
-const expected = require("../fixtures/ordinary-cards-v0.12.1.json");
+const expected = require("../fixtures/ordinary-cards-v0.14.0.json");
 
 let renderGridView;
 before(async () => {
@@ -28,7 +30,7 @@ const event = () =>
 
 describe("an ordinary event's card markup", () => {
   for (const layout of Object.keys(expected)) {
-    it(`${layout}: matches v0.12.1`, () => {
+    it(`${layout}: matches v0.14.0`, () => {
       const c = document.createElement("div");
       renderGridView(c, [event()], "UTC", {
         locale: "en-US",

@@ -184,7 +184,7 @@ export function renderDetailView(
   meta.appendChild(dateDiv);
 
   if (event.location) {
-    const mapsUrl = locationTemplate.replace(
+    const mapsUrl = locationTemplate.replaceAll(
       "{location}",
       encodeURIComponent(event.location),
     );

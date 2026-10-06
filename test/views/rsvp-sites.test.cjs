@@ -249,19 +249,30 @@ describe("RSVP form in a decorator-created row", () => {
 });
 
 describe("a card with an open RSVP form", () => {
-  it("ignores clicks and Enter on the card, and navigates again after Cancel", () => {
+  it("ignores the link while the form is open, and navigates again after Cancel", () => {
     const event = createTestEvent({ id: "e-open", rsvp: true });
     const card = gridCard("clean", event);
     card.querySelector(".already-rsvp__open").click();
-    card.querySelector(".already-card__title").click();
+    card.querySelector(".already-card__link").click();
     assert.strictEqual(window.location.hash, "");
-    card.dispatchEvent(
+    card.querySelector(".already-rsvp__cancel").click();
+    card.querySelector(".already-card__link").click();
+    assert.strictEqual(window.location.hash, "#event/e-open");
+  });
+
+  it("navigates nowhere on a click of the RSVP button or inside the open form", () => {
+    const card = gridCard(
+      "clean",
+      createTestEvent({ id: "e-form", rsvp: true }),
+    );
+    card.querySelector(".already-rsvp__open").click();
+    assert.strictEqual(window.location.hash, "");
+    const name = card.querySelector('input[name="name"]');
+    name.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    name.dispatchEvent(
       new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
     );
     assert.strictEqual(window.location.hash, "");
-    card.querySelector(".already-rsvp__cancel").click();
-    card.querySelector(".already-card__title").click();
-    assert.strictEqual(window.location.hash, "#event/e-open");
   });
 
   it("leaves Badge's Details link working as a link", () => {

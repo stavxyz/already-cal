@@ -186,7 +186,9 @@ describe("day view with a composite", () => {
       friday,
       config,
     );
-    c.querySelector(".already-day-event--part").click();
+    c.querySelector(
+      ".already-day-event--part .already-day-event__link",
+    ).click();
     assert.strictEqual(window.location.hash, "#event/part-1");
   });
 

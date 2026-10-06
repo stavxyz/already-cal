@@ -116,7 +116,9 @@ const I18N_DEFAULTS = {
   loadMore: "Load more",
   showEarlier: "Show earlier",
   rsvp: "RSVP",
+  rsvpFor: "RSVP for {title}",
   details: "Details",
+  openEvent: "Open event",
   rsvpName: "Name",
   rsvpEmail: "Email",
   rsvpPartySize: "How many are coming?",
@@ -732,12 +734,10 @@ export function init(userConfig) {
       // `keydown` is included because not every keyboard-driven
       // interaction in the bundle produces a bubbling click/focus
       // event — `views/detail.js` arrow-key gallery navigation calls
-      // `goTo(idx)` directly without dispatching a synthetic click,
-      // and `views/helpers.js` Enter/Space card activation invokes
-      // the click handler as a function reference. A visitor flipping
-      // through gallery images via arrow keys is exactly the
-      // "engaged" signal the consumer needs, and without `keydown`
-      // here that signal would be silent.
+      // `goTo(idx)` directly without dispatching a synthetic click. A
+      // visitor flipping through gallery images via arrow keys is
+      // exactly the "engaged" signal the consumer needs, and without
+      // `keydown` here that signal would be silent.
       el.addEventListener("click", handleInteraction);
       el.addEventListener("wheel", handleInteraction, { passive: true });
       el.addEventListener("touchstart", handleInteraction, { passive: true });

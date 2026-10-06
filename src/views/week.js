@@ -1,4 +1,5 @@
-import { setDayView } from "../router.js";
+import { eventHref, setDayView } from "../router.js";
+import { eventAnchor, fillEventAnchor } from "../ui/event-link.js";
 import { bindEventPopover, closeEventPopover } from "../ui/event-popover.js";
 import {
   formatDateShort,
@@ -6,7 +7,12 @@ import {
   isToday,
   toDateKey,
 } from "../util/dates.js";
-import { bindEventClick, createElement, sortFeatured } from "./helpers.js";
+import {
+  bindEventClick,
+  createElement,
+  eventLinkText,
+  sortFeatured,
+} from "./helpers.js";
 
 /** Render the 7-column week view. */
 export function renderWeekView(
@@ -95,12 +101,13 @@ export function renderWeekView(
     const dayEvents = sortFeatured(byDay.get(toDateKey(date)) || []);
 
     for (const event of dayEvents) {
-      const block = createElement(
-        "div",
+      // The block is the event's link itself (see the month view's chip).
+      const block = eventAnchor(
+        eventHref(event),
         "already-week-event" +
           (event.featured ? " already-week-event--featured" : ""),
       );
-      block.textContent = event.title;
+      fillEventAnchor(block, event.title, eventLinkText(event, config));
       // No stopPropagation: the click has to reach the root's interaction
       // listener, which posts the cross-origin engagement signal. The column
       // handler below bails on block clicks by target instead.

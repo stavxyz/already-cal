@@ -431,7 +431,7 @@ describe("what onEventClick receives", () => {
   it("gets the composed parent, with every part, for a click on its card", async () => {
     const { clicks, onEventClick } = recorder();
     const c = await mount({ onEventClick });
-    c.querySelector(".already-card").click();
+    c.querySelector(".already-card .already-card__link").click();
     assert.strictEqual(clicks.length, 1);
     assert.strictEqual(clicks[0].view, "list");
     assert.strictEqual(clicks[0].event.id, "night");
@@ -449,7 +449,9 @@ describe("what onEventClick receives", () => {
       { ...everyView, defaultView: "day", onEventClick },
       todays(),
     );
-    c.querySelector(".already-day-event--part").click();
+    c.querySelector(
+      ".already-day-event--part .already-day-event__link",
+    ).click();
     assert.strictEqual(clicks.length, 1);
     assert.strictEqual(clicks[0].view, "day");
     assert.strictEqual(clicks[0].event.id, "act");
@@ -463,7 +465,9 @@ describe("a part with no id", () => {
       e.id === "act" ? { ...e, id: undefined } : e,
     );
     const c = await mount({ ...everyView, defaultView: "day" }, events);
-    c.querySelector(".already-day-event--part").click();
+    c.querySelector(
+      ".already-day-event--part .already-day-event__link",
+    ).click();
     await tick();
     assert.strictEqual(c.querySelector(".already-error"), null);
     assert.strictEqual(

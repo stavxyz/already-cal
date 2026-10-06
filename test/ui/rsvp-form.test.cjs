@@ -132,7 +132,111 @@ describe("appendRsvpControl", () => {
     assert.ok(host.querySelector(".already-rsvp__open"));
   });
 
-  it("stops click and keydown from reaching the card", () => {
+  it("names the button after the event", () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const btn = appendRsvpControl(
+      host,
+      flagged({ title: "Burger Night" }),
+      cfg(),
+    );
+    assert.strictEqual(btn.textContent, "RSVP");
+    assert.strictEqual(btn.getAttribute("aria-label"), "RSVP for Burger Night");
+    const other = document.createElement("div");
+    document.body.appendChild(other);
+    const translated = appendRsvpControl(
+      other,
+      flagged({ title: "Noche" }),
+      cfg({
+        i18n: { ...i18n, rsvp: "Reservar", rsvpFor: "Reservar para {title}" },
+      }),
+    );
+    assert.strictEqual(
+      translated.getAttribute("aria-label"),
+      "Reservar para Noche",
+    );
+    const untitled = document.createElement("div");
+    document.body.appendChild(untitled);
+    assert.strictEqual(
+      appendRsvpControl(
+        untitled,
+        flagged({ title: "   " }),
+        cfg(),
+      ).hasAttribute("aria-label"),
+      false,
+    );
+    const padded = document.createElement("div");
+    document.body.appendChild(padded);
+    assert.strictEqual(
+      appendRsvpControl(
+        padded,
+        flagged({ title: "  Burger Night  " }),
+        cfg(),
+      ).getAttribute("aria-label"),
+      "RSVP for Burger Night",
+    );
+  });
+
+  it("keeps the visible text in the name when only rsvp is translated", () => {
+    // A host that translated `rsvp` before `rsvpFor` existed gets the default
+    // `rsvpFor`. Its name would not contain what the button shows, so a
+    // voice-control user saying "Reservar" would activate nothing.
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const btn = appendRsvpControl(
+      host,
+      flagged({ title: "Noche" }),
+      cfg({ i18n: { ...i18n, rsvp: "Reservar" } }),
+    );
+    assert.strictEqual(btn.textContent, "Reservar");
+    assert.strictEqual(btn.getAttribute("aria-label"), "Reservar: Noche");
+    const other = document.createElement("div");
+    document.body.appendChild(other);
+    const cased = appendRsvpControl(
+      other,
+      flagged({ title: "Noche" }),
+      cfg({ i18n: { ...i18n, rsvp: "RSVP", rsvpFor: "rsvp para {title}" } }),
+    );
+    assert.strictEqual(cased.getAttribute("aria-label"), "rsvp para Noche");
+    const padded = document.createElement("div");
+    document.body.appendChild(padded);
+    const trimmed = appendRsvpControl(
+      padded,
+      flagged({ title: "  Noche  " }),
+      cfg({ i18n: { ...i18n, rsvp: "Reservar" } }),
+    );
+    assert.strictEqual(trimmed.getAttribute("aria-label"), "Reservar: Noche");
+  });
+
+  it("inserts a title that holds a replacement pattern as it is", () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const btn = appendRsvpControl(
+      host,
+      flagged({ title: "Fish $& Chips" }),
+      cfg(),
+    );
+    assert.strictEqual(
+      btn.getAttribute("aria-label"),
+      "RSVP for Fish $& Chips",
+    );
+    const other = document.createElement("div");
+    document.body.appendChild(other);
+    const twice = appendRsvpControl(
+      other,
+      flagged({ title: "Noche" }),
+      cfg({ i18n: { ...i18n, rsvpFor: "{title}: RSVP for {title}" } }),
+    );
+    assert.strictEqual(
+      twice.getAttribute("aria-label"),
+      "Noche: RSVP for Noche",
+    );
+  });
+
+  it("lets clicks and keys inside the form bubble", () => {
+    // The card around the form is no longer a button, so nothing above the
+    // form navigates on a click or a key; the engagement listener on the
+    // widget's root needs the click to reach it.
     const card = document.createElement("div");
     let reached = 0;
     card.addEventListener("click", () => reached++);
@@ -144,7 +248,7 @@ describe("appendRsvpControl", () => {
       new window.KeyboardEvent("keydown", { key: " ", bubbles: true }),
     );
     name.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-    assert.strictEqual(reached, 0);
+    assert.strictEqual(reached, 3);
   });
 
   it("submits the fields to onRsvp and shows the done line with the returned count", async () => {

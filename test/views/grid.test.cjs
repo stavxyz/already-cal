@@ -98,17 +98,23 @@ describe("renderGridView", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ id: "click-test" })];
     renderGridView(container, events, "UTC", {});
-    container.querySelector(".already-card").click();
+    container.querySelector(".already-card__link").click();
     assert.strictEqual(window.location.hash, "#event/click-test");
   });
 
-  it("sets accessibility attributes", () => {
+  it("makes the title a link and the card no button", () => {
     const container = document.createElement("div");
     const events = [createTestEvent()];
     renderGridView(container, events, "UTC", {});
     const card = container.querySelector(".already-card");
-    assert.strictEqual(card.getAttribute("tabindex"), "0");
-    assert.strictEqual(card.getAttribute("role"), "button");
+    assert.strictEqual(card.getAttribute("tabindex"), null);
+    assert.strictEqual(card.getAttribute("role"), null);
+    assert.strictEqual(
+      card
+        .querySelector(".already-card__title > a.already-card__link")
+        .getAttribute("href"),
+      `#event/${events[0].id}`,
+    );
   });
 
   it("adds --featured class to featured events", () => {

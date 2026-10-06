@@ -155,7 +155,9 @@ Already.init({
     loadMore: 'Load more',
     showEarlier: 'Show earlier',
     rsvp: 'RSVP',
+    rsvpFor: 'RSVP for {title}',
     details: 'Details',
+    openEvent: 'Open event',
     rsvpName: 'Name',
     rsvpEmail: 'Email',
     rsvpPartySize: 'How many are coming?',
@@ -614,8 +616,11 @@ cal.destroy();
 
 ## Accessibility
 
-- All interactive elements have `tabindex="0"` and `role="button"` or `role="tab"`
-- Keyboard navigation: Enter/Space to activate buttons, arrow keys in image galleries and lightbox
+- Every event opens through a real link: the card's title, a day row's title, a month chip, or a week block. Cards are not buttons, so the RSVP button, the Details link, and any link in a description inside them are ordinary controls, and a middle click opens the event in a new tab
+- Event titles, chips, and blocks are anchors; the widget's own rules keep their colour, underline, background, bottom border, and box shadow against a host page's descendant anchor rules (`.page a`, `a:visited`)
+- The RSVP button is named after its event ("RSVP for Burger Night")
+- Keyboard navigation: Enter on an event link opens it; Enter/Space on buttons; arrow keys in image galleries and lightbox
+- An axe-core check runs over every layout and view in the test suite
 - ARIA attributes: `role="tablist"` on view selector, `aria-selected` on active tab, `aria-live="polite"` on the view container, `aria-label` on navigation buttons
 - `role="grid"` and `role="gridcell"` on the month view calendar
 - `role="dialog"` with `aria-modal="true"` on the image lightbox

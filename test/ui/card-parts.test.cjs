@@ -215,6 +215,14 @@ describe("what a line says", () => {
     assert.strictEqual(more(c).textContent, "2 weitere");
   });
 
+  it("replaces every {count} in i18n.moreParts", () => {
+    const c = grid(
+      [night([act(1, 17), act(2, 18), act(3, 19), act(4, 20)])],
+      cfg("clean", { i18n: { moreParts: "{count} more ({count})" } }),
+    );
+    assert.strictEqual(more(c).textContent, "1 more (1)");
+  });
+
   it("does not treat a host's own parts field as a composite", () => {
     const c = grid(
       [createTestEvent({ id: "host", parts: [{ id: "tier", title: "VIP" }] })],

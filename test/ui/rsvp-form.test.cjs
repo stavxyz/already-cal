@@ -147,7 +147,9 @@ describe("appendRsvpControl", () => {
     const translated = appendRsvpControl(
       other,
       flagged({ title: "Noche" }),
-      cfg({ i18n: { ...i18n, rsvpFor: "Reservar para {title}" } }),
+      cfg({
+        i18n: { ...i18n, rsvp: "Reservar", rsvpFor: "Reservar para {title}" },
+      }),
     );
     assert.strictEqual(
       translated.getAttribute("aria-label"),
@@ -160,6 +162,43 @@ describe("appendRsvpControl", () => {
         "aria-label",
       ),
       false,
+    );
+  });
+
+  it("keeps the visible text in the name when only rsvp is translated", () => {
+    // A host that translated `rsvp` before `rsvpFor` existed gets the default
+    // `rsvpFor`. Its name would not contain what the button shows, so a
+    // voice-control user saying "Reservar" would activate nothing.
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const btn = appendRsvpControl(
+      host,
+      flagged({ title: "Noche" }),
+      cfg({ i18n: { ...i18n, rsvp: "Reservar" } }),
+    );
+    assert.strictEqual(btn.textContent, "Reservar");
+    assert.strictEqual(btn.getAttribute("aria-label"), "Reservar: Noche");
+    const other = document.createElement("div");
+    document.body.appendChild(other);
+    const cased = appendRsvpControl(
+      other,
+      flagged({ title: "Noche" }),
+      cfg({ i18n: { ...i18n, rsvp: "RSVP", rsvpFor: "rsvp para {title}" } }),
+    );
+    assert.strictEqual(cased.getAttribute("aria-label"), "rsvp para Noche");
+  });
+
+  it("inserts a title that holds a replacement pattern as it is", () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const btn = appendRsvpControl(
+      host,
+      flagged({ title: "Fish $& Chips" }),
+      cfg(),
+    );
+    assert.strictEqual(
+      btn.getAttribute("aria-label"),
+      "RSVP for Fish $& Chips",
     );
   });
 

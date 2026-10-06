@@ -197,18 +197,25 @@ export function appendRsvpControl(container, event, config) {
     "already-card__action already-rsvp__open",
     { type: "button" },
   );
-  button.textContent = i18n.rsvp || "RSVP";
+  const visible = i18n.rsvp || "RSVP";
+  button.textContent = visible;
   // Every card's button reads "RSVP"; the name says which event, so a screen
-  // reader user hears the difference. The visible text stays inside the name.
+  // reader user hears the difference.
   if (event.title) {
     // A function replacer, so a title containing `$&` or `$'` is inserted
     // as it is instead of being read as a replacement pattern.
+    const named = (i18n.rsvpFor || "RSVP for {title}").replace(
+      "{title}",
+      () => event.title,
+    );
+    // The name must contain the visible text, or a voice-control user who
+    // says what the button shows activates nothing (WCAG 2.5.3). A host that
+    // translated `rsvp` before `rsvpFor` existed gets the default `rsvpFor`,
+    // so the name is rebuilt from the two strings the host did supply.
+    const containsVisible = named.toLowerCase().includes(visible.toLowerCase());
     button.setAttribute(
       "aria-label",
-      (i18n.rsvpFor || "RSVP for {title}").replace(
-        "{title}",
-        () => event.title,
-      ),
+      containsVisible ? named : `${visible}: ${event.title}`,
     );
   }
   // The card is looked up per call: decorateRsvp mounts into a row before

@@ -4818,14 +4818,17 @@ ${text}</tr>
       "already-card__action already-rsvp__open",
       { type: "button" }
     );
-    button.textContent = i18n.rsvp || "RSVP";
+    const visible = i18n.rsvp || "RSVP";
+    button.textContent = visible;
     if (event.title) {
+      const named = (i18n.rsvpFor || "RSVP for {title}").replace(
+        "{title}",
+        () => event.title
+      );
+      const containsVisible = named.toLowerCase().includes(visible.toLowerCase());
       button.setAttribute(
         "aria-label",
-        (i18n.rsvpFor || "RSVP for {title}").replace(
-          "{title}",
-          () => event.title
-        )
+        containsVisible ? named : `${visible}: ${event.title}`
       );
     }
     const setOpen = (open) => {

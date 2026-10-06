@@ -92,7 +92,7 @@ All extraction stages decode `&amp;` to `&` before pattern matching, since HTML-
 
 4. **File attachments** — URLs ending in file extensions (`.pdf`, `.doc`, `.docx`, `.xls`, `.xlsx`, `.csv`, `.ppt`, `.pptx`, `.zip`, `.txt`) are extracted and removed. Each becomes a `{ label, url, type }` entry in `event.attachments`.
 
-5. **Website** — `event.website` is the first of: a pre-set `website` starting with `http`, the `#already:website:` directive, or the first plain `http(s)` URL left in the description after the steps above, with trailing punctuation trimmed. It stays `null` when none exists. The URL is not removed from the description.
+5. **Website**: `event.website` is the first of: a pre-set `website` starting with `http`, the `#already:website:` directive, or the first plain `http(s)` URL left in the description after the steps above, with trailing punctuation trimmed. It stays `null` when none exists. The URL is not removed from the description.
 
 Pre-set values on events take priority over extraction. If an event already has a non-empty `images` array, image extraction from the description is skipped. The same applies to `links` and `website`. This allows pre-loaded data to override what would be extracted from descriptions.
 

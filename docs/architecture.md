@@ -24,7 +24,7 @@ enrichEvent() — per event
   2. Images — image URLs, Drive links, Dropbox links extracted and removed
   3. Links — platform URLs extracted and removed
   4. Attachments — file URLs (.pdf, .doc, etc.) extracted and removed
-  5. Website — pre-set value, website directive, or first plain URL left
+  5. Website: pre-set value, website directive, or first plain URL left
   All stages share a TokenSet for deduplication by canonical ID.
   Pre-set values (non-empty images/links arrays) skip extraction.
   │
@@ -238,7 +238,7 @@ This means `#already:instagram:foo` (directive) and `https://instagram.com/foo` 
 2. **Images** (`src/util/images.js`) — image URLs, Drive links, Dropbox links
 3. **Links** (`src/util/links.js`) — platform URLs with label generation
 4. **Attachments** (`src/util/attachments.js`) — file URLs (`.pdf`, `.doc`, etc.)
-5. **Website** (`src/data.js`) — a pre-set value, the `website` directive, or the first plain URL left in the description
+5. **Website** (`src/data.js`): a pre-set value, the `website` directive, or the first plain URL left in the description
 
 All extractors decode `&amp;` → `&` before matching (Google Calendar HTML-encodes ampersands).
 

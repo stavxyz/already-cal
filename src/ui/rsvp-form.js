@@ -37,7 +37,7 @@ function field(form, name, labelText, attrs) {
   return input;
 }
 
-function createRsvpForm(event, config, onClose) {
+function createRsvpForm(event, config, { onClose, onDone }) {
   const i18n = config.i18n || {};
   const invalidText =
     i18n.rsvpInvalid || "Check your name, email and party size.";
@@ -160,6 +160,7 @@ function createRsvpForm(event, config, onClose) {
         i18n.rsvpDone || "You're on the list: {count} going"
       ).replaceAll("{count}", String(count));
       form.replaceWith(done);
+      onDone();
     } catch (err) {
       pending = false;
       submit.disabled = false;
@@ -176,7 +177,9 @@ function createRsvpForm(event, config, onClose) {
  * offers RSVP, else appends nothing and returns null. Clicking the button
  * swaps it for the form in place; cancel or Escape swaps back. The card
  * decorator and the detail view both call this, so the predicate and the
- * control have one owner.
+ * control have one owner. While the form is open the enclosing card, if
+ * any, carries already-card--rsvp-open so the stylesheet can give the form
+ * the card's width on a phone.
  */
 export function appendRsvpControl(container, event, config) {
   if (!offersRsvp(event, config)) return null;
@@ -187,13 +190,24 @@ export function appendRsvpControl(container, event, config) {
     { type: "button" },
   );
   button.textContent = i18n.rsvp || "RSVP";
+  // Looked up per call: decorateRsvp mounts into a row before attaching it
+  // to the card.
+  const setOpen = (open) =>
+    container
+      .closest(".already-card")
+      ?.classList.toggle("already-card--rsvp-open", open);
   button.addEventListener("click", (e) => {
     e.stopPropagation();
-    const { form, focus } = createRsvpForm(event, config, () => {
-      form.replaceWith(button);
-      button.focus();
+    const { form, focus } = createRsvpForm(event, config, {
+      onClose: () => {
+        form.replaceWith(button);
+        setOpen(false);
+        button.focus();
+      },
+      onDone: () => setOpen(false),
     });
     button.replaceWith(form);
+    setOpen(true);
     focus();
   });
   button.addEventListener("keydown", (e) => e.stopPropagation());

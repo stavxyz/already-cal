@@ -229,6 +229,7 @@ describe("RSVP form in a decorator-created row", () => {
     row.querySelector(".already-rsvp__open").click();
     assert.ok(row.querySelector("form.already-rsvp"));
     assert.strictEqual(row.querySelector(".already-rsvp__open"), null);
+    assert.ok(card.classList.contains("already-card--rsvp-open"));
 
     row.querySelector(".already-rsvp__cancel").click();
     assert.strictEqual(row.querySelector("form"), null);

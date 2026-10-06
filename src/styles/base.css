@@ -1653,6 +1653,14 @@ button.already-card__action {
   border-top: none;
   padding-top: 0;
 }
+/* A phone-width horizontal card leaves its text column too narrow for the
+   form, so the image steps aside while the form is open. 768px matches the
+   mobile breakpoint above and the mobileBreakpoint default. */
+@media (max-width: 768px) {
+  .already-card--horizontal.already-card--rsvp-open .already-card__image {
+    display: none;
+  }
+}
 .already-detail-rsvp {
   margin-top: 1rem;
 }

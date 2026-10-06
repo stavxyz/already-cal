@@ -512,3 +512,71 @@ describe("RSVP rejection messages", () => {
     );
   });
 });
+
+describe("open-state class on the card", () => {
+  const OPEN = "already-card--rsvp-open";
+  function mount(over = {}) {
+    const card = document.createElement("div");
+    card.className = "already-card";
+    const row = document.createElement("div");
+    card.appendChild(row);
+    document.body.appendChild(card);
+    appendRsvpControl(row, flagged(), cfg(over)).click();
+    return { card, form: row.querySelector("form") };
+  }
+  function submit(form) {
+    form.querySelector('input[name="name"]').value = "Larry";
+    form.querySelector('input[name="email"]').value = "larry@example.com";
+    form.dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+  }
+
+  it("is added when the form opens", () => {
+    const { card } = mount();
+    assert.ok(card.classList.contains(OPEN));
+  });
+  it("is removed on Cancel", () => {
+    const { card, form } = mount();
+    form.querySelector(".already-rsvp__cancel").click();
+    assert.ok(!card.classList.contains(OPEN));
+  });
+  it("is removed on Escape", () => {
+    const { card, form } = mount();
+    form.dispatchEvent(
+      new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    assert.ok(!card.classList.contains(OPEN));
+  });
+  it("is removed after a successful submit", async () => {
+    const { card, form } = mount();
+    submit(form);
+    await flush();
+    assert.ok(card.querySelector(".already-rsvp__done"));
+    assert.ok(!card.classList.contains(OPEN));
+  });
+  it("stays after a rejected submit", async () => {
+    const { card, form } = mount({
+      onRsvp: async () => {
+        throw new Error("rsvp: http_500");
+      },
+    });
+    submit(form);
+    await flush();
+    assert.ok(card.querySelector("form.already-rsvp"));
+    assert.ok(card.classList.contains(OPEN));
+  });
+  it("opens and closes outside any card without throwing", async () => {
+    const row = document.createElement("div");
+    row.className = "already-detail-rsvp";
+    document.body.appendChild(row);
+    appendRsvpControl(row, flagged(), cfg()).click();
+    const form = row.querySelector("form");
+    form.querySelector(".already-rsvp__cancel").click();
+    row.querySelector(".already-rsvp__open").click();
+    submit(row.querySelector("form"));
+    await flush();
+    assert.ok(row.querySelector(".already-rsvp__done"));
+    assert.strictEqual(document.querySelector(`.${OPEN}`), null);
+  });
+});

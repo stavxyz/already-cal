@@ -18,6 +18,8 @@ validated:
 
 # Card Links Implementation Plan
 
+> **Note (2026-10-06, v0.14.1):** this plan names the focus-ring offset property `--already-link-ring-offset`, as v0.14.0 shipped it. v0.14.1 renamed it `--_already-link-ring-offset`, because every `--already-*` property is a theme token; the spec's D3 design note has the reason. The plan is left as the record of what was built.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Cards, day-view rows, month chips, and week blocks open their event through a real link instead of being `role="button"` elements that contain other controls, with the RSVP button named after its event and an axe-core check over every layout and view in the test suite.

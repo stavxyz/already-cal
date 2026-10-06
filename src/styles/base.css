@@ -1848,8 +1848,9 @@ button.already-card__action {
   outline: none;
 }
 
-/* A host that needs the ring inset (a row flush in a bordered list) sets
-   --_already-link-ring-offset in its own rules; this block names no host. */
+/* A link host that needs the ring inset (a row flush in a bordered list)
+   sets --_already-link-ring-offset in the widget's own rules, as the day row
+   does; this block names no host. */
 .already-link-host:has(.already-event-link:focus-visible) {
   outline: 2px solid var(--already-primary);
   outline-offset: var(--_already-link-ring-offset, 2px);

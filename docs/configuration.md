@@ -93,6 +93,8 @@ Theme properties are applied as CSS custom properties on the `.already` element.
 | `highlight` | `--already-highlight` | `'rgba(139, 69, 19, 0.06)'` | Subtle highlight for today cells, hover states |
 | `spacing` | `--already-spacing` | `'1rem'` | Base spacing unit |
 
+The table is every `--already-*` custom property the stylesheet uses. A property whose name begins `--_already-` belongs to the stylesheet's own mechanics and is not a theme token: it can change or go in any release.
+
 You can also override these directly in CSS:
 
 ```css

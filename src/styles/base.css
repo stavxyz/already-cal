@@ -1656,3 +1656,27 @@ button.already-card__action {
 .already-detail-rsvp {
   margin-top: 1rem;
 }
+/* The main action on this surface, so it drops the card's text-link look.
+   Two classes outrank button.already-card__action's resets. */
+.already-detail-rsvp .already-rsvp__open {
+  font-size: var(--already-font-size-base);
+  font-weight: 600;
+  color: var(--already-primary-text);
+  background: var(--already-primary);
+  border: none;
+  border-radius: var(--already-radius-sm);
+  padding: 0.55rem 1.25rem;
+  cursor: pointer;
+}
+.already-detail-rsvp .already-rsvp__open:hover {
+  opacity: 0.85;
+}
+/* Same ring as the other filled button (.already-error-retry): the text
+   color stays distinct from a primary-filled background. */
+.already-detail-rsvp .already-rsvp__open:focus-visible {
+  outline: 2px solid var(--already-text);
+  outline-offset: 2px;
+}
+.already-detail-rsvp .already-rsvp {
+  max-width: 24rem;
+}

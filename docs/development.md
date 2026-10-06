@@ -51,7 +51,7 @@ src/
 ├── ui/
 │   ├── header.js           # Calendar name, description, subscribe button
 │   ├── card-parts.js       # The parts block on a composite's card
-│   ├── event-link.js       # linkTitle and eventAnchor: the event's link in a card, a row, a chip, or a block
+│   ├── event-link.js       # linkTitle, eventAnchor, and fillEventAnchor: the event's link in a card, a row, a chip, or a block
 │   ├── event-popover.js    # The card shown on hover or tap from the month and week views
 │   ├── rsvp-form.js        # The RSVP button, form, and done line a card or the detail view mounts
 │   ├── rsvp-state.js       # The class a card carries while its RSVP form is open

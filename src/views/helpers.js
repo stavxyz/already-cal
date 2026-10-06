@@ -15,9 +15,10 @@ export function createElement(tag, className, attrs) {
 }
 
 /**
- * The text of an event link that has no visible title to carry it (a layout
- * that rendered no title element). One resolver for every host, so the rule
- * cannot drift between cards and rows.
+ * The name of an event link that has no visible title to carry it: the
+ * hidden link of a card or row (a layout that rendered no usable title
+ * element), and the hidden text of a chip or block whose title is blank.
+ * One resolver for every host, so the rule cannot drift between them.
  */
 export function eventLinkText(entry, config) {
   return (

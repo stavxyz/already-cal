@@ -43,6 +43,16 @@ function createRsvpForm(event, config, onClose) {
     i18n.rsvpInvalid || "Check your name, email and party size.";
   const startedText = i18n.rsvpStarted || "This event has already started.";
   const failedText = i18n.rsvpFailed || "Could not save your RSVP. Try again.";
+  const closedText = i18n.rsvpClosed || "This event is not taking RSVPs.";
+  // Rejection codes a retry cannot fix get their own message; any other
+  // code, or none, keeps the "try again" text. A Map, so a code such as
+  // "toString" from a host's server cannot hit an Object prototype key.
+  const rejectionText = new Map([
+    ["event_started", startedText],
+    ["invalid_field", invalidText],
+    ["rsvp_unavailable", closedText],
+    ["event_not_found", closedText],
+  ]);
   // novalidate: this function is the one validator, so the message a
   // visitor sees is the widget's (translatable) one, not the browser's.
   const form = createElement("form", "already-rsvp", { novalidate: "" });
@@ -154,7 +164,7 @@ function createRsvpForm(event, config, onClose) {
       pending = false;
       submit.disabled = false;
       cancel.disabled = false;
-      showError(err && err.code === "event_started" ? startedText : failedText);
+      showError(rejectionText.get(err?.code) || failedText);
     }
   });
 

@@ -454,3 +454,61 @@ describe("decorateRsvp", () => {
     assert.strictEqual(el.querySelector(".already-card__footer--rsvp"), null);
   });
 });
+
+describe("RSVP rejection messages", () => {
+  const messages = {
+    ...i18n,
+    rsvpStarted: "Started",
+    rsvpInvalid: "Fix it",
+    rsvpClosed: "Closed",
+    rsvpFailed: "Failed",
+  };
+  async function rejectWith(err, over = {}) {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    appendRsvpControl(
+      host,
+      flagged(),
+      cfg({
+        i18n: messages,
+        onRsvp: async () => {
+          throw err;
+        },
+        ...over,
+      }),
+    ).click();
+    const form = host.querySelector("form");
+    form.querySelector('input[name="name"]').value = "Larry";
+    form.querySelector('input[name="email"]').value = "larry@example.com";
+    form.dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    await flush();
+    return form.querySelector(".already-rsvp__error").textContent;
+  }
+  const coded = (code) => Object.assign(new Error(`rsvp: ${code}`), { code });
+
+  for (const [code, expected] of [
+    ["event_started", "Started"],
+    ["invalid_field", "Fix it"],
+    ["rsvp_unavailable", "Closed"],
+    ["event_not_found", "Closed"],
+    ["http_500", "Failed"],
+  ]) {
+    it(`${code} shows ${expected}`, async () => {
+      assert.strictEqual(await rejectWith(coded(code)), expected);
+    });
+  }
+
+  it("a rejection without a code shows the generic message", async () => {
+    assert.strictEqual(await rejectWith(new Error("boom")), "Failed");
+  });
+
+  it("uses the default closed text when i18n omits rsvpClosed", async () => {
+    const { rsvpClosed: _omit, ...rest } = messages;
+    assert.strictEqual(
+      await rejectWith(coded("rsvp_unavailable"), { i18n: rest }),
+      "This event is not taking RSVPs.",
+    );
+  });
+});

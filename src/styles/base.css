@@ -699,6 +699,11 @@
   margin-top: 0.25rem;
 }
 
+/* A composite's part, listed under its parent's row */
+.already-day-event--part {
+  padding-left: 2.5rem;
+}
+
 /* ===== Detail View ===== */
 .already-detail {
   background: var(--already-surface);

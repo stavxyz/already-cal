@@ -75,11 +75,6 @@ export function applyEventClasses(el, event, baseClass) {
   el.className = cls;
 }
 
-/** Filter out events with the hidden flag. */
-export function filterHidden(events) {
-  return events.filter((e) => !e.hidden);
-}
-
 /** Sort events so featured events come first. */
 export function sortFeatured(events) {
   return [...events].sort(

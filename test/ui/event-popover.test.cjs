@@ -389,6 +389,8 @@ describe("the zone a popover card is labelled against", () => {
   it("is given the calendar's zone by the month and week views", async () => {
     const { renderMonthView } = await import("../../src/views/month.js");
     const { renderWeekView } = await import("../../src/views/week.js");
+    const { placeByDay } = await import("../../src/views/placement.js");
+    const { eventDayKey } = await import("../../src/util/dates.js");
     const cases = [
       [renderMonthView, ".already-month-chip"],
       [renderWeekView, ".already-week-event"],
@@ -398,7 +400,7 @@ describe("the zone a popover card is labelled against", () => {
       root.appendChild(container);
       render(
         container,
-        [event],
+        placeByDay([event], eventDayKey),
         "America/Chicago",
         new Date(2099, 5, 15),
         config,

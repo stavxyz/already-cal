@@ -1,7 +1,6 @@
 import { setDayView } from "../router.js";
 import { bindEventPopover, closeEventPopover } from "../ui/event-popover.js";
 import {
-  eventDayKey,
   getDayNames,
   getDaysInMonth,
   getFirstDayOfMonth,
@@ -9,17 +8,12 @@ import {
   isToday,
   toDateKey,
 } from "../util/dates.js";
-import {
-  bindEventClick,
-  createElement,
-  filterHidden,
-  sortFeatured,
-} from "./helpers.js";
+import { bindEventClick, createElement, sortFeatured } from "./helpers.js";
 
 /** Render the month calendar grid view. */
 export function renderMonthView(
   container,
-  events,
+  placement,
   timezone,
   currentDate,
   config,
@@ -36,7 +30,9 @@ export function renderMonthView(
   // pointer never fires mouseleave, so close here too or the card hangs.
   closeEventPopover(container.closest?.(".already") || container);
 
-  events = filterHidden(events);
+  // Which day each item is on comes from the placement, the one place that
+  // decides it (see views/placement.js).
+  const { byDay } = placement;
 
   // The popover parents to the `.already` root so it inherits the theme's
   // custom properties; `container` is the inner view container.
@@ -53,16 +49,6 @@ export function renderMonthView(
   const monthName = getMonthName(year, month, locale);
   const dayNames = getDayNames(locale, weekStartDay);
 
-  // Group events by date in the VIEWER's timezone (all-day values stay
-  // absolute) so a chip sits in the same day cell as the viewer-local time the
-  // event renders elsewhere — see eventDayKey.
-  const eventsByDate = {};
-  for (const event of events) {
-    const key = eventDayKey(event.start);
-    if (!eventsByDate[key]) eventsByDate[key] = [];
-    eventsByDate[key].push(event);
-  }
-
   const grid = createElement("div", "already-month");
 
   // Navigation
@@ -75,7 +61,7 @@ export function renderMonthView(
   prevBtn.addEventListener("click", () => {
     renderMonthView(
       container,
-      events,
+      placement,
       timezone,
       new Date(year, month - 1, 1),
       config,
@@ -96,7 +82,7 @@ export function renderMonthView(
   nextBtn.addEventListener("click", () => {
     renderMonthView(
       container,
-      events,
+      placement,
       timezone,
       new Date(year, month + 1, 1),
       config,
@@ -133,8 +119,7 @@ export function renderMonthView(
 
   for (let d = 1; d <= daysInMonth; d++) {
     const cellDate = new Date(year, month, d);
-    const key = toDateKey(cellDate);
-    const dayEvents = sortFeatured(eventsByDate[key] || []);
+    const dayEvents = sortFeatured(byDay.get(toDateKey(cellDate)) || []);
     const today = isToday(cellDate);
 
     const cell = createElement("div", null, { role: "gridcell" });

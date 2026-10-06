@@ -12,12 +12,16 @@ after(() => {
 });
 
 let renderMonthView, renderWeekView, openEventPopover, closeEventPopover;
+let place;
 before(async () => {
   ({ renderMonthView } = await import("../../src/views/month.js"));
   ({ renderWeekView } = await import("../../src/views/week.js"));
   ({ openEventPopover, closeEventPopover } = await import(
     "../../src/ui/event-popover.js"
   ));
+  const { placeByDay } = await import("../../src/views/placement.js");
+  const { eventDayKey } = await import("../../src/util/dates.js");
+  place = (events) => placeByDay(events, eventDayKey);
 });
 
 let root, container;
@@ -43,7 +47,7 @@ describe("re-rendering closes an open popover", () => {
     const events = [createTestEvent({ start: "2026-04-04T15:00:00Z" })];
     renderMonthView(
       container,
-      events,
+      place(events),
       "America/Chicago",
       new Date(2026, 3, 1),
       {},
@@ -60,7 +64,7 @@ describe("re-rendering closes an open popover", () => {
     const events = [createTestEvent({ start: "2026-04-04T15:00:00Z" })];
     renderMonthView(
       container,
-      events,
+      place(events),
       "America/Chicago",
       new Date(2026, 3, 1),
       {},
@@ -75,7 +79,7 @@ describe("re-rendering closes an open popover", () => {
     const events = [createTestEvent({ start: "2026-04-08T15:00:00Z" })];
     renderWeekView(
       container,
-      events,
+      place(events),
       "America/Chicago",
       new Date(2026, 3, 8),
       {},
@@ -91,7 +95,7 @@ describe("re-rendering closes an open popover", () => {
     const events = [createTestEvent({ start: "2026-04-04T15:00:00Z" })];
     renderMonthView(
       container,
-      events,
+      place(events),
       "America/Chicago",
       new Date(2026, 3, 1),
       {},
@@ -100,7 +104,7 @@ describe("re-rendering closes an open popover", () => {
     openEventPopover(chip, events[0], root, {});
     renderMonthView(
       container,
-      events,
+      place(events),
       "America/Chicago",
       new Date(2026, 3, 1),
       {},

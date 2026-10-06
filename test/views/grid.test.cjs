@@ -111,21 +111,6 @@ describe("renderGridView", () => {
     assert.strictEqual(card.getAttribute("role"), "button");
   });
 
-  it("does not render hidden events", () => {
-    const container = document.createElement("div");
-    const events = [
-      createTestEvent({ id: "1", title: "Visible" }),
-      createTestEvent({ id: "2", title: "Hidden", hidden: true }),
-    ];
-    renderGridView(container, events, "UTC", {});
-    const cards = container.querySelectorAll(".already-card");
-    assert.strictEqual(cards.length, 1);
-    assert.strictEqual(
-      cards[0].querySelector(".already-card__title").textContent,
-      "Visible",
-    );
-  });
-
   it("adds --featured class to featured events", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ featured: true })];

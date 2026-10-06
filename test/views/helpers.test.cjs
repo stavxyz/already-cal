@@ -3,14 +3,13 @@ const { describe, it, before, beforeEach, after } = require("node:test");
 const assert = require("node:assert");
 
 let createElement, bindEventClick, applyEventClasses;
-let filterHidden, sortFeatured, sortFeaturedByDate;
+let sortFeatured, sortFeaturedByDate;
 
 before(async () => {
   const mod = await import("../../src/views/helpers.js");
   createElement = mod.createElement;
   bindEventClick = mod.bindEventClick;
   applyEventClasses = mod.applyEventClasses;
-  filterHidden = mod.filterHidden;
   sortFeatured = mod.sortFeatured;
   sortFeaturedByDate = mod.sortFeaturedByDate;
 });
@@ -218,33 +217,6 @@ describe("applyEventClasses", () => {
       "already-card",
     );
     assert.ok(!el.className.includes("already-card--past"));
-  });
-});
-
-describe("filterHidden", () => {
-  it("removes hidden events", () => {
-    const events = [
-      { id: "1", hidden: false },
-      { id: "2", hidden: true },
-      { id: "3", hidden: false },
-    ];
-    const result = filterHidden(events);
-    assert.strictEqual(result.length, 2);
-    assert.strictEqual(result[0].id, "1");
-    assert.strictEqual(result[1].id, "3");
-  });
-
-  it("returns all events when none hidden", () => {
-    const events = [
-      { id: "1", hidden: false },
-      { id: "2", hidden: false },
-    ];
-    assert.strictEqual(filterHidden(events).length, 2);
-  });
-
-  it("returns empty array for all hidden", () => {
-    const events = [{ id: "1", hidden: true }];
-    assert.strictEqual(filterHidden(events).length, 0);
   });
 });
 

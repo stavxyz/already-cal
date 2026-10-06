@@ -1,21 +1,15 @@
-import {
-  eventDayKey,
-  formatDate,
-  formatScheduleTime,
-  toDateKey,
-} from "../util/dates.js";
+import { formatDate, formatScheduleTime, toDateKey } from "../util/dates.js";
 import {
   applyEventClasses,
   bindEventClick,
   createElement,
-  filterHidden,
   sortFeatured,
 } from "./helpers.js";
 
 /** Render the single-day event list view. */
 export function renderDayView(
   container,
-  events,
+  placement,
   timezone,
   currentDate,
   config,
@@ -26,7 +20,9 @@ export function renderDayView(
   const allDayLabel = i18n.allDay || "All Day";
   const noEventsLabel = i18n.noEventsThisDay || "No events this day.";
 
-  events = filterHidden(events);
+  // The items of each day, and for each parent the parts folded under it on
+  // its own day (see views/placement.js).
+  const { byDay, sameDayParts } = placement;
 
   const day = createElement("div", "already-day");
 
@@ -40,7 +36,7 @@ export function renderDayView(
   prevBtn.addEventListener("click", () => {
     const prev = new Date(currentDate);
     prev.setDate(prev.getDate() - 1);
-    renderDayView(container, events, timezone, prev, config);
+    renderDayView(container, placement, timezone, prev, config);
   });
   nav.appendChild(prevBtn);
 
@@ -55,16 +51,40 @@ export function renderDayView(
   nextBtn.addEventListener("click", () => {
     const next = new Date(currentDate);
     next.setDate(next.getDate() + 1);
-    renderDayView(container, events, timezone, next, config);
+    renderDayView(container, placement, timezone, next, config);
   });
   nav.appendChild(nextBtn);
 
   day.appendChild(nav);
 
-  let dayEvents = events.filter(
-    (e) => eventDayKey(e.start) === toDateKey(currentDate),
-  );
-  dayEvents = sortFeatured(dayEvents);
+  const dayEvents = sortFeatured(byDay.get(toDateKey(currentDate)) || []);
+
+  function renderRow(entry, isPart) {
+    const item = createElement("div");
+    applyEventClasses(item, entry, "already-day-event");
+    if (isPart) item.classList.add("already-day-event--part");
+    bindEventClick(item, entry, "day", config);
+
+    const timeEl = createElement("div", "already-day-event-time");
+    timeEl.textContent = formatScheduleTime(entry, {
+      sourceZoneFallback: timezone,
+      locale,
+      allDayLabel,
+    });
+    item.appendChild(timeEl);
+
+    const info = createElement("div", "already-day-event-info");
+    const titleEl = createElement("div", "already-day-event-title");
+    titleEl.textContent = entry.title;
+    info.appendChild(titleEl);
+    if (entry.location) {
+      const loc = createElement("div", "already-day-event-location");
+      loc.textContent = entry.location;
+      info.appendChild(loc);
+    }
+    item.appendChild(info);
+    return item;
+  }
 
   if (dayEvents.length === 0) {
     const empty = createElement("div", "already-day-empty");
@@ -72,30 +92,12 @@ export function renderDayView(
     day.appendChild(empty);
   } else {
     for (const event of dayEvents) {
-      const item = createElement("div");
-      applyEventClasses(item, event, "already-day-event");
-      bindEventClick(item, event, "day", config);
-
-      const timeEl = createElement("div", "already-day-event-time");
-      timeEl.textContent = formatScheduleTime(event, {
-        sourceZoneFallback: timezone,
-        locale,
-        allDayLabel,
-      });
-      item.appendChild(timeEl);
-
-      const info = createElement("div", "already-day-event-info");
-      const titleEl = createElement("div", "already-day-event-title");
-      titleEl.textContent = event.title;
-      info.appendChild(titleEl);
-      if (event.location) {
-        const loc = createElement("div", "already-day-event-location");
-        loc.textContent = event.location;
-        info.appendChild(loc);
+      day.appendChild(renderRow(event, false));
+      // A parent's parts on this same day sit under it. A click on one opens
+      // the composite's detail at that part.
+      for (const part of sameDayParts.get(event.id) || []) {
+        day.appendChild(renderRow(part, true));
       }
-      item.appendChild(info);
-
-      day.appendChild(item);
     }
   }
 

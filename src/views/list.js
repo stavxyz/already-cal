@@ -2,7 +2,7 @@ import { safeRenderCard } from "../layouts/helpers.js";
 import { getLayout } from "../layouts/registry.js";
 import { THEME_DEFAULTS } from "../theme.js";
 import { decorateEventCard } from "./card-decoration.js";
-import { createElement, filterHidden, sortFeaturedByDate } from "./helpers.js";
+import { createElement, sortFeaturedByDate } from "./helpers.js";
 
 /** Render the list view using layout cards (horizontal by default). */
 export function renderListView(container, events, timezone, config) {
@@ -13,7 +13,6 @@ export function renderListView(container, events, timezone, config) {
   // List view defaults to horizontal orientation
   const orientation = theme.layout === "compact" ? "vertical" : "horizontal";
 
-  events = filterHidden(events);
   events = sortFeaturedByDate(events);
 
   const list = createElement("div", "already-list");

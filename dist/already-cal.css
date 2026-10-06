@@ -561,6 +561,9 @@
   color: var(--already-text-secondary);
   margin-top: 0.25rem;
 }
+.already-day-event--part {
+  padding-left: 2.5rem;
+}
 .already-detail {
   background: var(--already-surface);
   border-radius: var(--already-radius);

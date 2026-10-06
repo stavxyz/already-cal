@@ -3757,6 +3757,9 @@ ${text}</tr>
   function eventDayKey(isoString) {
     return dayKey(isoString, viewerTimeZone());
   }
+  function startOrder(entry) {
+    return parseEventDate(entry.start).getTime();
+  }
   function formatScheduleTime(event, opts = {}) {
     const { sourceZoneFallback, locale, allDayLabel = "All Day" } = opts;
     if (event.allDay) return allDayLabel;
@@ -3948,9 +3951,6 @@ ${text}</tr>
     if (isPast(event.end || event.start)) cls += ` ${baseClass}--past`;
     if (event.featured) cls += ` ${baseClass}--featured`;
     el.className = cls;
-  }
-  function filterHidden(events) {
-    return events.filter((e) => !e.hidden);
   }
   function sortFeatured(events) {
     return [...events].sort(
@@ -5358,7 +5358,7 @@ ${text}</tr>
     function render5(container, events) {
       const tagCounts = /* @__PURE__ */ new Map();
       for (const event of events) {
-        for (const tag2 of event.tags || []) {
+        for (const tag2 of compositeTags(event)) {
           if (!isCategoryTag(tag2)) continue;
           const label = tagLabel(tag2);
           tagCounts.set(label, (tagCounts.get(label) || 0) + 1);
@@ -5403,7 +5403,7 @@ ${text}</tr>
     function getFilter() {
       if (selectedTags.size === 0) return null;
       return (event) => {
-        for (const tag2 of event.tags || []) {
+        for (const tag2 of compositeTags(event)) {
           if (!isCategoryTag(tag2)) continue;
           if (selectedTags.has(tagLabel(tag2))) return true;
         }
@@ -5596,13 +5596,13 @@ ${text}</tr>
   }
 
   // src/views/day.js
-  function renderDayView(container, events, timezone, currentDate, config) {
+  function renderDayView(container, placement, timezone, currentDate, config) {
     config = config || {};
     const locale = config.locale;
     const i18n = config.i18n || {};
     const allDayLabel = i18n.allDay || "All Day";
     const noEventsLabel = i18n.noEventsThisDay || "No events this day.";
-    events = filterHidden(events);
+    const { byDay, sameDayParts } = placement;
     const day = createElement("div", "already-day");
     const nav = createElement("div", "already-day-nav");
     const prevBtn = createElement("button", "already-day-prev", {
@@ -5612,7 +5612,7 @@ ${text}</tr>
     prevBtn.addEventListener("click", () => {
       const prev = new Date(currentDate);
       prev.setDate(prev.getDate() - 1);
-      renderDayView(container, events, timezone, prev, config);
+      renderDayView(container, placement, timezone, prev, config);
     });
     nav.appendChild(prevBtn);
     const title = createElement("span", "already-day-title");
@@ -5625,41 +5625,45 @@ ${text}</tr>
     nextBtn.addEventListener("click", () => {
       const next = new Date(currentDate);
       next.setDate(next.getDate() + 1);
-      renderDayView(container, events, timezone, next, config);
+      renderDayView(container, placement, timezone, next, config);
     });
     nav.appendChild(nextBtn);
     day.appendChild(nav);
-    let dayEvents = events.filter(
-      (e) => eventDayKey(e.start) === toDateKey(currentDate)
-    );
-    dayEvents = sortFeatured(dayEvents);
+    const dayEvents = sortFeatured(byDay.get(toDateKey(currentDate)) || []);
+    function renderRow(entry, isPart) {
+      const item = createElement("div");
+      applyEventClasses(item, entry, "already-day-event");
+      if (isPart) item.classList.add("already-day-event--part");
+      bindEventClick(item, entry, "day", config);
+      const timeEl = createElement("div", "already-day-event-time");
+      timeEl.textContent = formatScheduleTime(entry, {
+        sourceZoneFallback: timezone,
+        locale,
+        allDayLabel
+      });
+      item.appendChild(timeEl);
+      const info = createElement("div", "already-day-event-info");
+      const titleEl = createElement("div", "already-day-event-title");
+      titleEl.textContent = entry.title;
+      info.appendChild(titleEl);
+      if (entry.location) {
+        const loc = createElement("div", "already-day-event-location");
+        loc.textContent = entry.location;
+        info.appendChild(loc);
+      }
+      item.appendChild(info);
+      return item;
+    }
     if (dayEvents.length === 0) {
       const empty = createElement("div", "already-day-empty");
       empty.textContent = noEventsLabel;
       day.appendChild(empty);
     } else {
       for (const event of dayEvents) {
-        const item = createElement("div");
-        applyEventClasses(item, event, "already-day-event");
-        bindEventClick(item, event, "day", config);
-        const timeEl = createElement("div", "already-day-event-time");
-        timeEl.textContent = formatScheduleTime(event, {
-          sourceZoneFallback: timezone,
-          locale,
-          allDayLabel
-        });
-        item.appendChild(timeEl);
-        const info = createElement("div", "already-day-event-info");
-        const titleEl = createElement("div", "already-day-event-title");
-        titleEl.textContent = event.title;
-        info.appendChild(titleEl);
-        if (event.location) {
-          const loc = createElement("div", "already-day-event-location");
-          loc.textContent = event.location;
-          info.appendChild(loc);
+        day.appendChild(renderRow(event, false));
+        for (const part of sameDayParts.get(event.id) || []) {
+          day.appendChild(renderRow(part, true));
         }
-        item.appendChild(info);
-        day.appendChild(item);
       }
     }
     container.innerHTML = "";
@@ -6040,7 +6044,6 @@ ${text}</tr>
     config = config || {};
     const locale = config.locale;
     const theme = config._theme || THEME_DEFAULTS;
-    events = filterHidden(events);
     events = sortFeaturedByDate(events);
     const grid = createElement("div", "already-grid");
     const renderCard = getLayout(theme.layout);
@@ -6067,7 +6070,6 @@ ${text}</tr>
     const locale = config.locale;
     const theme = config._theme || THEME_DEFAULTS;
     const orientation = theme.layout === "compact" ? "vertical" : "horizontal";
-    events = filterHidden(events);
     events = sortFeaturedByDate(events);
     const list2 = createElement("div", "already-list");
     const renderCard = getLayout(theme.layout);
@@ -6089,7 +6091,7 @@ ${text}</tr>
   }
 
   // src/views/month.js
-  function renderMonthView(container, events, timezone, currentDate, config) {
+  function renderMonthView(container, placement, timezone, currentDate, config) {
     config = config || {};
     const locale = config.locale;
     const weekStartDay = config.weekStartDay || 0;
@@ -6097,7 +6099,7 @@ ${text}</tr>
     const i18n = config.i18n || {};
     const moreEventsTemplate = i18n.moreEvents || "+{count} more";
     closeEventPopover(container.closest?.(".already") || container);
-    events = filterHidden(events);
+    const { byDay } = placement;
     const popoverRoot = container.closest?.(".already") || container;
     const dayViewEnabled = !config.views || config.views.includes("day");
     const year = currentDate.getFullYear();
@@ -6106,12 +6108,6 @@ ${text}</tr>
     const firstDay = getFirstDayOfMonth(year, month, weekStartDay);
     const monthName = getMonthName(year, month, locale);
     const dayNames = getDayNames(locale, weekStartDay);
-    const eventsByDate = {};
-    for (const event of events) {
-      const key = eventDayKey(event.start);
-      if (!eventsByDate[key]) eventsByDate[key] = [];
-      eventsByDate[key].push(event);
-    }
     const grid = createElement("div", "already-month");
     const nav = createElement("div", "already-month-nav");
     const prevBtn = createElement("button", "already-month-prev", {
@@ -6121,7 +6117,7 @@ ${text}</tr>
     prevBtn.addEventListener("click", () => {
       renderMonthView(
         container,
-        events,
+        placement,
         timezone,
         new Date(year, month - 1, 1),
         config
@@ -6138,7 +6134,7 @@ ${text}</tr>
     nextBtn.addEventListener("click", () => {
       renderMonthView(
         container,
-        events,
+        placement,
         timezone,
         new Date(year, month + 1, 1),
         config
@@ -6166,8 +6162,7 @@ ${text}</tr>
     }
     for (let d = 1; d <= daysInMonth; d++) {
       const cellDate = new Date(year, month, d);
-      const key = toDateKey(cellDate);
-      const dayEvents = sortFeatured(eventsByDate[key] || []);
+      const dayEvents = sortFeatured(byDay.get(toDateKey(cellDate)) || []);
       const today = isToday(cellDate);
       const cell = createElement("div", null, { role: "gridcell" });
       cell.className = "already-month-cell" + (today ? " already-month-cell--today" : "") + (dayEvents.length ? " already-month-cell--has-events" : "");
@@ -6219,13 +6214,47 @@ ${text}</tr>
     container.appendChild(grid);
   }
 
+  // src/views/placement.js
+  function placeByDay(events, dayKeyOf) {
+    const byDay = /* @__PURE__ */ new Map();
+    const sameDayParts = /* @__PURE__ */ new Map();
+    const elsewhere = [];
+    const itemsOn = (day) => {
+      let items = byDay.get(day);
+      if (!items) {
+        items = [];
+        byDay.set(day, items);
+      }
+      return items;
+    };
+    for (const event of events) {
+      const day = dayKeyOf(event.start);
+      if (day === "") continue;
+      itemsOn(day).push(event);
+      const folded = [];
+      for (const part of partsOf(event)) {
+        const partDay = dayKeyOf(part.start);
+        if (partDay !== day) elsewhere.push({ part, day: partDay });
+        else if (!isSecondListing(part, event)) folded.push(part);
+      }
+      if (folded.length > 0) sameDayParts.set(event.id, folded);
+    }
+    for (const { part, day } of elsewhere) {
+      const items = itemsOn(day);
+      const when = startOrder(part);
+      const later = items.findIndex((item) => startOrder(item) > when);
+      items.splice(later === -1 ? items.length : later, 0, part);
+    }
+    return { byDay, sameDayParts };
+  }
+
   // src/views/week.js
-  function renderWeekView(container, events, timezone, currentDate, config) {
+  function renderWeekView(container, placement, timezone, currentDate, config) {
     config = config || {};
     const locale = config.locale;
     const weekStartDay = config.weekStartDay || 0;
     const dates = getWeekDates(currentDate, weekStartDay);
-    events = filterHidden(events);
+    const { byDay } = placement;
     const popoverRoot = container.closest?.(".already") || container;
     closeEventPopover(popoverRoot);
     const dayViewEnabled = !config.views || config.views.includes("day");
@@ -6240,7 +6269,7 @@ ${text}</tr>
     prevBtn.addEventListener("click", () => {
       const prev = new Date(currentDate);
       prev.setDate(prev.getDate() - 7);
-      renderWeekView(container, events, timezone, prev, config);
+      renderWeekView(container, placement, timezone, prev, config);
     });
     nav.appendChild(prevBtn);
     const title = createElement("span", "already-week-title");
@@ -6253,7 +6282,7 @@ ${text}</tr>
     nextBtn.addEventListener("click", () => {
       const next = new Date(currentDate);
       next.setDate(next.getDate() + 7);
-      renderWeekView(container, events, timezone, next, config);
+      renderWeekView(container, placement, timezone, next, config);
     });
     nav.appendChild(nextBtn);
     week.appendChild(nav);
@@ -6275,9 +6304,7 @@ ${text}</tr>
       dayNumEl.textContent = date.getDate();
       header.appendChild(dayNumEl);
       col.appendChild(header);
-      const dayEvents = sortFeatured(
-        events.filter((e) => eventDayKey(e.start) === toDateKey(date))
-      );
+      const dayEvents = sortFeatured(byDay.get(toDateKey(date)) || []);
       for (const event of dayEvents) {
         const block2 = createElement(
           "div",
@@ -6639,16 +6666,29 @@ ${text}</tr>
       );
       paginationTopContainer.innerHTML = "";
       paginationBottomContainer.innerHTML = "";
+      const dayPlacement = () => placeByDay(events, eventDayKey);
       switch (viewState.view) {
         case "month":
-          renderMonthView(viewContainer, events, timezone, currentDate, config);
+          renderMonthView(
+            viewContainer,
+            dayPlacement(),
+            timezone,
+            currentDate,
+            config
+          );
           break;
         case "week":
-          renderWeekView(viewContainer, events, timezone, currentDate, config);
+          renderWeekView(
+            viewContainer,
+            dayPlacement(),
+            timezone,
+            currentDate,
+            config
+          );
           break;
         case "day": {
           const dayDate = viewState.date ? parseDateKey(viewState.date) : currentDate;
-          renderDayView(viewContainer, events, timezone, dayDate, config);
+          renderDayView(viewContainer, dayPlacement(), timezone, dayDate, config);
           break;
         }
         case "grid": {

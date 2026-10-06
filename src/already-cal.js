@@ -17,6 +17,7 @@ import {
 import { createTagFilter } from "./ui/tag-filter.js";
 import { renderViewSelector } from "./ui/view-selector.js";
 import {
+  eventDayKey,
   formatDateRange,
   isPast,
   parseDateKey,
@@ -40,6 +41,7 @@ import { renderDetailView } from "./views/detail.js";
 import { renderGridView } from "./views/grid.js";
 import { renderListView } from "./views/list.js";
 import { renderMonthView } from "./views/month.js";
+import { placeByDay } from "./views/placement.js";
 import { renderWeekView } from "./views/week.js";
 
 const DEFAULTS = {
@@ -491,18 +493,34 @@ export function init(userConfig) {
     paginationTopContainer.innerHTML = "";
     paginationBottomContainer.innerHTML = "";
 
+    // From the list after the past and tag filters. Only the month, week,
+    // and day cases call it, so the other views do not pay for it.
+    const dayPlacement = () => placeByDay(events, eventDayKey);
+
     switch (viewState.view) {
       case "month":
-        renderMonthView(viewContainer, events, timezone, currentDate, config);
+        renderMonthView(
+          viewContainer,
+          dayPlacement(),
+          timezone,
+          currentDate,
+          config,
+        );
         break;
       case "week":
-        renderWeekView(viewContainer, events, timezone, currentDate, config);
+        renderWeekView(
+          viewContainer,
+          dayPlacement(),
+          timezone,
+          currentDate,
+          config,
+        );
         break;
       case "day": {
         const dayDate = viewState.date
           ? parseDateKey(viewState.date)
           : currentDate;
-        renderDayView(viewContainer, events, timezone, dayDate, config);
+        renderDayView(viewContainer, dayPlacement(), timezone, dayDate, config);
         break;
       }
       case "grid": {

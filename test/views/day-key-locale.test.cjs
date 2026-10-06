@@ -8,12 +8,16 @@ const assert = require("node:assert");
 const { createTestEvent } = require("../helpers.cjs");
 
 let renderMonthView, renderWeekView, renderDayView, renderGridView;
+let place;
 
 before(async () => {
   ({ renderMonthView } = await import("../../src/views/month.js"));
   ({ renderWeekView } = await import("../../src/views/week.js"));
   ({ renderDayView } = await import("../../src/views/day.js"));
   ({ renderGridView } = await import("../../src/views/grid.js"));
+  const { placeByDay } = await import("../../src/views/placement.js");
+  const { eventDayKey } = await import("../../src/util/dates.js");
+  place = (events) => placeByDay(events, eventDayKey);
 });
 
 after(() => {
@@ -44,7 +48,7 @@ for (const locale of LOCALES) {
 
     it("month view files the event in its day's cell", () => {
       const c = document.createElement("div");
-      renderMonthView(c, [market()], "America/Chicago", april, config);
+      renderMonthView(c, place([market()]), "America/Chicago", april, config);
       const chips = c.querySelectorAll(".already-month-chip");
       assert.strictEqual(chips.length, 1);
       assert.strictEqual(
@@ -57,7 +61,7 @@ for (const locale of LOCALES) {
 
     it("week view files the event in its day's column", () => {
       const c = document.createElement("div");
-      renderWeekView(c, [market()], "America/Chicago", april15, config);
+      renderWeekView(c, place([market()]), "America/Chicago", april15, config);
       const blocks = c.querySelectorAll(".already-week-event");
       assert.strictEqual(blocks.length, 1);
       assert.strictEqual(
@@ -70,7 +74,7 @@ for (const locale of LOCALES) {
 
     it("day view shows the event on its day", () => {
       const c = document.createElement("div");
-      renderDayView(c, [market()], "America/Chicago", april15, config);
+      renderDayView(c, place([market()]), "America/Chicago", april15, config);
       assert.strictEqual(c.querySelectorAll(".already-day-event").length, 1);
     });
 

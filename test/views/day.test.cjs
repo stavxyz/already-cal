@@ -4,10 +4,14 @@ const assert = require("node:assert");
 const { createTestEvent } = require("../helpers.cjs");
 
 let renderDayView;
+let place;
 
 before(async () => {
   const mod = await import("../../src/views/day.js");
   renderDayView = mod.renderDayView;
+  const { placeByDay } = await import("../../src/views/placement.js");
+  const { eventDayKey } = await import("../../src/util/dates.js");
+  place = (events) => placeByDay(events, eventDayKey);
 });
 
 // day.js renders event times via formatEventWhen, which formats in the
@@ -45,7 +49,7 @@ describe("renderDayView", () => {
       createTestEvent({ id: "1", start: "2026-04-15T10:00:00Z" }),
       createTestEvent({ id: "2", start: "2026-04-16T10:00:00Z" }),
     ];
-    renderDayView(container, events, "UTC", targetDate, {});
+    renderDayView(container, place(events), "UTC", targetDate, {});
     assert.strictEqual(
       container.querySelectorAll(".already-day-event").length,
       1,
@@ -54,7 +58,7 @@ describe("renderDayView", () => {
 
   it("shows empty state when no events", () => {
     const container = document.createElement("div");
-    renderDayView(container, [], "UTC", targetDate, {});
+    renderDayView(container, place([]), "UTC", targetDate, {});
     assert.ok(container.querySelector(".already-day-empty"));
   });
 
@@ -66,7 +70,7 @@ describe("renderDayView", () => {
         start: "2026-04-15T10:00:00Z",
       }),
     ];
-    renderDayView(container, events, "UTC", targetDate, {});
+    renderDayView(container, place(events), "UTC", targetDate, {});
     const title = container.querySelector(".already-day-event-title");
     assert.strictEqual(title.textContent, "Test & <b>Bold</b>");
   });
@@ -74,7 +78,7 @@ describe("renderDayView", () => {
   it("shows All Day label for all-day events", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ allDay: true, start: "2026-04-15" })];
-    renderDayView(container, events, "UTC", targetDate, {});
+    renderDayView(container, place(events), "UTC", targetDate, {});
     assert.strictEqual(
       container.querySelector(".already-day-event-time").textContent,
       "All Day",
@@ -89,7 +93,7 @@ describe("renderDayView", () => {
         end: "2026-04-15T12:00:00Z",
       }),
     ];
-    renderDayView(container, events, "UTC", targetDate, {});
+    renderDayView(container, place(events), "UTC", targetDate, {});
     assert.strictEqual(
       container.querySelector(".already-day-event-time").textContent,
       "10:00 AM – 12:00 PM",
@@ -104,7 +108,7 @@ describe("renderDayView", () => {
         end: "2026-04-16T12:00:00Z",
       }),
     ];
-    renderDayView(container, events, "UTC", targetDate, {});
+    renderDayView(container, place(events), "UTC", targetDate, {});
     assert.strictEqual(
       container.querySelector(".already-day-event-time").textContent,
       "10:00 AM",
@@ -113,27 +117,10 @@ describe("renderDayView", () => {
 
   it("renders navigation buttons", () => {
     const container = document.createElement("div");
-    renderDayView(container, [], "UTC", targetDate, {});
+    renderDayView(container, place([]), "UTC", targetDate, {});
     assert.ok(container.querySelector(".already-day-prev"));
     assert.ok(container.querySelector(".already-day-next"));
     assert.ok(container.querySelector(".already-day-title"));
-  });
-
-  it("does not render hidden events", () => {
-    const container = document.createElement("div");
-    const events = [
-      createTestEvent({
-        id: "1",
-        start: "2026-04-15T10:00:00Z",
-        hidden: false,
-      }),
-      createTestEvent({ id: "2", start: "2026-04-15T14:00:00Z", hidden: true }),
-    ];
-    renderDayView(container, events, "UTC", targetDate, {});
-    assert.strictEqual(
-      container.querySelectorAll(".already-day-event").length,
-      1,
-    );
   });
 
   it("adds --featured class", () => {
@@ -141,7 +128,7 @@ describe("renderDayView", () => {
     const events = [
       createTestEvent({ start: "2026-04-15T10:00:00Z", featured: true }),
     ];
-    renderDayView(container, events, "UTC", targetDate, {});
+    renderDayView(container, place(events), "UTC", targetDate, {});
     assert.ok(container.querySelector(".already-day-event--featured"));
   });
 
@@ -160,7 +147,7 @@ describe("renderDayView", () => {
         featured: true,
       }),
     ];
-    renderDayView(container, events, "UTC", targetDate, {});
+    renderDayView(container, place(events), "UTC", targetDate, {});
     const titles = [
       ...container.querySelectorAll(".already-day-event-title"),
     ].map((t) => t.textContent);
@@ -172,7 +159,7 @@ describe("renderDayView", () => {
     const events = [
       createTestEvent({ id: "day-click", start: "2026-04-15T10:00:00Z" }),
     ];
-    renderDayView(container, events, "UTC", targetDate, {});
+    renderDayView(container, place(events), "UTC", targetDate, {});
     container.querySelector(".already-day-event").click();
     assert.strictEqual(window.location.hash, "#event/day-click");
   });

@@ -20,10 +20,14 @@ after(() => {
 });
 
 let renderMonthView;
+let place;
 
 before(async () => {
   const mod = await import("../../src/views/month.js");
   renderMonthView = mod.renderMonthView;
+  const { placeByDay } = await import("../../src/views/placement.js");
+  const { eventDayKey } = await import("../../src/util/dates.js");
+  place = (events) => placeByDay(events, eventDayKey);
 });
 
 beforeEach(() => {
@@ -35,7 +39,7 @@ describe("renderMonthView", () => {
 
   it("renders month grid with day headers", () => {
     const container = document.createElement("div");
-    renderMonthView(container, [], "UTC", april2026, {});
+    renderMonthView(container, place([]), "UTC", april2026, {});
     assert.ok(container.querySelector(".already-month"));
     assert.strictEqual(
       container.querySelectorAll(".already-month-dayname").length,
@@ -45,7 +49,7 @@ describe("renderMonthView", () => {
 
   it("renders correct number of day cells for April 2026", () => {
     const container = document.createElement("div");
-    renderMonthView(container, [], "UTC", april2026, {});
+    renderMonthView(container, place([]), "UTC", april2026, {});
     const cells = container.querySelectorAll(
       ".already-month-cell:not(.already-month-cell--empty)",
     );
@@ -54,7 +58,7 @@ describe("renderMonthView", () => {
 
   it("renders navigation with month name", () => {
     const container = document.createElement("div");
-    renderMonthView(container, [], "UTC", april2026, {});
+    renderMonthView(container, place([]), "UTC", april2026, {});
     const title = container.querySelector(".already-month-title");
     // Asserted as the WHOLE string, not with includes(). The previous
     // substring assertions passed against "April 2026 2026", which shipped
@@ -65,7 +69,7 @@ describe("renderMonthView", () => {
 
   it("does not repeat the year in the month title", () => {
     const container = document.createElement("div");
-    renderMonthView(container, [], "UTC", april2026, {});
+    renderMonthView(container, place([]), "UTC", april2026, {});
     const title = container.querySelector(".already-month-title");
     const years = title.textContent.match(/2026/g) || [];
     assert.strictEqual(
@@ -80,7 +84,7 @@ describe("renderMonthView", () => {
     const events = [
       createTestEvent({ title: "My Event", start: "2026-04-15T10:00:00Z" }),
     ];
-    renderMonthView(container, events, "UTC", april2026, {});
+    renderMonthView(container, place(events), "UTC", april2026, {});
     const chips = container.querySelectorAll(".already-month-chip");
     assert.strictEqual(chips.length, 1);
     assert.strictEqual(chips[0].textContent, "My Event");
@@ -91,26 +95,9 @@ describe("renderMonthView", () => {
     const events = [
       createTestEvent({ id: "month-click", start: "2026-04-15T10:00:00Z" }),
     ];
-    renderMonthView(container, events, "UTC", april2026, {});
+    renderMonthView(container, place(events), "UTC", april2026, {});
     container.querySelector(".already-month-chip").click();
     assert.strictEqual(window.location.hash, "#event/month-click");
-  });
-
-  it("does not render hidden events", () => {
-    const container = document.createElement("div");
-    const events = [
-      createTestEvent({
-        id: "1",
-        start: "2026-04-15T10:00:00Z",
-        hidden: false,
-      }),
-      createTestEvent({ id: "2", start: "2026-04-15T14:00:00Z", hidden: true }),
-    ];
-    renderMonthView(container, events, "UTC", april2026, {});
-    assert.strictEqual(
-      container.querySelectorAll(".already-month-chip").length,
-      1,
-    );
   });
 
   it("adds --featured class to featured event chips", () => {
@@ -118,7 +105,7 @@ describe("renderMonthView", () => {
     const events = [
       createTestEvent({ start: "2026-04-15T10:00:00Z", featured: true }),
     ];
-    renderMonthView(container, events, "UTC", april2026, {});
+    renderMonthView(container, place(events), "UTC", april2026, {});
     assert.ok(container.querySelector(".already-month-chip--featured"));
   });
 
@@ -137,7 +124,7 @@ describe("renderMonthView", () => {
         featured: true,
       }),
     ];
-    renderMonthView(container, events, "UTC", april2026, {});
+    renderMonthView(container, place(events), "UTC", april2026, {});
     const chips = [...container.querySelectorAll(".already-month-chip")];
     assert.strictEqual(chips[0].textContent, "Star");
     assert.strictEqual(chips[1].textContent, "Normal");
@@ -157,7 +144,7 @@ describe("renderMonthView", () => {
     const events = [
       createTestEvent({ title: "Late Show", start: "2026-04-16T02:00:00Z" }),
     ];
-    renderMonthView(container, events, "UTC", april2026, {});
+    renderMonthView(container, place(events), "UTC", april2026, {});
     const cells = dayCells(container);
     assert.strictEqual(
       cells[14].querySelector(".already-month-chip")?.textContent,
@@ -183,7 +170,7 @@ describe("renderMonthView", () => {
         allDay: true,
       }),
     ];
-    renderMonthView(container, events, "UTC", april2026, {});
+    renderMonthView(container, place(events), "UTC", april2026, {});
     const cells = dayCells(container);
     assert.strictEqual(
       cells[15].querySelector(".already-month-chip")?.textContent,
@@ -200,7 +187,7 @@ describe("renderMonthView", () => {
       createTestEvent({ id: "3", start: "2026-04-15T12:00:00Z" }),
       createTestEvent({ id: "4", start: "2026-04-15T14:00:00Z" }),
     ];
-    renderMonthView(container, events, "UTC", april2026, {
+    renderMonthView(container, place(events), "UTC", april2026, {
       maxEventsPerDay: 3,
     });
     assert.ok(container.querySelector(".already-month-more"));

@@ -77,16 +77,6 @@ describe("renderListView", () => {
     assert.strictEqual(window.location.hash, "#event/nav-test");
   });
 
-  it("does not render hidden events", () => {
-    const container = document.createElement("div");
-    const events = [
-      createTestEvent({ id: "1", hidden: false }),
-      createTestEvent({ id: "2", hidden: true }),
-    ];
-    renderListView(container, events, "UTC", {});
-    assert.strictEqual(container.querySelectorAll(".already-card").length, 1);
-  });
-
   it("adds --featured class", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ featured: true })];

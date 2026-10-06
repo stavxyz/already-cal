@@ -1,23 +1,17 @@
 import { setDayView } from "../router.js";
 import { bindEventPopover, closeEventPopover } from "../ui/event-popover.js";
 import {
-  eventDayKey,
   formatDateShort,
   getWeekDates,
   isToday,
   toDateKey,
 } from "../util/dates.js";
-import {
-  bindEventClick,
-  createElement,
-  filterHidden,
-  sortFeatured,
-} from "./helpers.js";
+import { bindEventClick, createElement, sortFeatured } from "./helpers.js";
 
 /** Render the 7-column week view. */
 export function renderWeekView(
   container,
-  events,
+  placement,
   timezone,
   currentDate,
   config,
@@ -27,7 +21,8 @@ export function renderWeekView(
   const weekStartDay = config.weekStartDay || 0;
   const dates = getWeekDates(currentDate, weekStartDay);
 
-  events = filterHidden(events);
+  // Which day each item is on comes from the placement (views/placement.js).
+  const { byDay } = placement;
 
   const popoverRoot = container.closest?.(".already") || container;
   // The nav buttons re-render by calling this function directly, bypassing
@@ -52,7 +47,7 @@ export function renderWeekView(
   prevBtn.addEventListener("click", () => {
     const prev = new Date(currentDate);
     prev.setDate(prev.getDate() - 7);
-    renderWeekView(container, events, timezone, prev, config);
+    renderWeekView(container, placement, timezone, prev, config);
   });
   nav.appendChild(prevBtn);
 
@@ -67,7 +62,7 @@ export function renderWeekView(
   nextBtn.addEventListener("click", () => {
     const next = new Date(currentDate);
     next.setDate(next.getDate() + 7);
-    renderWeekView(container, events, timezone, next, config);
+    renderWeekView(container, placement, timezone, next, config);
   });
   nav.appendChild(nextBtn);
 
@@ -94,12 +89,10 @@ export function renderWeekView(
     header.appendChild(dayNumEl);
     col.appendChild(header);
 
-    // Columns are keyed by the VIEWER's day (all-day values stay absolute) so
-    // an event's column matches the viewer-local time on its card — see
-    // eventDayKey.
-    const dayEvents = sortFeatured(
-      events.filter((e) => eventDayKey(e.start) === toDateKey(date)),
-    );
+    // The placement files each item under the VIEWER's day (all-day values
+    // stay absolute), so an event's column matches the viewer-local time on
+    // its card.
+    const dayEvents = sortFeatured(byDay.get(toDateKey(date)) || []);
 
     for (const event of dayEvents) {
       const block = createElement(

@@ -37,7 +37,7 @@ const night = (parts, over = {}) =>
     parts,
   );
 const act = (over = {}) => ({
-  title: "John Cavender",
+  title: "The Night Owls",
   start: "2099-06-15T18:00:00Z",
   end: "2099-06-15T20:00:00Z",
   location: "The Grocer",
@@ -100,7 +100,7 @@ describe("detail view of a composite", () => {
     );
     assert.strictEqual(
       item.querySelector(".already-detail-part-title").textContent,
-      "John Cavender",
+      "The Night Owls",
     );
     assert.strictEqual(item.dataset.eventId, "part-1");
   });

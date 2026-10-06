@@ -61,7 +61,7 @@ const entries = () => [
   }),
   createTestEvent({
     id: "act",
-    title: "John Cavender",
+    title: "The Night Owls",
     description: "#already:tag:music",
     start: "2099-06-15T18:00:00Z",
     end: "2099-06-15T20:00:00Z",
@@ -112,7 +112,7 @@ describe("a composite in the widget", () => {
         [...c.querySelectorAll(".already-card__part")].map(
           (el) => el.textContent,
         ),
-        ["6:00 PM John Cavender"],
+        ["6:00 PM The Night Owls"],
       );
     });
   }
@@ -125,7 +125,7 @@ describe("a composite in the widget", () => {
     const c = await mount({}, plain);
     assert.deepStrictEqual(titles(c), [
       "Burger Night",
-      "John Cavender",
+      "The Night Owls",
       "Market Day",
     ]);
     assert.strictEqual(c.querySelector(".already-card--composite"), null);
@@ -237,7 +237,7 @@ const todays = () => [
   }),
   createTestEvent({
     id: "act",
-    title: "John Cavender",
+    title: "The Night Owls",
     start: today(11),
     end: today(12),
   }),
@@ -283,7 +283,7 @@ describe("no view shows a hidden entry or a part at the top level", () => {
     const c = await mount({ ...everyView, defaultView: "day" }, todays());
     assert.deepStrictEqual(textsOf(c, ".already-day-event-title"), [
       "Burger Night",
-      "John Cavender",
+      "The Night Owls",
       "Market Day",
     ]);
     assert.strictEqual(

@@ -12,7 +12,7 @@ const sameInstant = (a, b) => new Date(a).getTime() === new Date(b).getTime();
 
 /**
  * The list of a composite's parts in the detail view, or null for an event
- * without parts. Each part shows what is its own: its time and title, its
+ * without parts or whose parts have nothing of their own to show. Each part shows what is its own: its time and title, its
  * location when that differs from the parent's, and its entry body.
  *
  * A second listing has the parent's title, so the title is not repeated, and
@@ -42,6 +42,9 @@ export function renderDetailParts(
   const parentDay = eventDayKey(event.start);
   const needsDays = parts.some((part) => dayOf(part) !== parentDay);
   let lastDay = null;
+  // A day's heading waits for that day's first row, so a day whose parts all
+  // render no row gets no heading standing alone.
+  let pendingHeading = null;
 
   for (const part of parts) {
     const day = dayOf(part);
@@ -52,7 +55,7 @@ export function renderDetailParts(
         "aria-level": "3",
       });
       heading.textContent = formatDate(part.start, viewerTimeZone(), locale);
-      list.appendChild(heading);
+      pendingHeading = heading;
       lastDay = day;
     }
 
@@ -103,7 +106,14 @@ export function renderDetailParts(
     }
 
     renderEntryBody(item, part, config);
-    list.appendChild(item);
+    // A second listing that adds nothing of its own (same time, no body)
+    // has nothing to show, so it gets no row.
+    if (item.childNodes.length > 0) {
+      if (pendingHeading) list.appendChild(pendingHeading);
+      pendingHeading = null;
+      list.appendChild(item);
+    }
   }
+  if (list.querySelector(".already-detail-part") === null) return null;
   return list;
 }

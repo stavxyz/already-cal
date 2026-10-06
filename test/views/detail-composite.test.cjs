@@ -362,6 +362,52 @@ describe("detail view of a composite", () => {
     assert.strictEqual(c.querySelector(".already-detail-part--target"), null);
   });
 
+  // A second listing at the parent's exact hours with no body of its own.
+  const emptyListing = (over = {}) =>
+    act({
+      title: "Burger Night",
+      start: "2099-06-15T17:00:00Z",
+      end: "2099-06-15T21:00:00Z",
+      ...over,
+    });
+
+  it("renders no parts list when the one part has nothing of its own", () => {
+    const c = render(night([emptyListing()]));
+    assert.strictEqual(c.querySelector(".already-detail-parts"), null);
+  });
+
+  it("renders no row for a part with nothing of its own beside an ordinary part", () => {
+    const c = render(night([emptyListing(), act()]));
+    const rows = items(c);
+    assert.strictEqual(rows.length, 1);
+    assert.strictEqual(
+      rows[0].querySelector(".already-detail-part-title").textContent,
+      "The Night Owls",
+    );
+    for (const row of rows) assert.ok(row.childNodes.length > 0);
+  });
+
+  it("renders no day heading for a day whose only part has nothing of its own", () => {
+    const end = "2099-06-16T21:00:00Z";
+    const c = render(
+      night(
+        [
+          emptyListing({ end }),
+          act({
+            title: "Day Two",
+            start: "2099-06-16T18:00:00Z",
+            end: "2099-06-16T19:00:00Z",
+          }),
+        ],
+        { end },
+      ),
+    );
+    const headings = [...c.querySelectorAll(".already-detail-parts-day")].map(
+      (el) => el.textContent,
+    );
+    assert.deepStrictEqual(headings, ["Tuesday, June 16, 2099"]);
+  });
+
   it("does not treat a host's own parts field as a composite", () => {
     const c = render(
       createTestEvent({ id: "host", parts: [{ id: "tier", title: "VIP" }] }),

@@ -5867,6 +5867,7 @@ ${text}</tr>
     const parentDay = eventDayKey(event.start);
     const needsDays = parts.some((part) => dayOf(part) !== parentDay);
     let lastDay = null;
+    let pendingHeading = null;
     for (const part of parts) {
       const day = dayOf(part);
       if (needsDays && day !== lastDay) {
@@ -5875,7 +5876,7 @@ ${text}</tr>
           "aria-level": "3"
         });
         heading2.textContent = formatDate(part.start, viewerTimeZone(), locale);
-        list2.appendChild(heading2);
+        pendingHeading = heading2;
         lastDay = day;
       }
       const item = createElement("div", "already-detail-part");
@@ -5914,8 +5915,13 @@ ${text}</tr>
         item.appendChild(loc);
       }
       renderEntryBody(item, part, config);
-      list2.appendChild(item);
+      if (item.childNodes.length > 0) {
+        if (pendingHeading) list2.appendChild(pendingHeading);
+        pendingHeading = null;
+        list2.appendChild(item);
+      }
     }
+    if (list2.querySelector(".already-detail-part") === null) return null;
     return list2;
   }
 

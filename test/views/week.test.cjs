@@ -100,6 +100,26 @@ describe("renderWeekView", () => {
     assert.strictEqual(block.getAttribute("tabindex"), null);
   });
 
+  it("names a block whose title is blank", () => {
+    const container = document.createElement("div");
+    const events = [
+      createTestEvent({
+        id: "w-blank",
+        title: "  ",
+        start: "2026-04-15T10:00:00Z",
+      }),
+    ];
+    renderWeekView(container, place(events), "UTC", wednesday, {
+      i18n: { openEvent: "Abrir" },
+    });
+    const block = container.querySelector(".already-week-event");
+    assert.strictEqual(
+      block.querySelector(".already-sr-only").textContent,
+      "Abrir",
+    );
+    assert.strictEqual(block.textContent.trim(), "Abrir");
+  });
+
   it("renders an entry with no route as a plain block", () => {
     const container = document.createElement("div");
     const orphan = {

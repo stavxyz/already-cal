@@ -4670,6 +4670,14 @@ ${text}</tr>
     host.classList.add(LINK_HOST_CLASS);
     return link2;
   }
+  function fillEventAnchor(el, title, fallbackText) {
+    const text = String(title ?? "");
+    el.textContent = text;
+    if (text.trim() !== "") return;
+    const hidden = createElement("span", "already-sr-only");
+    hidden.textContent = fallbackText;
+    el.appendChild(hidden);
+  }
   function eventAnchor(href, className) {
     if (href == null) return createElement("div", className);
     return createElement("a", className, { href });
@@ -6434,7 +6442,7 @@ ${text}</tr>
           eventHref(event),
           "already-month-chip" + (event.featured ? " already-month-chip--featured" : "")
         );
-        chip.textContent = event.title;
+        fillEventAnchor(chip, event.title, eventLinkText(event, config));
         bindEventClick(chip, event, "month", config);
         bindEventPopover(chip, event, popoverRoot, config, "month", timezone);
         cell.appendChild(chip);
@@ -6566,7 +6574,7 @@ ${text}</tr>
           eventHref(event),
           "already-week-event" + (event.featured ? " already-week-event--featured" : "")
         );
-        block2.textContent = event.title;
+        fillEventAnchor(block2, event.title, eventLinkText(event, config));
         bindEventClick(block2, event, "week", config);
         bindEventPopover(block2, event, popoverRoot, config, "week", timezone);
         col.appendChild(block2);

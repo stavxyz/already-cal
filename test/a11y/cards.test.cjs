@@ -129,6 +129,12 @@ const events = () => [
     htmlLink: "https://cal.example/supper",
   }),
   burgerNight(),
+  createTestEvent({
+    id: "blank",
+    title: "   ",
+    start: "2099-06-15T09:00:00Z",
+    end: "2099-06-15T10:00:00Z",
+  }),
 ];
 const mount = () => {
   const c = document.createElement("div");

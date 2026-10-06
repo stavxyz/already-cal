@@ -1,5 +1,5 @@
 import { eventHref, setDayView } from "../router.js";
-import { eventAnchor } from "../ui/event-link.js";
+import { eventAnchor, fillEventAnchor } from "../ui/event-link.js";
 import { bindEventPopover, closeEventPopover } from "../ui/event-popover.js";
 import {
   getDayNames,
@@ -9,7 +9,12 @@ import {
   isToday,
   toDateKey,
 } from "../util/dates.js";
-import { bindEventClick, createElement, sortFeatured } from "./helpers.js";
+import {
+  bindEventClick,
+  createElement,
+  eventLinkText,
+  sortFeatured,
+} from "./helpers.js";
 
 /** Render the month calendar grid view. */
 export function renderMonthView(
@@ -152,7 +157,7 @@ export function renderMonthView(
         "already-month-chip" +
           (event.featured ? " already-month-chip--featured" : ""),
       );
-      chip.textContent = event.title;
+      fillEventAnchor(chip, event.title, eventLinkText(event, config));
       // No stopPropagation: the click has to reach the root's interaction
       // listener, which posts the cross-origin engagement signal. The cell
       // handler below bails on chip clicks by target instead.

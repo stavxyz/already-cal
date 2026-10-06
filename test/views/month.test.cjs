@@ -116,6 +116,26 @@ describe("renderMonthView", () => {
     assert.strictEqual(chip.getAttribute("tabindex"), null);
   });
 
+  it("names a chip whose title is blank", () => {
+    const container = document.createElement("div");
+    const events = [
+      createTestEvent({
+        id: "m-blank",
+        title: "  ",
+        start: "2026-04-15T10:00:00Z",
+      }),
+    ];
+    renderMonthView(container, place(events), "UTC", april2026, {
+      i18n: { openEvent: "Abrir" },
+    });
+    const chip = container.querySelector(".already-month-chip");
+    assert.strictEqual(
+      chip.querySelector(".already-sr-only").textContent,
+      "Abrir",
+    );
+    assert.strictEqual(chip.textContent.trim(), "Abrir");
+  });
+
   it("renders an entry with no route as a plain chip", () => {
     const container = document.createElement("div");
     const orphan = {

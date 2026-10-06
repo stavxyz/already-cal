@@ -4653,6 +4653,11 @@ ${text}</tr>
   // src/ui/event-link.js
   var LINK_HOST_CLASS = "already-link-host";
   var CONTROL_SELECTOR = 'a, button, input, select, textarea, [tabindex], [role="button"], [role="link"]';
+  function hiddenName(text) {
+    const span = createElement("span", "already-sr-only");
+    span.textContent = text;
+    return span;
+  }
   function linkTitle(host, href, { titleSelector, linkClass, fallbackText }) {
     if (href == null) return null;
     const link2 = createElement("a", `already-event-link ${linkClass}`, { href });
@@ -4663,9 +4668,7 @@ ${text}</tr>
       while (title.firstChild) link2.appendChild(title.firstChild);
       title.appendChild(link2);
     } else {
-      const text = createElement("span", "already-sr-only");
-      text.textContent = fallbackText;
-      link2.appendChild(text);
+      link2.appendChild(hiddenName(fallbackText));
       link2.classList.add("already-event-link--hidden");
       host.prepend(link2);
     }
@@ -4675,10 +4678,8 @@ ${text}</tr>
   function fillEventAnchor(el, title, fallbackText) {
     const text = String(title ?? "");
     el.textContent = text;
-    if (text.trim() !== "" || el.tagName !== "A") return;
-    const hidden = createElement("span", "already-sr-only");
-    hidden.textContent = fallbackText;
-    el.appendChild(hidden);
+    if (text.trim() !== "" || !el.hasAttribute("href")) return;
+    el.appendChild(hiddenName(fallbackText));
   }
   function eventAnchor(href, className) {
     if (href == null) return createElement("div", className);

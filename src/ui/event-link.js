@@ -12,6 +12,13 @@ const LINK_HOST_CLASS = "already-link-host";
 const CONTROL_SELECTOR =
   'a, button, input, select, textarea, [tabindex], [role="button"], [role="link"]';
 
+/** The visually hidden text that names a link with nothing visible to name it. */
+function hiddenName(text) {
+  const span = createElement("span", "already-sr-only");
+  span.textContent = text;
+  return span;
+}
+
 /**
  * Put an event's link in place inside `host`. The first element matching
  * `titleSelector` gives up its child nodes to a new anchor appended to it,
@@ -48,9 +55,7 @@ export function linkTitle(
     while (title.firstChild) link.appendChild(title.firstChild);
     title.appendChild(link);
   } else {
-    const text = createElement("span", "already-sr-only");
-    text.textContent = fallbackText;
-    link.appendChild(text);
+    link.appendChild(hiddenName(fallbackText));
     // Out of the host's flow: an in-flow anchor with no visible content is
     // still a flex or grid item, and a day row's gap would push its time
     // column aside. The anchor covers the host itself, so the focus-ring
@@ -68,16 +73,15 @@ export function linkTitle(
  * Give an element that is itself the event's link (a chip, a block) its
  * text: the title, or, when the title is blank, a visually hidden span with
  * the fallback text, so the link still has an accessible name and the
- * element still looks as it did. A plain element (eventAnchor's div for an
- * entry with no route) is not a control, so it gets no name to announce.
+ * element still looks as it did. A plain element with no href
+ * (eventAnchor's div for an entry with no route) is not a control, so it
+ * gets no name to announce.
  */
 export function fillEventAnchor(el, title, fallbackText) {
   const text = String(title ?? "");
   el.textContent = text;
-  if (text.trim() !== "" || el.tagName !== "A") return;
-  const hidden = createElement("span", "already-sr-only");
-  hidden.textContent = fallbackText;
-  el.appendChild(hidden);
+  if (text.trim() !== "" || !el.hasAttribute("href")) return;
+  el.appendChild(hiddenName(fallbackText));
 }
 
 /**

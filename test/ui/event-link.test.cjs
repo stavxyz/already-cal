@@ -174,4 +174,16 @@ describe("fillEventAnchor", () => {
     assert.strictEqual(el.querySelector(".already-sr-only"), null);
     assert.strictEqual(el.textContent, "");
   });
+
+  it("names any element that carries an href, whatever its tag reads as", () => {
+    // The same test bindEventClick applies: an href is what makes the
+    // element a link.
+    const el = document.createElement("div");
+    el.setAttribute("href", "#event/e1");
+    fillEventAnchor(el, "", "Open event");
+    assert.strictEqual(
+      el.querySelector(".already-sr-only").textContent,
+      "Open event",
+    );
+  });
 });

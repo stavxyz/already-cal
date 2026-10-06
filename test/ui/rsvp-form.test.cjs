@@ -690,3 +690,50 @@ describe("focus follows the form", () => {
     assert.strictEqual(document.activeElement, done);
   });
 });
+
+describe("decorateRsvp run twice", () => {
+  function card(footer) {
+    const el = document.createElement("div");
+    el.className = "already-card";
+    const body = document.createElement("div");
+    body.className = "already-card__body";
+    if (footer) body.innerHTML = footer;
+    el.appendChild(body);
+    return el;
+  }
+  it("adds one button and one row to a card without an action footer", () => {
+    const el = card();
+    decorateRsvp(el, flagged(), cfg());
+    decorateRsvp(el, flagged(), cfg());
+    assert.strictEqual(el.querySelectorAll(".already-rsvp__open").length, 1);
+    assert.strictEqual(el.querySelectorAll(".already-card__rsvp").length, 1);
+  });
+  it("adds one button beside an existing action", () => {
+    const el = card(
+      '<div class="already-card__footer"><a class="already-card__action" href="#">Details</a></div>',
+    );
+    decorateRsvp(el, flagged(), cfg());
+    decorateRsvp(el, flagged(), cfg());
+    assert.strictEqual(el.querySelectorAll(".already-rsvp__open").length, 1);
+    assert.strictEqual(el.querySelectorAll(".already-card__footer").length, 1);
+  });
+  it("adds nothing while the form is open or after it is done", async () => {
+    const el = card();
+    document.body.appendChild(el);
+    decorateRsvp(el, flagged(), cfg());
+    el.querySelector(".already-rsvp__open").click();
+    decorateRsvp(el, flagged(), cfg());
+    assert.strictEqual(el.querySelectorAll(".already-rsvp__open").length, 0);
+    assert.strictEqual(el.querySelectorAll(".already-card__rsvp").length, 1);
+    const form = el.querySelector("form");
+    form.querySelector('input[name="name"]').value = "Larry";
+    form.querySelector('input[name="email"]').value = "larry@example.com";
+    form.dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    await flush();
+    decorateRsvp(el, flagged(), cfg());
+    assert.strictEqual(el.querySelectorAll(".already-rsvp__open").length, 0);
+    assert.strictEqual(el.querySelectorAll(".already-card__rsvp").length, 1);
+  });
+});

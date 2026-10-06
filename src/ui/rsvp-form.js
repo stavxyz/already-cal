@@ -243,6 +243,13 @@ export function appendRsvpControl(container, event, config) {
  */
 export function decorateRsvp(card, event, config) {
   if (card.classList.contains("already-card--error")) return;
+  // Safe to run twice: an existing control, in any of its states, wins.
+  if (
+    card.querySelector(
+      ".already-rsvp__open, .already-rsvp, .already-rsvp__done",
+    )
+  )
+    return;
   if (!offersRsvp(event, config)) return;
   const actionFooter = [...card.querySelectorAll(".already-card__footer")].find(
     (footer) => footer.querySelector(".already-card__action"),

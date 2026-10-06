@@ -110,6 +110,20 @@ describe("renderDetailView", () => {
     assert.strictEqual(locLink.target, "_blank");
   });
 
+  it("fills every {location} placeholder in a host's link template", () => {
+    const container = document.createElement("div");
+    renderDetailView(container, baseEvent, "UTC", () => {}, {
+      locationLinkTemplate:
+        "https://maps.example/?q={location}&label={location}",
+    });
+    assert.strictEqual(
+      container
+        .querySelector(".already-detail-location a")
+        .getAttribute("href"),
+      "https://maps.example/?q=Central%20Park&label=Central%20Park",
+    );
+  });
+
   it("omits location when empty", () => {
     const container = document.createElement("div");
     const event = { ...baseEvent, location: "" };

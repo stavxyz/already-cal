@@ -1169,6 +1169,7 @@
   }
   .already-month-chip {
     background: #333;
+    --already-chip-background: #333;
     --already-primary-text: #fff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -1447,6 +1448,7 @@ button.already-card__action {
 }
 .already :is(.already-month-chip, .already-week-event):is(:link, :visited, :hover, :active) {
   color: var(--already-primary-text);
+  background-color: var(--already-chip-background, var(--already-primary));
   text-decoration: none;
   background-image: none;
   border-bottom: 0;

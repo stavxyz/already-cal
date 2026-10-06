@@ -331,11 +331,23 @@ describe("the stylesheet holds its own in a host page", () => {
     );
     for (const decl of [
       "background-image: none;",
+      "background-color: var(--already-chip-background, var(--already-primary));",
       "border-bottom: 0;",
       "box-shadow: none;",
     ]) {
       assert.ok(chips.includes(decl), `chip and block: ${decl}`);
     }
+  });
+
+  it("prints a chip dark through the variable the link-state rule reads", () => {
+    // A plain `background` in the print rule would lose to the link-state
+    // rule's specificity for a chip that is a link.
+    const print = css.slice(css.indexOf("@media print"));
+    const flatPrint = print.replace(/\s+/g, " ");
+    const start = flatPrint.indexOf(".already-month-chip {");
+    assert.notStrictEqual(start, -1);
+    const block = flatPrint.slice(start, flatPrint.indexOf("}", start));
+    assert.ok(block.includes("--already-chip-background: #333;"));
   });
 
   it("lifts a control without deciding how it is positioned", () => {

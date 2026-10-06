@@ -617,7 +617,7 @@ cal.destroy();
 ## Accessibility
 
 - Every event opens through a real link: the card's title, a day row's title, a month chip, or a week block. Cards are not buttons, so the RSVP button, the Details link, and any link in a description inside them are ordinary controls, and a middle click opens the event in a new tab
-- Event titles, chips, and blocks are anchors; the widget's own rules keep their colour, underline, background, and borders against a host page's descendant anchor rules (`.page a`, `a:visited`)
+- Event titles, chips, and blocks are anchors; the widget's own rules keep their colour, underline, background, bottom border, and box shadow against a host page's descendant anchor rules (`.page a`, `a:visited`)
 - The RSVP button is named after its event ("RSVP for Burger Night")
 - Keyboard navigation: Enter on an event link opens it; Enter/Space on buttons; arrow keys in image galleries and lightbox
 - An axe-core check runs over every layout and view in the test suite

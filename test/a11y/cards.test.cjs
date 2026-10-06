@@ -57,7 +57,14 @@ const RULES = [
   "aria-valid-attr-value",
 ];
 
-async function expectClean(container, label) {
+// `present` is a selector the view must have rendered. axe finds nothing
+// wrong with an empty container, so without it a view that rendered nothing
+// (a wrong date, a zone slip) would pass.
+async function expectClean(container, label, present) {
+  assert.ok(
+    container.querySelector(present),
+    `${label}: nothing matches ${present}, so there is nothing to check`,
+  );
   const result = await axe.run(container, {
     runOnly: { type: "rule", values: RULES },
   });
@@ -130,15 +137,19 @@ describe("accessibility of event cards", () => {
     it(`${name}: grid cards, with the RSVP form closed and open`, async () => {
       const c = mount();
       renderGridView(c, events(), "UTC", cfg(name));
-      await expectClean(c, `${name} grid`);
+      await expectClean(c, `${name} grid`, "a.already-card__link");
       c.querySelector(".already-rsvp__open").click();
-      await expectClean(c, `${name} grid with the form open`);
+      await expectClean(
+        c,
+        `${name} grid with the form open`,
+        "form.already-rsvp",
+      );
     });
 
     it(`${name}: list cards`, async () => {
       const c = mount();
       renderListView(c, events(), "UTC", cfg(name));
-      await expectClean(c, `${name} list`);
+      await expectClean(c, `${name} list`, "a.already-card__link");
     });
   }
 
@@ -148,7 +159,11 @@ describe("accessibility of event cards", () => {
     const anchor = document.createElement("div");
     root.appendChild(anchor);
     openEventPopover(anchor, events()[2], root, cfg("badge"), "month", "UTC");
-    await expectClean(root, "popover");
+    await expectClean(
+      root,
+      "popover",
+      ".already-event-popover a.already-card__link",
+    );
   });
 });
 
@@ -158,23 +173,23 @@ describe("accessibility of the calendar views", () => {
   it("month view", async () => {
     const c = mount();
     renderMonthView(c, placed(), "UTC", new Date(2099, 5, 15), cfg("clean"));
-    await expectClean(c, "month");
+    await expectClean(c, "month", "a.already-month-chip");
   });
 
   it("week view", async () => {
     const c = mount();
     renderWeekView(c, placed(), "UTC", new Date(2099, 5, 15), cfg("clean"));
-    await expectClean(c, "week");
+    await expectClean(c, "week", "a.already-week-event");
   });
 
   it("day view with a composite's part rows", async () => {
     const c = mount();
     renderDayView(c, placed(), "UTC", new Date(2099, 5, 16), cfg("clean"));
-    assert.ok(
-      c.querySelector(".already-day-event--part"),
-      "the fixture puts a part on this day",
+    await expectClean(
+      c,
+      "day",
+      ".already-day-event--part a.already-day-event__link",
     );
-    await expectClean(c, "day");
   });
 
   it("the detail view of a composite with RSVP on a part", async () => {
@@ -182,6 +197,6 @@ describe("accessibility of the calendar views", () => {
     renderDetailView(c, events()[2], "UTC", () => {}, cfg("clean"), {
       focusPartId: "act-1",
     });
-    await expectClean(c, "detail");
+    await expectClean(c, "detail", "button.already-rsvp__open");
   });
 });

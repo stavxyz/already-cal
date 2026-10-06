@@ -73,8 +73,9 @@ describe("renderDetailView", () => {
     );
     assert.strictEqual(link.getAttribute("target"), "_blank");
     assert.strictEqual(link.getAttribute("rel"), "noopener");
-    assert.strictEqual(link.firstChild.nodeType, 3);
-    assert.strictEqual(link.firstChild.textContent, "Austin City Limits");
+    const text = link.firstChild;
+    assert.strictEqual(text.className, "already-detail-title-text");
+    assert.strictEqual(text.textContent, "Austin City Limits");
     const mark = link.querySelector(".already-detail-title-mark");
     assert.ok(mark);
     assert.strictEqual(mark.getAttribute("aria-hidden"), "true");

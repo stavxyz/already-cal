@@ -156,12 +156,15 @@ export function renderDetailView(
       target: "_blank",
       rel: "noopener",
     });
-    link.textContent = event.title;
+    const text = createElement("span", "already-detail-title-text");
+    text.textContent = event.title;
+    link.appendChild(text);
     // The mark is decorative; the link's accessible name stays the title.
     const mark = createElement("span", "already-detail-title-mark", {
       "aria-hidden": "true",
     });
-    // The word joiner keeps the arrow from wrapping onto a line of its own.
+    // The word joiner keeps the arrow from wrapping onto a line of its own;
+    // it only works while the mark is inline, in the same run as the text.
     mark.textContent = "\u2060\u2197";
     link.appendChild(mark);
     titleEl.appendChild(link);

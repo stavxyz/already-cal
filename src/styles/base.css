@@ -974,9 +974,7 @@
 
 .already-detail-title-link {
   color: inherit;
-  text-decoration: underline;
-  text-decoration-thickness: from-font;
-  text-underline-offset: 0.15em;
+  text-decoration: none;
   transition: color 0.15s;
 }
 
@@ -985,12 +983,16 @@
   color: var(--already-primary);
 }
 
+.already-detail-title-text {
+  text-decoration: underline;
+  text-decoration-thickness: from-font;
+  text-underline-offset: 0.15em;
+}
+
 .already-detail-title-mark {
-  display: inline-block;
   font-size: 0.65em;
   margin-left: 0.3em;
   opacity: 0.7;
-  text-decoration: none;
 }
 
 .already-detail-meta {

@@ -96,6 +96,8 @@ describe("a card opens through its title link", () => {
     const card = c.querySelector(".already-card");
     assert.strictEqual(card.querySelector("a.already-event-link"), null);
     assert.ok(!card.classList.contains("already-link-host"));
+    assert.strictEqual(card.getAttribute("role"), null);
+    assert.strictEqual(card.getAttribute("tabindex"), null);
     card.click();
     assert.strictEqual(window.location.hash, "");
   });

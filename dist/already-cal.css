@@ -1335,8 +1335,38 @@ button.already-card__action {
   font-size: var(--already-font-size-sm);
   color: var(--already-text);
 }
+.already-card__footer--rsvp {
+  flex-wrap: wrap;
+}
+.already-card__footer--rsvp > .already-rsvp {
+  flex: 1 0 100%;
+}
+.already-card__footer + .already-card__rsvp {
+  border-top: none;
+  padding-top: 0;
+}
 .already-detail-rsvp {
   margin-top: 1rem;
+}
+.already-detail-rsvp .already-rsvp__open {
+  font-size: var(--already-font-size-base);
+  font-weight: 600;
+  color: var(--already-primary-text);
+  background: var(--already-primary);
+  border: none;
+  border-radius: var(--already-radius-sm);
+  padding: 0.55rem 1.25rem;
+  cursor: pointer;
+}
+.already-detail-rsvp .already-rsvp__open:hover {
+  opacity: 0.85;
+}
+.already-detail-rsvp .already-rsvp__open:focus-visible {
+  outline: 2px solid var(--already-text);
+  outline-offset: 2px;
+}
+.already-detail-rsvp .already-rsvp {
+  max-width: 24rem;
 }
 
 /* src/layouts/base.css */

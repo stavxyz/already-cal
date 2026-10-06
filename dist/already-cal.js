@@ -5350,6 +5350,13 @@ ${text}</tr>
     const invalidText = i18n.rsvpInvalid || "Check your name, email and party size.";
     const startedText = i18n.rsvpStarted || "This event has already started.";
     const failedText = i18n.rsvpFailed || "Could not save your RSVP. Try again.";
+    const closedText = i18n.rsvpClosed || "This event is not taking RSVPs.";
+    const rejectionText = /* @__PURE__ */ new Map([
+      ["event_started", startedText],
+      ["invalid_field", invalidText],
+      ["rsvp_unavailable", closedText],
+      ["event_not_found", closedText]
+    ]);
     const form = createElement("form", "already-rsvp", { novalidate: "" });
     const name = field(form, "name", i18n.rsvpName || "Name", {
       type: "text",
@@ -5439,7 +5446,7 @@ ${text}</tr>
         pending = false;
         submit.disabled = false;
         cancel.disabled = false;
-        showError(err && err.code === "event_started" ? startedText : failedText);
+        showError(rejectionText.get(err?.code) || failedText);
       }
     });
     return { form, focus: () => name.focus() };
@@ -5467,9 +5474,21 @@ ${text}</tr>
     return button;
   }
   function decorateRsvp(card, event, config) {
-    const footer = card.querySelector(".already-card__footer");
-    if (!footer) return;
-    appendRsvpControl(footer, event, config);
+    if (!offersRsvp(event, config)) return;
+    const actionFooter = [...card.querySelectorAll(".already-card__footer")].find(
+      (footer) => footer.querySelector(".already-card__action")
+    );
+    if (actionFooter) {
+      actionFooter.classList.add("already-card__footer--rsvp");
+      appendRsvpControl(actionFooter, event, config);
+      return;
+    }
+    const row = createElement(
+      "div",
+      "already-card__footer already-card__footer--rsvp already-card__rsvp"
+    );
+    appendRsvpControl(row, event, config);
+    (card.querySelector(".already-card__body") || card).appendChild(row);
   }
 
   // src/views/lightbox.js
@@ -6128,6 +6147,7 @@ ${text}</tr>
     rsvpDone: "You're on the list: {count} going",
     rsvpInvalid: "Check your name, email and party size.",
     rsvpStarted: "This event has already started.",
+    rsvpClosed: "This event is not taking RSVPs.",
     rsvpFailed: "Could not save your RSVP. Try again."
   };
   function registerLayout(name, renderFn) {
@@ -6510,7 +6530,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.12.0" : "unknown"
+        true ? "0.12.1" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

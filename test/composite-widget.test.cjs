@@ -223,6 +223,121 @@ describe("a composite in the widget", () => {
     pill.click();
     assert.deepStrictEqual(titles(c), ["Burger Night"]);
   });
+
+  it("offers no past toggle when the only past entry is hidden", async () => {
+    const hours = (n) => new Date(Date.now() + n * HOUR).toISOString();
+    const c = await mount({}, [
+      createTestEvent({
+        id: "later",
+        title: "Later",
+        start: hours(24),
+        end: hours(26),
+      }),
+      createTestEvent({
+        id: "gone",
+        title: "Gone",
+        description: "#already:hidden",
+        start: hours(-2),
+        end: hours(-1),
+      }),
+    ]);
+    assert.strictEqual(
+      c.querySelector(".already-toggle-container").children.length,
+      0,
+    );
+    assert.deepStrictEqual(titles(c), ["Later"]);
+  });
+});
+
+describe("the data hooks run before composition", () => {
+  const night = () =>
+    createTestEvent({
+      id: "night",
+      title: "Burger Night",
+      description: "Burgers.",
+      start: "2099-06-15T17:00:00Z",
+      end: "2099-06-15T21:00:00Z",
+    });
+  const act = () => entries()[1];
+
+  it("composes an entry that eventTransform marks as a composite", async () => {
+    const c = await mount(
+      {
+        eventTransform: (e) =>
+          e.id === "night" ? { ...e, composite: true } : e,
+      },
+      [night(), act()],
+    );
+    assert.deepStrictEqual(titles(c), ["Burger Night"]);
+    assert.strictEqual(c.querySelectorAll(".already-card__part").length, 1);
+  });
+
+  it("shows the part at the top level when eventFilter drops its parent", async () => {
+    const c = await mount({ eventFilter: (e) => e.id !== "night" });
+    assert.deepStrictEqual(titles(c), ["The Night Owls", "Market Day"]);
+    assert.strictEqual(c.querySelectorAll(".already-card__part").length, 0);
+  });
+
+  it("shows an entry at the top level when eventTransform marks it standalone", async () => {
+    const c = await mount({
+      eventTransform: (e) => (e.id === "act" ? { ...e, standalone: true } : e),
+    });
+    assert.deepStrictEqual(titles(c), [
+      "Burger Night",
+      "The Night Owls",
+      "Market Day",
+    ]);
+    assert.strictEqual(c.querySelectorAll(".already-card__part").length, 0);
+  });
+});
+
+describe("recompose on retry and re-render on setConfig", () => {
+  it("composes the data a retry loads", async () => {
+    const realFetch = globalThis.fetch;
+    let calls = 0;
+    globalThis.fetch = async () => {
+      calls += 1;
+      if (calls === 1) return { ok: false, status: 500 };
+      return {
+        ok: true,
+        json: async () => ({
+          events: entries(),
+          calendar: { name: "Test Cal", description: "", timezone: "UTC" },
+        }),
+      };
+    };
+    try {
+      const container = document.createElement("div");
+      document.body.appendChild(container);
+      const instance = init({
+        el: container,
+        fetchUrl: "https://x.example/events.json",
+        defaultView: "list",
+        views: ["grid", "list", "month"],
+      });
+      mounted.push({ instance, container });
+      await tick();
+      const retry = container.querySelector(".already-error-retry");
+      assert.ok(retry);
+      retry.click();
+      await tick();
+      assert.deepStrictEqual(titles(container), ["Burger Night", "Market Day"]);
+      assert.strictEqual(
+        container.querySelectorAll(".already-card__part").length,
+        1,
+      );
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  it("keeps the composition after setConfig re-renders", async () => {
+    const c = await mount();
+    mounted.at(-1).instance.setConfig({ pageSize: 5 });
+    await tick();
+    assert.deepStrictEqual(titles(c), ["Burger Night", "Market Day"]);
+    assert.strictEqual(c.querySelectorAll(".already-card__part").length, 1);
+  });
 });
 
 // The same four entries on today's date. Views that show them are mounted

@@ -406,10 +406,24 @@ describe("tag filter with a composite", () => {
   const tagged = () =>
     createComposite({ tags: [tag("food")] }, [{ tags: [tag("music")] }]);
 
-  it("offers a pill for a part's tag, counted once per composite", () => {
+  it("offers a pill for a part's tag", () => {
     const filter = createTagFilter(() => {}, config);
     const container = document.createElement("div");
     filter.render(container, [tagged()]);
+    assert.deepStrictEqual(texts(container, ".already-tag-pill"), [
+      "food",
+      "music",
+    ]);
+  });
+
+  it("counts a tag carried by both the parent and a part once", () => {
+    const filter = createTagFilter(() => {}, config);
+    const container = document.createElement("div");
+    const events = [
+      createTestEvent({ id: "dinner", tags: [tag("food")] }),
+      createComposite({ tags: [tag("music")] }, [{ tags: [tag("music")] }]),
+    ];
+    filter.render(container, events);
     assert.deepStrictEqual(texts(container, ".already-tag-pill"), [
       "food",
       "music",

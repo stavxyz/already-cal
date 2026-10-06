@@ -5,7 +5,7 @@ process.env.TZ = "Pacific/Auckland";
 
 const { describe, it, before, after } = require("node:test");
 const assert = require("node:assert");
-const { createTestEvent } = require("./helpers.cjs");
+const { createTestEvent, createComposite } = require("./helpers.cjs");
 
 let composeEvents, groupParts, selectVisible, partsOf;
 
@@ -552,5 +552,24 @@ describe("inputs the rules do not spell out", () => {
       ZONE,
     );
     assert.deepStrictEqual(ids(out), ["p"]);
+  });
+});
+
+describe("createComposite", () => {
+  it("builds the shape composeEvents returns", () => {
+    const start = "2099-06-15T18:00:00Z";
+    const end = "2099-06-15T20:00:00Z";
+    const built = createComposite({ start, end }, [{ start, end }]);
+    const { events } = compose([
+      createTestEvent({
+        id: "parent",
+        title: "Parent",
+        composite: true,
+        start,
+        end,
+      }),
+      createTestEvent({ id: "part-1", title: "Part 1", start, end }),
+    ]);
+    assert.deepStrictEqual(built, events[0]);
   });
 });

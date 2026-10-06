@@ -64,7 +64,8 @@ export function renderDetailParts(
       item.classList.add("already-detail-part--target");
     }
 
-    const showTitle = !isSecondListing(part, event);
+    // An untitled part has nothing to print, and is not a second listing.
+    const showTitle = Boolean(part.title) && !isSecondListing(part, event);
     const showTime = !(
       sameInstant(part.start, event.start) && sameInstant(part.end, event.end)
     );

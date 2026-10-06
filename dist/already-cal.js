@@ -5880,7 +5880,7 @@ ${text}</tr>
       if (focusPartId != null && part.id === focusPartId) {
         item.classList.add("already-detail-part--target");
       }
-      const showTitle = !isSecondListing(part, event);
+      const showTitle = Boolean(part.title) && !isSecondListing(part, event);
       const showTime = !(sameInstant(part.start, event.start) && sameInstant(part.end, event.end));
       if (showTime || showTitle) {
         const head = createElement("div", "already-detail-part-head");

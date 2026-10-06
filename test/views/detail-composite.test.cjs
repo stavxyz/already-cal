@@ -111,6 +111,14 @@ describe("detail view of a composite", () => {
     assert.ok(item.querySelector(".already-detail-part-time"));
   });
 
+  it("renders no title element for an untitled part", () => {
+    const item = items(render(night([act({ title: "" })])))[0];
+    assert.ok(item.querySelector(".already-detail-part-time"));
+    assert.strictEqual(item.querySelector(".already-detail-part-title"), null);
+    const head = item.querySelector(".already-detail-part-head").textContent;
+    assert.strictEqual(head, head.trim());
+  });
+
   it("omits the time when it equals the parent's", () => {
     const item = items(
       render(

@@ -306,6 +306,11 @@ describe("recompose on retry and re-render on setConfig", () => {
         }),
       };
     };
+    // The failed load is reported through console.error. Capture it, so the
+    // test output stays clean and the report itself is asserted.
+    const realError = console.error;
+    const reported = [];
+    console.error = (...args) => reported.push(args.join(" "));
     try {
       const container = document.createElement("div");
       document.body.appendChild(container);
@@ -317,6 +322,9 @@ describe("recompose on retry and re-render on setConfig", () => {
       });
       mounted.push({ instance, container });
       await tick();
+      console.error = realError;
+      assert.strictEqual(reported.length, 1);
+      assert.ok(reported[0].includes("500"));
       const retry = container.querySelector(".already-error-retry");
       assert.ok(retry);
       retry.click();
@@ -327,6 +335,7 @@ describe("recompose on retry and re-render on setConfig", () => {
         1,
       );
     } finally {
+      console.error = realError;
       globalThis.fetch = realFetch;
     }
   });

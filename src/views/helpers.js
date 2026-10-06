@@ -1,4 +1,5 @@
 import { setEventDetail } from "../router.js";
+import { RSVP_OPEN_CLASS } from "../ui/rsvp-state.js";
 import { getEventDateParts, isPast } from "../util/dates.js";
 
 /** Create a DOM element with optional class name and attributes. */
@@ -21,7 +22,11 @@ export function bindEventClick(
   config,
   { stopPropagation = false } = {},
 ) {
+  // A card with an open RSVP form stays put: navigating would discard what
+  // the visitor typed.
+  const rsvpOpen = () => el.classList.contains(RSVP_OPEN_CLASS);
   function handleClick(e) {
+    if (rsvpOpen()) return;
     if (stopPropagation) e.stopPropagation();
     if (config.onEventClick) {
       const result = config.onEventClick(event, viewName);
@@ -32,6 +37,7 @@ export function bindEventClick(
   el.addEventListener("click", handleClick);
   el.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") {
+      if (rsvpOpen()) return;
       e.preventDefault();
       if (stopPropagation) e.stopPropagation();
       handleClick(e);

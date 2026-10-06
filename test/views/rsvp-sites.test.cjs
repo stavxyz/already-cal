@@ -247,3 +247,33 @@ describe("RSVP form in a decorator-created row", () => {
     assert.strictEqual(card.querySelectorAll(".already-rsvp__done").length, 1);
   });
 });
+
+describe("a card with an open RSVP form", () => {
+  it("ignores clicks and Enter on the card, and navigates again after Cancel", () => {
+    const event = createTestEvent({ id: "e-open", rsvp: true });
+    const card = gridCard("clean", event);
+    card.querySelector(".already-rsvp__open").click();
+    card.querySelector(".already-card__title").click();
+    assert.strictEqual(window.location.hash, "");
+    card.dispatchEvent(
+      new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+    assert.strictEqual(window.location.hash, "");
+    card.querySelector(".already-rsvp__cancel").click();
+    card.querySelector(".already-card__title").click();
+    assert.strictEqual(window.location.hash, "#event/e-open");
+  });
+
+  it("leaves Badge's Details link working as a link", () => {
+    const card = gridCard("badge", flagged());
+    card.querySelector(".already-rsvp__open").click();
+    const details = card.querySelector("a.already-card__action");
+    const click = new window.MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+    });
+    details.dispatchEvent(click);
+    assert.strictEqual(click.defaultPrevented, false);
+    assert.strictEqual(window.location.hash, "");
+  });
+});

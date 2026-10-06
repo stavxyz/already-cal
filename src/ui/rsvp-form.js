@@ -1,5 +1,6 @@
 import { parseEventDate } from "../util/dates.js";
 import { createElement } from "../views/helpers.js";
+import { RSVP_OPEN_CLASS } from "./rsvp-state.js";
 
 const NAME_MAX = 80;
 const EMAIL_MAX = 254;
@@ -201,7 +202,7 @@ export function appendRsvpControl(container, event, config) {
     if (!card) return;
     const body = card.querySelector(".already-card__body");
     const cramped = open && !!body && body.clientWidth < CRAMPED_BODY_PX;
-    card.classList.toggle("already-card--rsvp-open", open);
+    card.classList.toggle(RSVP_OPEN_CLASS, open);
     card.classList.toggle("already-card--rsvp-cramped", cramped);
   };
   button.addEventListener("click", (e) => {

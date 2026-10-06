@@ -1536,9 +1536,6 @@ button.already-card__action {
   font-weight: 600;
   color: var(--already-text);
 }
-.already-card__parts-more {
-  opacity: 0.8;
-}
 .already-card__badge {
   text-align: center;
   line-height: 1.1;

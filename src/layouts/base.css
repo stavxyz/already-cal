@@ -166,10 +166,6 @@
   color: var(--already-text);
 }
 
-.already-card__parts-more {
-  opacity: 0.8;
-}
-
 /* Date badge (badge overlay, compact inline) */
 .already-card__badge {
   text-align: center;

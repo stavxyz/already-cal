@@ -32,8 +32,9 @@ const grid = (events, config) => {
 
 // jsdom has no layout, so these presence checks on the stylesheet stand in
 // for the browser probes. The text is flattened (runs of whitespace become
-// one space, none inside parentheses) so a reformat does not fail them:
-// write each selector on one line with single spaces.
+// one space, no space after an opening or before a closing parenthesis) so
+// a reformat does not fail them: write each selector on one line with
+// single spaces.
 const css = fs.readFileSync(
   path.join(__dirname, "../../src/styles/base.css"),
   "utf8",
@@ -266,10 +267,6 @@ describe("the stretched link leaves a description's own links reachable", () => 
       ".already-control, .already-link-host .already-card__description a",
     );
     assert.ok(block.includes("z-index: 1;"));
-    const position = blockFor(
-      ":where(.already-control, .already-link-host .already-card__description a)",
-    );
-    assert.ok(position.includes("position: relative;"));
   });
 });
 

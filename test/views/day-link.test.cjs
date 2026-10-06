@@ -124,4 +124,16 @@ describe("a day row opens through its title link", () => {
     row.click();
     assert.strictEqual(window.location.hash, "");
   });
+
+  it("gives a row with a blank title a hidden link named by openEvent", () => {
+    const c = render([at("10", { id: "d1", title: "  " })], {
+      i18n: { openEvent: "Abrir" },
+    });
+    const row = c.querySelector(".already-day-event");
+    const link = row.querySelector("a.already-event-link--hidden");
+    assert.ok(link);
+    assert.strictEqual(row.firstElementChild, link);
+    assert.strictEqual(link.textContent, "Abrir");
+    assert.strictEqual(row.querySelector(".already-day-event-title a"), null);
+  });
 });

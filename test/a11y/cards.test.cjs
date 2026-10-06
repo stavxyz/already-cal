@@ -59,14 +59,17 @@ const RULES = [
   "duplicate-id-active",
 ];
 
-// `present` is a selector the view must have rendered. axe finds nothing
-// wrong with an empty container, so without it a view that rendered nothing
-// (a wrong date, a zone slip) would pass.
+// `present` is a selector, or several, the view must have rendered. axe
+// finds nothing wrong with an empty container, so without it a view that
+// rendered nothing (a wrong date, a zone slip) would pass.
 async function expectClean(container, label, present) {
-  assert.ok(
-    container.querySelector(present),
-    `${label}: nothing matches ${present}, so there is nothing to check`,
-  );
+  const required = [].concat(present);
+  for (const selector of required) {
+    assert.ok(
+      container.querySelector(selector),
+      `${label}: nothing matches ${selector}, so there is nothing to check`,
+    );
+  }
   const result = await axe.run(container, {
     runOnly: { type: "rule", values: RULES },
   });
@@ -133,8 +136,8 @@ const events = () => [
   createTestEvent({
     id: "blank",
     title: "   ",
-    start: "2099-06-15T09:00:00Z",
-    end: "2099-06-15T10:00:00Z",
+    start: "2099-06-16T09:00:00Z",
+    end: "2099-06-16T10:00:00Z",
   }),
 ];
 const mount = () => {
@@ -148,7 +151,10 @@ describe("accessibility of event cards", () => {
     it(`${name}: grid cards, with the RSVP form closed and open`, async () => {
       const c = mount();
       renderGridView(c, events(), "UTC", cfg(name));
-      await expectClean(c, `${name} grid`, "a.already-card__link");
+      await expectClean(c, `${name} grid`, [
+        "a.already-card__link",
+        "a.already-event-link--hidden",
+      ]);
       c.querySelector(".already-rsvp__open").click();
       await expectClean(
         c,
@@ -160,7 +166,10 @@ describe("accessibility of event cards", () => {
     it(`${name}: list cards`, async () => {
       const c = mount();
       renderListView(c, events(), "UTC", cfg(name));
-      await expectClean(c, `${name} list`, "a.already-card__link");
+      await expectClean(c, `${name} list`, [
+        "a.already-card__link",
+        "a.already-event-link--hidden",
+      ]);
     });
   }
 
@@ -184,23 +193,28 @@ describe("accessibility of the calendar views", () => {
   it("month view", async () => {
     const c = mount();
     renderMonthView(c, placed(), "UTC", new Date(2099, 5, 15), cfg("clean"));
-    await expectClean(c, "month", "a.already-month-chip");
+    await expectClean(c, "month", [
+      "a.already-month-chip",
+      ".already-month-chip .already-sr-only",
+    ]);
   });
 
   it("week view", async () => {
     const c = mount();
     renderWeekView(c, placed(), "UTC", new Date(2099, 5, 15), cfg("clean"));
-    await expectClean(c, "week", "a.already-week-event");
+    await expectClean(c, "week", [
+      "a.already-week-event",
+      ".already-week-event .already-sr-only",
+    ]);
   });
 
   it("day view with a composite's part rows", async () => {
     const c = mount();
     renderDayView(c, placed(), "UTC", new Date(2099, 5, 16), cfg("clean"));
-    await expectClean(
-      c,
-      "day",
+    await expectClean(c, "day", [
       ".already-day-event--part a.already-day-event__link",
-    );
+      ".already-day-event a.already-event-link--hidden",
+    ]);
   });
 
   it("the detail view of a composite with RSVP on a part", async () => {

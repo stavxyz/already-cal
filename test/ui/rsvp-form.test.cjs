@@ -165,6 +165,16 @@ describe("appendRsvpControl", () => {
       ).hasAttribute("aria-label"),
       false,
     );
+    const padded = document.createElement("div");
+    document.body.appendChild(padded);
+    assert.strictEqual(
+      appendRsvpControl(
+        padded,
+        flagged({ title: "  Burger Night  " }),
+        cfg(),
+      ).getAttribute("aria-label"),
+      "RSVP for Burger Night",
+    );
   });
 
   it("keeps the visible text in the name when only rsvp is translated", () => {
@@ -188,6 +198,14 @@ describe("appendRsvpControl", () => {
       cfg({ i18n: { ...i18n, rsvp: "RSVP", rsvpFor: "rsvp para {title}" } }),
     );
     assert.strictEqual(cased.getAttribute("aria-label"), "rsvp para Noche");
+    const padded = document.createElement("div");
+    document.body.appendChild(padded);
+    const trimmed = appendRsvpControl(
+      padded,
+      flagged({ title: "  Noche  " }),
+      cfg({ i18n: { ...i18n, rsvp: "Reservar" } }),
+    );
+    assert.strictEqual(trimmed.getAttribute("aria-label"), "Reservar: Noche");
   });
 
   it("inserts a title that holds a replacement pattern as it is", () => {

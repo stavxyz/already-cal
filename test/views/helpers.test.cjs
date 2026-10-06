@@ -141,7 +141,8 @@ describe("bindEventClick on a link", () => {
     bindEventClick(el, { id: "evt-1" }, "grid", {
       onEventClick: () => (asked = true),
     });
-    // An unprevented click queues jsdom's own navigation, which could land during a later test.
+    // An unprevented click queues jsdom's own navigation, which could land
+    // during a later test.
     const decisions = [];
     el.addEventListener("click", (e) => {
       decisions.push(e.defaultPrevented);

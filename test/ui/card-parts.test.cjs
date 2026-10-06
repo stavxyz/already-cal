@@ -196,6 +196,17 @@ describe("what a line says", () => {
     assert.deepStrictEqual(lines(c), ["6:00 PM · 2:00 PM EDT Act 1"]);
   });
 
+  it("gives an untitled part its time and no empty title element", () => {
+    const c = grid([night([act(1, 18, { title: "" })])], cfg("clean"));
+    const parts = c.querySelectorAll(".already-card__part");
+    assert.strictEqual(parts.length, 1);
+    assert.strictEqual(
+      parts[0].querySelector(".already-card__part-title"),
+      null,
+    );
+    assert.strictEqual(parts[0].textContent, "6:00 PM");
+  });
+
   it("takes the overflow text from i18n.moreParts", () => {
     const c = grid(
       [night([act(1, 17), act(2, 18), act(3, 19), act(4, 20), act(5, 20)])],

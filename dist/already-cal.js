@@ -4592,9 +4592,12 @@ ${text}</tr>
       const line = createElement("div", "already-card__part");
       const when = createElement("span", "already-card__part-time");
       when.textContent = partWhen(part, event, format);
-      const title = createElement("span", "already-card__part-title");
-      title.textContent = part.title;
-      line.append(when, " ", title);
+      line.appendChild(when);
+      if (part.title) {
+        const title = createElement("span", "already-card__part-title");
+        title.textContent = part.title;
+        line.append(" ", title);
+      }
       block2.appendChild(line);
     }
     if (listed.length > MAX_PARTS) {

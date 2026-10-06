@@ -108,6 +108,7 @@ Already.init({
   headerDescription: null,             // override calendar description from data
   headerIcon: null,                    // URL to icon/logo
   subscribeUrl: null,                  // auto-generated from calendarId if not set
+  shareUrl: null,                      // canonical page URL to share; falls back to current page URL
 
   // --- RSVP (see "RSVP" below) ---
   rsvpAllEvents: false,                // every event takes RSVPs; otherwise only events flagged #already:rsvp
@@ -165,6 +166,14 @@ Already.init({
     rsvpStarted: 'This event has already started.',
     rsvpClosed: 'This event is not taking RSVPs.',
     rsvpFailed: 'Could not save your RSVP. Try again.',
+    moreParts: '+{count} more',
+    compositeParts: 'Schedule',
+    subscribeApple: 'Apple Calendar',
+    subscribeGoogle: 'Google Calendar',
+    subscribeOutlook: 'Outlook',
+    subscribeCopy: 'Copy iCal link',
+    share: 'Share',
+    copied: '📋 Copied!',
   },
 
   // --- Responsive ---
@@ -222,6 +231,8 @@ Already.init({
 });
 ```
 
+When `subscribeUrl` (or the URL derived from `google.calendarId`) is a webcal or https feed, the header's Subscribe button opens a menu with Apple Calendar, Google Calendar, Outlook and Copy iCal link, in that order. The four labels come from the `i18n` keys `subscribeApple`, `subscribeGoogle`, `subscribeOutlook` and `subscribeCopy`. For any other `subscribeUrl` the header shows a single link instead.
+
 For detailed descriptions of every option, callback signatures, custom renderer examples, and data hook behavior, see the **[full configuration reference](docs/configuration.md)**.
 
 The most common options are also available as HTML `data-` attributes for zero-JS setup. See the [data attributes table](#data-attributes) below. Some options (callbacks, custom renderers, sticky, pageSize, and others) require JavaScript initialization — see the [full data attributes reference](docs/configuration.md#data-attributes) for details.
@@ -235,6 +246,7 @@ The most common options are also available as HTML `data-` attributes for zero-J
 | `data-calendar-id` | `google.calendarId` |
 | `data-max-results` | `google.maxResults` |
 | `data-fetch-url` | `fetchUrl` |
+| `data-share-url` | `shareUrl` |
 | `data-default-view` | `defaultView` |
 | `data-views` | `views` (comma-separated: `"month,week,list"`) |
 | `data-locale` | `locale` |
@@ -296,9 +308,9 @@ Grid view uses the theme's orientation (default: vertical). List view always ren
 
 ### CSS Custom Properties
 
-Palettes set these properties. Override any of them in the theme config:
+Palettes set these properties, except `error`, which has a built-in fallback of `#c0392b` and is used only when you set it. Override any of them in the theme config:
 
-`primary`, `primaryText`, `background`, `surface`, `text`, `textSecondary`, `border`, `fontFamily`, `fontWeightNormal`, `fontWeightBold`, `fontSizeSm`, `fontSizeBase`, `fontSizeLg`, `radius`, `radiusSm`, `shadow`, `shadowHover`, `highlight`, `spacing`
+`primary`, `primaryText`, `background`, `surface`, `text`, `textSecondary`, `border`, `borderControl`, `borderGrid`, `error`, `fontFamily`, `fontWeightNormal`, `fontWeightBold`, `fontSizeSm`, `fontSizeBase`, `fontSizeLg`, `radius`, `radiusSm`, `shadow`, `shadowHover`, `highlight`, `spacing`
 
 ### Customizing Beyond Built-in Palettes
 

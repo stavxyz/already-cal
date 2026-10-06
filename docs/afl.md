@@ -53,6 +53,9 @@ Directives let you control already-cal behavior using `#already:<type>:<value>` 
 #already:hidden                    → hides from views
 #already:image-shuffle             → a stable image per occurrence, chosen from the list by a hash of the occurrence id
 #already:composite                 → shows the entries inside this one's hours as its parts
+#already:standalone                → keeps this entry out of every composite
+#already:part-of                   → lets a composite on another calendar take this entry
+#already:rsvp                      → the event takes RSVPs when the host configured onRsvp
 #already:website:https://example.com/fest → the detail title links to this page
 ```
 

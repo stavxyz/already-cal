@@ -202,6 +202,18 @@ The widget tells calendars apart by the optional `_sourceKey` field on each even
 - Sets `event.rsvp = true` on the event object; the widget shows an RSVP button for the event when the host configured `onRsvp` (see the README's RSVP section)
 - `#already:rsvp:<url>` is not this flag: with a value it is a URL-valued tag and renders a link button labeled "Rsvp"
 
+## Website
+
+```
+#already:website:https://example.com/festival
+```
+
+- The detail view's title links to this page, opening in a new tab. Cards and the other views do not link.
+- Without the directive, the title links to the first plain `http(s)` URL left in the description after platform links, images, and attachments are extracted, with trailing punctuation trimmed. The URL stays in the description text.
+- With neither, the title is plain text.
+- A pre-set `website` on the event takes priority over both.
+- The directive is still a URL-valued tag, so it also renders as a "Website" link button like any other (see [URL-valued tags](#url-valued-tags)).
+
 ## Deduplication
 
 Directives and URL-extracted links use the same canonical ID system. If a directive and a URL in the same description resolve to the same canonical ID, only one entry is produced.

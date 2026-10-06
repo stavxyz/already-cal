@@ -415,6 +415,36 @@ describe("inputs the rules do not spell out", () => {
     assert.deepStrictEqual(ids(events), ["p", "blank", "bad"]);
   });
 
+  it("reads a timed value with no UTC offset as a wall clock, the same for every viewer", () => {
+    // `new Date` would read "2099-06-15T23:00:00" in the viewer's zone, which
+    // this file pins to Auckland: 11:00 UTC, outside the parent's hours.
+    const { events } = compose([
+      parent("p", "2099-06-15T22:00:00Z", "2099-06-16T02:00:00Z"),
+      ev("x", "2099-06-15T23:00:00", "2099-06-15T23:30:00"),
+    ]);
+    assert.deepStrictEqual(partIds(events[0]), ["x"]);
+  });
+
+  it("composes entries that are all wall-clock times", () => {
+    const { events } = compose([
+      parent("p", "2099-06-15T17:00:00", "2099-06-15T21:00:00"),
+      ev("in", "2099-06-15T18:00:00", "2099-06-15T19:00:00"),
+      ev("out", "2099-06-15T21:00:00", "2099-06-15T22:00:00"),
+    ]);
+    assert.deepStrictEqual(ids(events), ["p", "out"]);
+    assert.deepStrictEqual(partIds(events[0]), ["in"]);
+  });
+
+  it("takes a wall-clock part of an all-day parent by the date it names", () => {
+    // Read in Auckland and then formatted in Chicago, 2 AM on the 9th would
+    // land on the 8th.
+    const { events } = compose([
+      parent("day", "2099-07-09", "2099-07-10"),
+      ev("early", "2099-07-09T02:00:00", "2099-07-09T03:00:00"),
+    ]);
+    assert.deepStrictEqual(partIds(events[0]), ["early"]);
+  });
+
   it("groups the same way through groupParts alone", () => {
     const out = groupParts(
       [

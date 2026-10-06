@@ -18,14 +18,27 @@ function isDateOnly(value) {
   return typeof value === "string" && DATE_ONLY_RE.test(value);
 }
 
-const sourceOf = (entry) => entry._sourceKey ?? null;
+// An ISO date-time with no UTC offset, such as "2026-06-15T19:00:00".
+const FLOATING_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/;
+
+const isFloating = (value) =>
+  typeof value === "string" && FLOATING_RE.test(value);
 
 /**
- * A start as a zone-free number, for the membership tie-break only. A
- * date-only value counts as its UTC midnight. Membership must come out the
- * same for every viewer, so nothing that decides it may use startOrder.
+ * A start or end as a number that is the same for every viewer. A value with
+ * a UTC offset is its instant, and a date-only value is its UTC midnight. A
+ * timed value with NO offset is a wall-clock time, which `new Date` would
+ * read in the viewer's zone, so it is read as that wall clock in UTC. Every
+ * comparison that decides membership goes through here.
  */
-const startInstant = (entry) => new Date(entry.start).getTime();
+function zoneFreeTime(value) {
+  return new Date(isFloating(value) ? `${value}Z` : value).getTime();
+}
+
+const sourceOf = (entry) => entry._sourceKey ?? null;
+
+/** A start as a zone-free number, for the membership tie-break only. */
+const startInstant = (entry) => zoneFreeTime(entry.start);
 
 /**
  * A parent's half-open window, or null when it has none. A missing,
@@ -40,11 +53,11 @@ function windowOf(parent) {
       allDay: true,
       from: parent.start,
       to: parent.end,
-      length: new Date(parent.end).getTime() - new Date(parent.start).getTime(),
+      length: zoneFreeTime(parent.end) - zoneFreeTime(parent.start),
     };
   }
-  const from = new Date(parent.start).getTime();
-  const to = new Date(parent.end).getTime();
+  const from = zoneFreeTime(parent.start);
+  const to = zoneFreeTime(parent.end);
   if (Number.isNaN(from) || Number.isNaN(to) || to <= from) return null;
   return { allDay: false, from, to, length: to - from };
 }
@@ -52,7 +65,7 @@ function windowOf(parent) {
 /** Where an entry starts, worked out once per entry. */
 function positionOf(entry) {
   if (isDateOnly(entry.start)) return { date: entry.start, at: Number.NaN };
-  return { date: null, at: new Date(entry.start).getTime() };
+  return { date: null, at: zoneFreeTime(entry.start) };
 }
 
 /**
@@ -63,6 +76,9 @@ function positionOf(entry) {
  * strings.
  */
 function dateInOwnZone(entry, calendarZone) {
+  // A wall-clock value already names its date. Formatting it in a zone
+  // would first read it in the viewer's.
+  if (isFloating(entry.start)) return entry.start.slice(0, 10);
   return dayKeyInZone(entry.start, entry._sourceTimeZone, calendarZone);
 }
 

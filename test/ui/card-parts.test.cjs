@@ -339,6 +339,28 @@ describe("the three card sites", () => {
     assert.strictEqual(more(popover).textContent, "+1 more");
   });
 
+  it("labels part lines against the calendar's zone at all three sites", () => {
+    // The viewer is in UTC and the calendar is in Chicago, so a site that
+    // dropped the zone would print a UTC suffix where the Chicago one belongs.
+    const zone = "America/Chicago";
+    const one = () => night([act(1, 18)]);
+    const g = document.createElement("div");
+    renderGridView(g, [one()], zone, cfg("clean"));
+    const l = document.createElement("div");
+    renderListView(l, [one()], zone, cfg("clean"));
+    const root = document.createElement("div");
+    root.className = "already";
+    document.body.appendChild(root);
+    const anchor = document.createElement("div");
+    root.appendChild(anchor);
+    openEventPopover(anchor, one(), root, cfg("clean"), "month", zone);
+    const popover = root.querySelector(".already-event-popover");
+    const expected = ["6:00 PM · 1:00 PM CDT Act 1"];
+    assert.deepStrictEqual(lines(g), expected);
+    assert.deepStrictEqual(lines(l), expected);
+    assert.deepStrictEqual(lines(popover), expected);
+  });
+
   it("puts the RSVP row after the parts on a card", () => {
     const config = cfg("clean", { onRsvp: async () => ({ partySize: 1 }) });
     const c = grid([night([act(1, 18)], { rsvp: true })], config);

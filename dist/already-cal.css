@@ -795,6 +795,25 @@
   margin: 0 0 0.75rem;
   color: var(--already-text);
 }
+.already-detail-title-link {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.already-detail-title-link:hover,
+.already-detail-title-link:focus-visible {
+  color: var(--already-primary);
+}
+.already-detail-title-text {
+  text-decoration: underline;
+  text-decoration-thickness: from-font;
+  text-underline-offset: 0.15em;
+}
+.already-detail-title-mark {
+  font-size: 0.65em;
+  margin-left: 0.3em;
+  opacity: 0.7;
+}
 .already-detail-meta {
   margin-bottom: 1.25rem;
   display: flex;

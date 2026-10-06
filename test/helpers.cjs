@@ -10,6 +10,7 @@ function createTestEvent(overrides = {}) {
     image: null,
     images: [],
     links: [],
+    website: null,
     attachments: [],
     tags: [],
     featured: false,

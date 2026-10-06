@@ -3748,6 +3748,39 @@ ${text}</tr>
     }
     return data;
   }
+  function isHttpString(value) {
+    return typeof value === "string" && value.startsWith("http");
+  }
+  var TRAILING_PUNCTUATION = ".,;:!?'*";
+  var IMG_SRC_PREFIX_RE = /\bsrc\s*=\s*["']?$/i;
+  var HOSTED_URL_RE = /^https?:\/\/[^/\s?#:]/i;
+  function countChar(text, ch) {
+    let n = 0;
+    for (let i = text.indexOf(ch); i !== -1; i = text.indexOf(ch, i + 1)) n++;
+    return n;
+  }
+  function trimProse(url) {
+    let unbalanced = countChar(url, ")") - countChar(url, "(");
+    let end = url.length;
+    while (end > 0) {
+      const ch = url[end - 1];
+      if (TRAILING_PUNCTUATION.includes(ch)) end--;
+      else if (ch === ")" && unbalanced > 0) {
+        end--;
+        unbalanced--;
+      } else break;
+    }
+    return url.slice(0, end);
+  }
+  function firstPlainUrl(text) {
+    for (const match of text.matchAll(URL_PATTERN)) {
+      const before = text.slice(Math.max(0, match.index - 16), match.index);
+      if (IMG_SRC_PREFIX_RE.test(before)) continue;
+      const url = trimProse(match[0]);
+      return HOSTED_URL_RE.test(url) ? url : null;
+    }
+    return null;
+  }
   function enrichEvent(event, config) {
     let description = event.description || "";
     let image = event.image || null;
@@ -3832,6 +3865,13 @@ ${text}</tr>
       ...tagTokens.map((t) => ({ key: t.metadata.key, value: t.metadata.value }))
     ];
     const descriptionFormat = event.descriptionFormat || detectFormat(description);
+    const directiveWebsite = tagTokens.find(
+      (t) => t.metadata.key === "website" && isHttpString(t.metadata.value)
+    );
+    const existingWebsiteTag = existingTags.find(
+      (t) => t.key === "website" && isHttpString(t.value)
+    );
+    const website = isHttpString(event.website) ? event.website : existingWebsiteTag ? existingWebsiteTag.value : directiveWebsite ? directiveWebsite.metadata.value : firstPlainUrl(description);
     const { _imageAttachments, ...rest } = event;
     return {
       ...rest,
@@ -3840,6 +3880,7 @@ ${text}</tr>
       image,
       images,
       links,
+      website,
       attachments,
       tags,
       ...flags,
@@ -6140,7 +6181,24 @@ ${text}</tr>
     }
     const content = createElement("div", "already-detail-content");
     const titleEl = createElement("h2", "already-detail-title");
-    titleEl.textContent = event.title;
+    if (event.website) {
+      const link2 = createElement("a", "already-detail-title-link", {
+        href: event.website,
+        target: "_blank",
+        rel: "noopener"
+      });
+      const text = createElement("span", "already-detail-title-text");
+      text.textContent = event.title;
+      link2.appendChild(text);
+      const mark = createElement("span", "already-detail-title-mark", {
+        "aria-hidden": "true"
+      });
+      mark.textContent = "\u2060\u2197";
+      link2.appendChild(mark);
+      titleEl.appendChild(link2);
+    } else {
+      titleEl.textContent = event.title;
+    }
     content.appendChild(titleEl);
     const meta = createElement("div", "already-detail-meta");
     const dateStr = formatEventWhen(event, {
@@ -6970,7 +7028,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.13.0" : "unknown"
+        true ? "0.13.1" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

@@ -19,6 +19,7 @@ After enrichment, each event has these fields:
 | `image` | `string \| null` | First image URL, or `null` |
 | `images` | `string[]` | All image URLs (from description, directives, and attachments) |
 | `links` | `object[]` | Extracted platform links: `[{ label, url }]` |
+| `website` | `string \| null` | The event's own web page: a pre-set value (counted only when it is a string starting with `http`), the `website` directive, or the first plain URL in the description |
 | `attachments` | `object[]` | File attachments: `[{ label, url, type }]` |
 | `tags` | `object[]` | Tags from directives: `[{ key, value }]`. Pre-set tags pass through unchanged. A tag renders as a pill only if it is a non-blank string, or has a string key and a non-blank string or numeric value that is not a URL. |
 | `featured` | `boolean` | `true` if `#already:featured` directive is present |
@@ -91,7 +92,9 @@ All extraction stages decode `&amp;` to `&` before pattern matching, since HTML-
 
 4. **File attachments** — URLs ending in file extensions (`.pdf`, `.doc`, `.docx`, `.xls`, `.xlsx`, `.csv`, `.ppt`, `.pptx`, `.zip`, `.txt`) are extracted and removed. Each becomes a `{ label, url, type }` entry in `event.attachments`.
 
-Pre-set values on events take priority over extraction. If an event already has a non-empty `images` array, image extraction from the description is skipped. The same applies to `links`. This allows pre-loaded data to override what would be extracted from descriptions.
+5. **Website**: `event.website` is the first of: a pre-set `website` starting with `http`, the `#already:website:` directive, or the first plain `http(s)` URL left in the description after the steps above, with trailing punctuation trimmed. It stays `null` when none exists. The URL is not removed from the description.
+
+Pre-set values on events take priority over extraction. If an event already has a non-empty `images` array, image extraction from the description is skipped. The same applies to `links` and `website`. This allows pre-loaded data to override what would be extracted from descriptions.
 
 Tokens are deduplicated — a directive and a URL pointing to the same resource produce one entry (e.g., `#already:instagram:foo` and `https://instagram.com/foo` are merged).
 

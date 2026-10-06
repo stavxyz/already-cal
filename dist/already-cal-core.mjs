@@ -3217,6 +3217,39 @@ function stableIndex(key, length) {
 }
 
 // src/data.js
+function isHttpString(value) {
+  return typeof value === "string" && value.startsWith("http");
+}
+var TRAILING_PUNCTUATION = ".,;:!?'*";
+var IMG_SRC_PREFIX_RE = /\bsrc\s*=\s*["']?$/i;
+var HOSTED_URL_RE = /^https?:\/\/[^/\s?#:]/i;
+function countChar(text, ch) {
+  let n = 0;
+  for (let i = text.indexOf(ch); i !== -1; i = text.indexOf(ch, i + 1)) n++;
+  return n;
+}
+function trimProse(url) {
+  let unbalanced = countChar(url, ")") - countChar(url, "(");
+  let end = url.length;
+  while (end > 0) {
+    const ch = url[end - 1];
+    if (TRAILING_PUNCTUATION.includes(ch)) end--;
+    else if (ch === ")" && unbalanced > 0) {
+      end--;
+      unbalanced--;
+    } else break;
+  }
+  return url.slice(0, end);
+}
+function firstPlainUrl(text) {
+  for (const match of text.matchAll(URL_PATTERN)) {
+    const before = text.slice(Math.max(0, match.index - 16), match.index);
+    if (IMG_SRC_PREFIX_RE.test(before)) continue;
+    const url = trimProse(match[0]);
+    return HOSTED_URL_RE.test(url) ? url : null;
+  }
+  return null;
+}
 function enrichEvent(event, config) {
   let description = event.description || "";
   let image = event.image || null;
@@ -3301,6 +3334,13 @@ function enrichEvent(event, config) {
     ...tagTokens.map((t) => ({ key: t.metadata.key, value: t.metadata.value }))
   ];
   const descriptionFormat = event.descriptionFormat || detectFormat(description);
+  const directiveWebsite = tagTokens.find(
+    (t) => t.metadata.key === "website" && isHttpString(t.metadata.value)
+  );
+  const existingWebsiteTag = existingTags.find(
+    (t) => t.key === "website" && isHttpString(t.value)
+  );
+  const website = isHttpString(event.website) ? event.website : existingWebsiteTag ? existingWebsiteTag.value : directiveWebsite ? directiveWebsite.metadata.value : firstPlainUrl(description);
   const { _imageAttachments, ...rest } = event;
   return {
     ...rest,
@@ -3309,6 +3349,7 @@ function enrichEvent(event, config) {
     image,
     images,
     links,
+    website,
     attachments,
     tags,
     ...flags,

@@ -430,8 +430,11 @@ var Already = (() => {
     }
     return { events: topLevel, lookup: (id) => index.get(id) ?? null };
   }
+  var SET_ASIDE_MARKS = /[\u0300-\u036f\u20d0-\u20ff\ufe00-\ufe0f\u{e0100}-\u{e01ef}]/gu;
+  var KEPT = /[\p{L}\p{N}]\p{M}*/gu;
   function titleKey(title) {
-    return String(title ?? "").normalize("NFKD").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+    const text = String(title ?? "").normalize("NFKD").toLowerCase();
+    return (text.replace(SET_ASIDE_MARKS, "").match(KEPT) ?? []).join("");
   }
   function isSecondListing(part, parent) {
     const key = titleKey(part?.title);

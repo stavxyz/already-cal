@@ -58,6 +58,33 @@ describe("isSecondListing", () => {
       true,
     );
   });
+
+  it("sets aside accents, emoji variation selectors, keycaps, and character width", () => {
+    const pairs = [
+      ["Caf\u00e9 Night", "cafe night"],
+      ["Summer Party \u2600\ufe0f", "summer party"],
+      ["Stage 1\ufe0f\u20e3", "stage 1"],
+      // Halfwidth and fullwidth katakana for the same word.
+      ["\uff76\uff9e\uff77", "\u30ac\u30ad"],
+    ];
+    for (const [a, b] of pairs) {
+      assert.strictEqual(isSecondListing(titled(a), titled(b)), true, a);
+    }
+  });
+
+  it("tells titles apart by a vowel or voicing mark in scripts that use them", () => {
+    const pairs = [
+      // Thai: two different vowel marks on the same consonants.
+      ["\u0e01\u0e34\u0e19", "\u0e01\u0e38\u0e19"],
+      // Devanagari: two different vowel signs on the same consonants.
+      ["\u0915\u093f\u0928", "\u0915\u0941\u0928"],
+      // Japanese hiragana: a voicing mark makes a different syllable.
+      ["\u304b\u304d", "\u304c\u304d"],
+    ];
+    for (const [a, b] of pairs) {
+      assert.strictEqual(isSecondListing(titled(a), titled(b)), false, a);
+    }
+  });
 });
 
 describe("accessors on an event without parts", () => {

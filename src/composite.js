@@ -227,11 +227,23 @@ export function composeEvents(events, options = {}) {
   return { events: topLevel, lookup: (id) => index.get(id) ?? null };
 }
 
+// Marks that are set aside when two titles are compared: the accents that
+// Latin, Greek, and Cyrillic letters decompose into, the marks that enclose
+// a symbol (a keycap), and variation selectors (the invisible mark after
+// many emoji).
+const SET_ASIDE_MARKS =
+  /[\u0300-\u036f\u20d0-\u20ff\ufe00-\ufe0f\u{e0100}-\u{e01ef}]/gu;
+
+// A letter or digit together with the marks that belong to it. In Thai,
+// Devanagari, Japanese, and many other scripts a mark changes the word, so
+// it stays in the key.
+const KEPT = /[\p{L}\p{N}]\p{M}*/gu;
+
 function titleKey(title) {
-  return String(title ?? "")
+  const text = String(title ?? "")
     .normalize("NFKD")
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]/gu, "");
+    .toLowerCase();
+  return (text.replace(SET_ASIDE_MARKS, "").match(KEPT) ?? []).join("");
 }
 
 /**

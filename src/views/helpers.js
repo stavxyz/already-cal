@@ -17,6 +17,15 @@ export function createElement(tag, className, attrs) {
 }
 
 /**
+ * The text of an event link that has no visible title to carry it (a layout
+ * that rendered no title element). One resolver for every host, so the rule
+ * cannot drift between cards and rows.
+ */
+export function eventLinkText(entry, config) {
+  return entry?.title || config?.i18n?.openEvent || "Open event";
+}
+
+/**
  * Category tag pills for an event as a whole. A composite shows its parts'
  * tags with its own, so this reads through the composite accessor. Returns
  * null when there is nothing to show. The one owner of pill markup: the badge

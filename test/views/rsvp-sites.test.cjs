@@ -249,18 +249,14 @@ describe("RSVP form in a decorator-created row", () => {
 });
 
 describe("a card with an open RSVP form", () => {
-  it("ignores clicks and Enter on the card, and navigates again after Cancel", () => {
+  it("ignores the link while the form is open, and navigates again after Cancel", () => {
     const event = createTestEvent({ id: "e-open", rsvp: true });
     const card = gridCard("clean", event);
     card.querySelector(".already-rsvp__open").click();
-    card.querySelector(".already-card__title").click();
-    assert.strictEqual(window.location.hash, "");
-    card.dispatchEvent(
-      new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
-    );
+    card.querySelector(".already-card__link").click();
     assert.strictEqual(window.location.hash, "");
     card.querySelector(".already-rsvp__cancel").click();
-    card.querySelector(".already-card__title").click();
+    card.querySelector(".already-card__link").click();
     assert.strictEqual(window.location.hash, "#event/e-open");
   });
 

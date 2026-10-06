@@ -1760,3 +1760,66 @@ button.already-card__action {
   font-size: 0.8125rem;
   color: var(--already-text-secondary);
 }
+
+/* ===== Event links ===== */
+/* The host of an event link (a card, a day row) is the box the link
+   stretches over, so it is the positioned ancestor of the link's pseudo
+   element. Hosts are marked by ui/event-link.js, not by their own class, so
+   a new host needs no rule here. */
+.already-link-host {
+  position: relative;
+}
+
+.already-event-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.already-event-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+/* The ring belongs on the host, which is what the visitor sees as the
+   clickable thing, not on the title text. Browsers without :has() fall back
+   to the ring on the link text, which is still visible. */
+.already-event-link:focus-visible {
+  outline: none;
+}
+
+/* A host that needs the ring inset (a row flush in a bordered list) sets
+   --already-link-ring-offset in its own rules; this block names no host. */
+.already-link-host:has(.already-event-link:focus-visible) {
+  outline: 2px solid var(--already-primary);
+  outline-offset: var(--already-link-ring-offset, 2px);
+}
+
+@supports not selector(:has(a)) {
+  .already-event-link:focus-visible {
+    outline: 2px solid var(--already-primary);
+    outline-offset: 2px;
+  }
+}
+
+/* A control inside a host must sit above the stretched link or it cannot be
+   clicked. This one class is the contract for that; custom layouts put it
+   on their own controls. */
+.already-control {
+  position: relative;
+  z-index: 1;
+}
+
+/* Text for screen readers only. Used for the event link a layout without a
+   title element gets. */
+.already-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

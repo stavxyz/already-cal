@@ -73,7 +73,7 @@ describe("renderListView", () => {
     const container = document.createElement("div");
     const events = [createTestEvent({ id: "nav-test" })];
     renderListView(container, events, "UTC", {});
-    container.querySelector(".already-card").click();
+    container.querySelector(".already-card__link").click();
     assert.strictEqual(window.location.hash, "#event/nav-test");
   });
 

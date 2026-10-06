@@ -77,7 +77,7 @@ describe("event popover", () => {
 
   it("clicking the card opens the event detail view", () => {
     openEventPopover(anchor, event, root, {});
-    find().querySelector(".already-card").click();
+    find().querySelector(".already-card__link").click();
     assert.match(window.location.hash, /^#event\//);
   });
 
@@ -266,7 +266,7 @@ describe("popover card honors onEventClick", () => {
       "week",
     );
 
-    find().querySelector(".already-card").click();
+    find().querySelector(".already-card__link").click();
     assert.deepEqual(calls, [[event.id, "week"]]);
     assert.equal(window.location.hash, "", "navigation was vetoed");
   });

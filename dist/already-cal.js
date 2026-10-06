@@ -4091,6 +4091,9 @@ ${text}</tr>
     }
     return el;
   }
+  function eventLinkText(entry, config) {
+    return entry?.title || config?.i18n?.openEvent || "Open event";
+  }
   function createTagPills(event, wrapperClass, pillClass) {
     const tags = compositeTags(event).filter(isCategoryTag);
     if (tags.length === 0) return null;
@@ -4292,7 +4295,7 @@ ${text}</tr>
     }
     if (event.htmlLink) {
       const actions = createElement("div", "already-card__footer");
-      const details = createElement("a", "already-card__action", {
+      const details = createElement("a", "already-card__action already-control", {
         href: event.htmlLink,
         target: "_blank",
         rel: "noopener noreferrer"
@@ -4673,6 +4676,26 @@ ${text}</tr>
     }
   }
 
+  // src/ui/event-link.js
+  var LINK_HOST_CLASS = "already-link-host";
+  function linkTitle(host, href, { titleSelector, linkClass, fallbackText }) {
+    if (href == null) return null;
+    const link2 = createElement("a", `already-event-link ${linkClass}`, { href });
+    const title = host.querySelector(titleSelector);
+    const holdsControl = title !== null && (title.matches("a, button") || title.querySelector("a, button") !== null);
+    if (title !== null && !holdsControl) {
+      while (title.firstChild) link2.appendChild(title.firstChild);
+      title.appendChild(link2);
+    } else {
+      const text = createElement("span", "already-sr-only");
+      text.textContent = fallbackText;
+      link2.appendChild(text);
+      host.appendChild(link2);
+    }
+    host.classList.add(LINK_HOST_CLASS);
+    return link2;
+  }
+
   // src/ui/rsvp-form.js
   var NAME_MAX = 80;
   var EMAIL_MAX = 254;
@@ -4857,29 +4880,39 @@ ${text}</tr>
       (footer) => footer.querySelector(".already-card__action")
     );
     if (actionFooter) {
-      actionFooter.classList.add("already-card__footer--rsvp");
+      actionFooter.classList.add("already-card__footer--rsvp", "already-control");
       appendRsvpControl(actionFooter, event, config);
       return;
     }
     const row = createElement(
       "div",
-      "already-card__footer already-card__footer--rsvp already-card__rsvp"
+      "already-card__footer already-card__footer--rsvp already-card__rsvp already-control"
     );
     appendRsvpControl(row, event, config);
     (card.querySelector(".already-card__body") || card).appendChild(row);
   }
 
   // src/views/card-decoration.js
-  function applyCardState(card, event, viewName, config) {
+  function applyCardState(card, event) {
     if (isPast(event.end || event.start))
       card.classList.add("already-card--past");
     if (event.featured) card.classList.add("already-card--featured");
     card.dataset.eventId = event.id;
-    bindEventClick(card, event, viewName, config);
+  }
+  function linkCard(card, event, viewName, config) {
+    const link2 = linkTitle(card, eventHref(event), {
+      titleSelector: ".already-card__title",
+      linkClass: "already-card__link",
+      fallbackText: eventLinkText(event, config)
+    });
+    bindEventClick(link2, event, viewName, config, {
+      canNavigate: () => !card.classList.contains(RSVP_OPEN_CLASS)
+    });
   }
   function decorateEventCard(card, event, viewName, config, { timezone, rsvp = true } = {}) {
     if (card.classList.contains("already-card--error")) return;
-    applyCardState(card, event, viewName, config);
+    applyCardState(card, event);
+    linkCard(card, event, viewName, config);
     decorateParts(card, event, config, { timezone });
     if (rsvp) decorateRsvp(card, event, config);
   }
@@ -6636,6 +6669,7 @@ ${text}</tr>
     showEarlier: "Show earlier",
     rsvp: "RSVP",
     details: "Details",
+    openEvent: "Open event",
     rsvpName: "Name",
     rsvpEmail: "Email",
     rsvpPartySize: "How many are coming?",

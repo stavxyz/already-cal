@@ -117,6 +117,7 @@ const I18N_DEFAULTS = {
   showEarlier: "Show earlier",
   rsvp: "RSVP",
   details: "Details",
+  openEvent: "Open event",
   rsvpName: "Name",
   rsvpEmail: "Email",
   rsvpPartySize: "How many are coming?",

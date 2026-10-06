@@ -4,11 +4,13 @@ const assert = require("node:assert");
 
 let createElement, bindEventClick, applyEventClasses;
 let sortFeatured, sortFeaturedByDate;
+let eventLinkText;
 
 before(async () => {
   const mod = await import("../../src/views/helpers.js");
   createElement = mod.createElement;
   bindEventClick = mod.bindEventClick;
+  eventLinkText = mod.eventLinkText;
   applyEventClasses = mod.applyEventClasses;
   sortFeatured = mod.sortFeatured;
   sortFeaturedByDate = mod.sortFeaturedByDate;
@@ -238,6 +240,24 @@ describe("bindEventClick on a link", () => {
     assert.doesNotThrow(() =>
       bindEventClick(null, { title: "No id" }, "grid", {}),
     );
+  });
+});
+
+describe("eventLinkText", () => {
+  it("is the entry's title", () => {
+    assert.strictEqual(
+      eventLinkText({ title: "Burger Night" }, {}),
+      "Burger Night",
+    );
+  });
+
+  it("falls back to the i18n openEvent text, then to the default", () => {
+    assert.strictEqual(
+      eventLinkText({ title: "" }, { i18n: { openEvent: "Abrir" } }),
+      "Abrir",
+    );
+    assert.strictEqual(eventLinkText({ title: "" }, {}), "Open event");
+    assert.strictEqual(eventLinkText({}, undefined), "Open event");
   });
 });
 

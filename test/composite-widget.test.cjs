@@ -431,7 +431,7 @@ describe("what onEventClick receives", () => {
   it("gets the composed parent, with every part, for a click on its card", async () => {
     const { clicks, onEventClick } = recorder();
     const c = await mount({ onEventClick });
-    c.querySelector(".already-card").click();
+    c.querySelector(".already-card .already-card__link").click();
     assert.strictEqual(clicks.length, 1);
     assert.strictEqual(clicks[0].view, "list");
     assert.strictEqual(clicks[0].event.id, "night");

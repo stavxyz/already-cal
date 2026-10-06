@@ -287,8 +287,9 @@ Key import relationships (simplified):
 - **`composite.js`** imports: `util/dates.js`, `util/tags.js`. It imports nothing that touches the DOM
 - **`views/helpers.js`** imports: `composite.js`, `util/dates.js`, `util/tags.js`; exports `bindEventClick`, `createElement`, `createTagPills`, `eventLinkText`, etc.
 - **`views/card-decoration.js`** imports: `router.js` (eventHref), `views/helpers.js` (bindEventClick, eventLinkText), `ui/card-parts.js`, `ui/event-link.js`, `ui/rsvp-form.js`, `ui/rsvp-state.js`, `util/dates.js`; exports `decorateEventCard`, the one way to decorate a card
-- **`ui/event-link.js`** imports: `views/helpers.js` (createElement); exports `linkTitle` (moves a title's text into the event link and marks the host) and `eventAnchor` (an element that is the link itself)- **`views/placement.js`** imports: `composite.js`, `util/dates.js`
+- **`ui/event-link.js`** imports: `views/helpers.js` (createElement); exports `linkTitle` (moves a title's text into the event link and marks the host) and `eventAnchor` (an element that is the link itself)
+- **`views/placement.js`** imports: `composite.js`, `util/dates.js`
 - **`views/grid.js`** and **`views/list.js`** import: `layouts/helpers.js` (safeRenderCard), `layouts/registry.js`, `views/card-decoration.js`
 - **`views/detail.js`** imports: `composite.js`, `views/detail-entry.js`, `views/detail-parts.js`, `views/lightbox.js`
 - **`util/directives.js`** imports: `util/images.js` (for `normalizeImageUrl`, `imageCanonicalId`), `util/sanitize.js` (for `cleanupHtml`, `stripMatches`)
-- **`ui/*` modules** are leaf nodes — they don't import from each other
+- **`ui/*` modules** import `views/helpers.js` for `createElement`, the `util/*` modules they need, and in two cases a sibling: `header.js` mounts `share-button.js` and `subscribe-menu.js`, and `rsvp-form.js` reads `rsvp-state.js`. `ui/event-popover.js` is the one that reaches into the views: it renders a card through `layouts/registry.js` and `views/card-decoration.js`. A few also import a top-level module: `card-parts.js` and `tag-filter.js` import `composite.js`, `view-selector.js` imports `router.js`, and `event-popover.js` imports `theme.js` and `layouts/helpers.js`.

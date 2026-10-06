@@ -51,6 +51,12 @@ src/
 ├── ui/
 │   ├── header.js           # Calendar name, description, subscribe button
 │   ├── card-parts.js       # The parts block on a composite's card
+│   ├── event-link.js       # linkTitle and eventAnchor: the event's link in a card, a row, a chip, or a block
+│   ├── event-popover.js    # The card shown on hover or tap from the month and week views
+│   ├── rsvp-form.js        # The RSVP button, form, and done line a card or the detail view mounts
+│   ├── rsvp-state.js       # The class a card carries while its RSVP form is open
+│   ├── share-button.js     # Share button (Web Share API, with copy as the fallback)
+│   ├── subscribe-menu.js   # Subscribe menu: Apple Calendar, Google Calendar, Outlook, Copy iCal link
 │   ├── view-selector.js    # View tabs with SVG icons
 │   ├── tag-filter.js       # Clickable tag pills with OR filtering
 │   ├── past-toggle.js      # Show/hide past events button
@@ -77,6 +83,7 @@ test/
 ├── helpers.cjs             # createTestEvent() factory, captureConsoleError() helper
 ├── set-config.test.cjs     # setConfig() and destroy() lifecycle tests
 ├── postmessage.test.cjs    # postMessage listener tests
+├── a11y/cards.test.cjs     # axe-core over every layout and view (see Accessibility check)
 └── ...                     # Mirrors src/ structure (directives, links, images, etc.)
 ```
 
@@ -120,7 +127,7 @@ npm run test:coverage    # run with c8 coverage report
 
 ### Accessibility check
 
-`test/a11y/cards.test.cjs` renders every built-in layout in the grid and list views (with the RSVP form closed and open), the month, week, and day views, a composite's detail view, and the hover popover, and runs [axe-core](https://github.com/dequelabs/axe-core) over each with the rules `nested-interactive`, `button-name`, `link-name`, `aria-allowed-attr`, `aria-roles`, and `aria-valid-attr-value`. A plain assertion in the same file checks that two RSVP buttons on one page are named after their own events, which axe cannot see. Rules that need layout (`region`, colour contrast) are off, because jsdom has no rendering engine. It runs as part of `npm test`; to run it alone: `node --test test/a11y/cards.test.cjs`.
+`test/a11y/cards.test.cjs` renders every built-in layout in the grid view with the RSVP form closed and then open, every built-in layout in the list view, the month, week, and day views, a composite's detail view, and the hover popover, and runs [axe-core](https://github.com/dequelabs/axe-core) over each with the rules `nested-interactive`, `button-name`, `link-name`, `aria-allowed-attr`, `aria-roles`, and `aria-valid-attr-value`. A plain assertion in the same file checks that two RSVP buttons on one page are named after their own events, which axe cannot see. Rules that need layout (`region`, colour contrast) are off, because jsdom has no rendering engine. It runs as part of `npm test`; to run it alone: `node --test test/a11y/cards.test.cjs`.
 
 ### Coverage thresholds
 

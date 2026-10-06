@@ -64,75 +64,6 @@ describe("createElement", () => {
   });
 });
 
-describe("bindEventClick", () => {
-  it("navigates to event detail on click", () => {
-    const el = document.createElement("div");
-    bindEventClick(el, { id: "evt-1" }, "grid", {});
-    el.click();
-    assert.strictEqual(window.location.hash, "#event/evt-1");
-  });
-
-  it("calls onEventClick before navigating", () => {
-    const el = document.createElement("div");
-    let called = false;
-    const config = {
-      onEventClick: (_event, _view) => {
-        called = true;
-      },
-    };
-    bindEventClick(el, { id: "evt-1" }, "grid", config);
-    el.click();
-    assert.strictEqual(called, true);
-    assert.strictEqual(window.location.hash, "#event/evt-1");
-  });
-
-  it("prevents navigation when onEventClick returns false", () => {
-    const el = document.createElement("div");
-    const config = { onEventClick: () => false };
-    bindEventClick(el, { id: "evt-1" }, "grid", config);
-    el.click();
-    assert.strictEqual(window.location.hash, "");
-  });
-
-  it("sets tabindex and role", () => {
-    const el = document.createElement("div");
-    bindEventClick(el, { id: "evt-1" }, "grid", {});
-    assert.strictEqual(el.getAttribute("tabindex"), "0");
-    assert.strictEqual(el.getAttribute("role"), "button");
-  });
-
-  it("handles Enter key", () => {
-    const el = document.createElement("div");
-    bindEventClick(el, { id: "evt-1" }, "grid", {});
-    el.dispatchEvent(
-      new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
-    );
-    assert.strictEqual(window.location.hash, "#event/evt-1");
-  });
-
-  it("handles Space key", () => {
-    const el = document.createElement("div");
-    bindEventClick(el, { id: "evt-1" }, "grid", {});
-    el.dispatchEvent(
-      new window.KeyboardEvent("keydown", { key: " ", bubbles: true }),
-    );
-    assert.strictEqual(window.location.hash, "#event/evt-1");
-  });
-
-  it("does not stop propagation by default", () => {
-    const parent = document.createElement("div");
-    const child = document.createElement("div");
-    parent.appendChild(child);
-    let parentClicked = false;
-    parent.addEventListener("click", () => {
-      parentClicked = true;
-    });
-    bindEventClick(child, { id: "evt-2" }, "grid", {});
-    child.click();
-    assert.strictEqual(parentClicked, true);
-  });
-});
-
 describe("bindEventClick on a link", () => {
   const link = (href = "#event/evt-1") => {
     const a = document.createElement("a");
@@ -240,6 +171,15 @@ describe("bindEventClick on a link", () => {
     assert.doesNotThrow(() =>
       bindEventClick(null, { title: "No id" }, "grid", {}),
     );
+    // A chip or block for an entry with no route is a plain div with no
+    // href (ui/event-link.js, eventAnchor); binding it must change nothing.
+    const plain = document.createElement("div");
+    document.body.appendChild(plain);
+    bindEventClick(plain, { title: "No id" }, "month", {});
+    const e = click(plain);
+    assert.strictEqual(e.defaultPrevented, false);
+    assert.strictEqual(plain.getAttribute("role"), null);
+    assert.strictEqual(window.location.hash, "");
   });
 });
 

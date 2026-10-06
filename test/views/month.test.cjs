@@ -100,6 +100,32 @@ describe("renderMonthView", () => {
     assert.strictEqual(window.location.hash, "#event/month-click");
   });
 
+  it("renders a chip as a link with no role", () => {
+    const container = document.createElement("div");
+    const events = [
+      createTestEvent({ id: "m-link", start: "2026-04-15T10:00:00Z" }),
+    ];
+    renderMonthView(container, place(events), "UTC", april2026, {});
+    const chip = container.querySelector(".already-month-chip");
+    assert.strictEqual(chip.tagName, "A");
+    assert.strictEqual(chip.getAttribute("href"), "#event/m-link");
+    assert.strictEqual(chip.getAttribute("role"), null);
+    assert.strictEqual(chip.getAttribute("tabindex"), null);
+  });
+
+  it("renders an entry with no route as a plain chip", () => {
+    const container = document.createElement("div");
+    const orphan = {
+      ...createTestEvent({ start: "2026-04-15T10:00:00Z" }),
+      id: undefined,
+    };
+    renderMonthView(container, place([orphan]), "UTC", april2026, {});
+    const chip = container.querySelector(".already-month-chip");
+    assert.strictEqual(chip.tagName, "DIV");
+    chip.click();
+    assert.strictEqual(window.location.hash, "");
+  });
+
   it("adds --featured class to featured event chips", () => {
     const container = document.createElement("div");
     const events = [

@@ -1,4 +1,5 @@
-import { setDayView } from "../router.js";
+import { eventHref, setDayView } from "../router.js";
+import { eventAnchor } from "../ui/event-link.js";
 import { bindEventPopover, closeEventPopover } from "../ui/event-popover.js";
 import {
   formatDateShort,
@@ -95,8 +96,9 @@ export function renderWeekView(
     const dayEvents = sortFeatured(byDay.get(toDateKey(date)) || []);
 
     for (const event of dayEvents) {
-      const block = createElement(
-        "div",
+      // The block is the event's link itself (see the month view's chip).
+      const block = eventAnchor(
+        eventHref(event),
         "already-week-event" +
           (event.featured ? " already-week-event--featured" : ""),
       );

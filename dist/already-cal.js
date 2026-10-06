@@ -4077,9 +4077,6 @@ ${text}</tr>
     return () => window.removeEventListener("hashchange", handler);
   }
 
-  // src/ui/rsvp-state.js
-  var RSVP_OPEN_CLASS = "already-card--rsvp-open";
-
   // src/views/helpers.js
   function createElement(tag2, className, attrs) {
     const el = document.createElement(tag2);
@@ -4106,11 +4103,7 @@ ${text}</tr>
     return wrapper;
   }
   function bindEventClick(el, event, viewName, config, { canNavigate } = {}) {
-    if (el === null) return;
-    if (!el.hasAttribute("href")) {
-      bindButtonLikeElement(el, event, viewName, config);
-      return;
-    }
+    if (el === null || !el.hasAttribute("href")) return;
     el.addEventListener("click", (e) => {
       if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
         return;
@@ -4123,28 +4116,6 @@ ${text}</tr>
       }
       window.location.hash = el.getAttribute("href");
     });
-  }
-  function bindButtonLikeElement(el, event, viewName, config) {
-    const rsvpOpen = () => el.classList.contains(RSVP_OPEN_CLASS);
-    function handleClick() {
-      if (rsvpOpen()) return;
-      if (config.onEventClick) {
-        const result = config.onEventClick(event, viewName);
-        if (result === false) return;
-      }
-      const href = eventHref(event);
-      if (href !== null) window.location.hash = href;
-    }
-    el.addEventListener("click", handleClick);
-    el.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        if (rsvpOpen()) return;
-        e.preventDefault();
-        handleClick();
-      }
-    });
-    el.setAttribute("tabindex", "0");
-    el.setAttribute("role", "button");
   }
   function applyEventClasses(el, event, baseClass) {
     let cls = baseClass;
@@ -4695,6 +4666,13 @@ ${text}</tr>
     host.classList.add(LINK_HOST_CLASS);
     return link2;
   }
+  function eventAnchor(href, className) {
+    if (href == null) return createElement("div", className);
+    return createElement("a", className, { href });
+  }
+
+  // src/ui/rsvp-state.js
+  var RSVP_OPEN_CLASS = "already-card--rsvp-open";
 
   // src/ui/rsvp-form.js
   var NAME_MAX = 80;
@@ -6440,8 +6418,8 @@ ${text}</tr>
         setDayView(toDateKey(cellDate), config);
       });
       for (const event of dayEvents.slice(0, maxEventsPerDay)) {
-        const chip = createElement(
-          "div",
+        const chip = eventAnchor(
+          eventHref(event),
           "already-month-chip" + (event.featured ? " already-month-chip--featured" : "")
         );
         chip.textContent = event.title;
@@ -6572,8 +6550,8 @@ ${text}</tr>
       col.appendChild(header);
       const dayEvents = sortFeatured(byDay.get(toDateKey(date)) || []);
       for (const event of dayEvents) {
-        const block2 = createElement(
-          "div",
+        const block2 = eventAnchor(
+          eventHref(event),
           "already-week-event" + (event.featured ? " already-week-event--featured" : "")
         );
         block2.textContent = event.title;

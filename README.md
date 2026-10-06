@@ -231,7 +231,7 @@ Already.init({
 });
 ```
 
-The header's Subscribe button opens a menu with Apple Calendar, Google Calendar, Outlook and Copy iCal link. The four labels come from the `i18n` keys `subscribeApple`, `subscribeGoogle`, `subscribeOutlook` and `subscribeCopy`.
+When `subscribeUrl` (or the URL derived from `google.calendarId`) is a webcal or https feed, the header's Subscribe button opens a menu with Apple Calendar, Google Calendar, Outlook and Copy iCal link, in that order. The four labels come from the `i18n` keys `subscribeApple`, `subscribeGoogle`, `subscribeOutlook` and `subscribeCopy`. For any other `subscribeUrl` the header shows a single link instead.
 
 For detailed descriptions of every option, callback signatures, custom renderer examples, and data hook behavior, see the **[full configuration reference](docs/configuration.md)**.
 
@@ -308,7 +308,7 @@ Grid view uses the theme's orientation (default: vertical). List view always ren
 
 ### CSS Custom Properties
 
-Palettes set these properties. Override any of them in the theme config:
+Palettes set these properties, except `error`, which has a built-in fallback of `#c0392b` and is used only when you set it. Override any of them in the theme config:
 
 `primary`, `primaryText`, `background`, `surface`, `text`, `textSecondary`, `border`, `borderControl`, `borderGrid`, `error`, `fontFamily`, `fontWeightNormal`, `fontWeightBold`, `fontSizeSm`, `fontSizeBase`, `fontSizeLg`, `radius`, `radiusSm`, `shadow`, `shadowHover`, `highlight`, `spacing`
 

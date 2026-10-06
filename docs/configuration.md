@@ -150,7 +150,9 @@ Resolve a custom `onRsvp` with `{ partySize }` to confirm, or reject to show a f
 | `loadMore` | `'Load more'` | Pagination button (grid/list) |
 | `showEarlier` | `'Show earlier'` | Pagination button (grid/list) |
 | `rsvp` | `'RSVP'` | RSVP button on a card and in the detail view |
+| `rsvpFor` | `'RSVP for {title}'` | Accessible name of a card's RSVP button (`{title}` is replaced); the visible text stays `rsvp`. It must contain the `rsvp` text: when it does not, the name is the `rsvp` text, a colon, and the title |
 | `details` | `'Details'` | Badge footer link to the Google event page |
+| `openEvent` | `'Open event'` | Text of the hidden event link a custom layout without a title element gets, when the event has no title |
 | `rsvpName` | `'Name'` | RSVP form name field |
 | `rsvpEmail` | `'Email'` | RSVP form email field |
 | `rsvpPartySize` | `'How many are coming?'` | RSVP form party size field |
@@ -268,6 +270,7 @@ Called when an event is clicked in any view.
 - `viewName` — `'month'`, `'week'`, `'day'`, `'grid'`, `'list'`, or `'detail'`
 - **Return `false`** to prevent navigation to the detail view
 - Return anything else (or nothing) to allow default navigation
+- Fires for a plain click or Enter on the event's link (the card's title, a day row's title, a month chip, a week block). A middle click or a modifier click is left to the browser, which opens a new tab at the event's deep link, and does not fire this callback
 
 For a [composite](event-schema.md#composed-events), `event` is the parent with its `parts`. For a part's own row or chip, including a row under its parent in the day view, or for a link that names a part, it is the part with its `parentId`.
 
@@ -452,6 +455,20 @@ Custom themes can be re-registered (replacing the previous bundle). Built-in the
 ## Custom Layouts
 
 Register custom card layouts via `Already.registerLayout(name, renderFn)`. The render function receives an event object and an options object, and must return an `HTMLElement`.
+
+The view makes the card's title the link that opens the event: after your function returns, the text inside the element with the class `already-card__title` moves into an `<a>`, and the stylesheet stretches that link over the whole card. Render that element and the card opens like a built-in one; without it, the view appends a visually hidden link with the event's title. Do not make the title a link or put a button inside it: the view then leaves your title alone and adds the hidden link instead, so no link ends up inside a link.
+
+Any control your layout renders itself (a button, a link, a form) needs the class `already-control`, or the stretched link covers it and it cannot be clicked. The widget puts that class on its own controls; the CSS behind it is the widget's and not part of the contract.
+
+```js
+const register = document.createElement('a');
+register.className = 'already-card__action already-control';
+register.href = event.links[0]?.url;
+register.textContent = 'Register';
+card.appendChild(register);
+```
+
+Links inside an event's description are the exception: they are the author's content, so they cannot carry a class. Render the description into an element with the class `already-card__description`, as the Badge and Hero layouts do, and its links stay clickable while the text around them still opens the event. A layout that renders linked HTML anywhere else puts `already-control` on the element that holds it; clicks on that element then follow its links and do not open the event.
 
 > **Note:** Built-in layouts (`clean`, `hero`, `badge`, `compact`) render event times in the viewer's local zone, appending the event's source-calendar zone when it differs, via the internal `formatEventWhen` helper — they do not use `options.timezone` for this. A custom layout that formats times with `options.timezone` directly renders in the calendar/source-zone fallback instead, and will look inconsistent with built-in layouts.
 

@@ -118,6 +118,10 @@ npm run test:coverage    # run with c8 coverage report
 - Test files `require("./setup-dom.cjs")` as their first line, then dynamically `import()` the ES module source files
 - Tests use `node:test` (`describe`, `it`, `before`, `afterEach`) and `node:assert` — no third-party test framework
 
+### Accessibility check
+
+`test/a11y/cards.test.cjs` renders every built-in layout in the grid and list views (with the RSVP form closed and open), the month, week, and day views, a composite's detail view, and the hover popover, and runs [axe-core](https://github.com/dequelabs/axe-core) over each with the rules `nested-interactive`, `button-name`, `link-name`, `aria-allowed-attr`, `aria-roles`, and `aria-valid-attr-value`. A plain assertion in the same file checks that two RSVP buttons on one page are named after their own events, which axe cannot see. Rules that need layout (`region`, colour contrast) are off, because jsdom has no rendering engine. It runs as part of `npm test`; to run it alone: `node --test test/a11y/cards.test.cjs`.
+
 ### Coverage thresholds
 
 Enforced by [c8](https://github.com/bcoe/c8) in CI (Node 22 only):

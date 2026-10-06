@@ -96,7 +96,7 @@ Composition is in `src/composite.js`: the grouping, the lookup from an id to its
 7. Renders the past events toggle into toggleContainer via `src/ui/past-toggle.js` (only when past events exist; skipped for detail view)
 8. Renders an empty state if no events match the current filters
 
-Grid and list views use `getLayout(theme.layout)` from `src/layouts/registry.js` to get the card renderer, and pass every card through `decorateEventCard()` in `src/views/card-decoration.js`, as the month and week popover does. That one step applies the state classes and the click binding, lists a composite's parts, and adds the RSVP control. Month, week, and day views have their own rendering logic and receive a day placement from `placeByDay()` in `src/views/placement.js`. The detail view resolves its event through the composed result's `lookup(id)`, so a link to a part opens its parent.
+Grid and list views use `getLayout(theme.layout)` from `src/layouts/registry.js` to get the card renderer, and pass every card through `decorateEventCard()` in `src/views/card-decoration.js` (which makes the title the event's link, adds a composite's parts, and mounts the RSVP control), as the month and week popover does. That one step also applies the state classes and the click binding. Month, week, and day views have their own rendering logic and receive a day placement from `placeByDay()` in `src/views/placement.js`. The detail view resolves its event through the composed result's `lookup(id)`, so a link to a part opens its parent.
 
 ### Hash Routing
 
@@ -105,7 +105,7 @@ Grid and list views use `getLayout(theme.layout)` from `src/layouts/registry.js`
 - `parseHash()` — reads `#event/{id}`, `#day/{date}`, or view names from the hash. Also checks the URL path for `/event/{id}` (server-side routing support).
 - `getInitialView(defaultView, enabledViews, config)` — determines the first view to show. Priority: `config.initialEvent` > hash/path > localStorage > `config.defaultView`.
 - `setView(view, config)` — updates the hash and saves to localStorage with key `{storageKeyPrefix}-view`.
-- `setEventDetail(eventId)` — navigates to `#event/{eventId}`.
+- `eventHref(entry)`: the `#event/{id}` link that opens an entry, written once here so every card, row, chip, and block agrees with `parseHash`. A part with no id links to its parent; an entry with neither has no link.
 - `onHashChange(callback)` — registers a hashchange listener. Returns an unsubscribe function for cleanup.
 
 ## Theme System
@@ -285,9 +285,9 @@ Key import relationships (simplified):
 - **`layouts/registry.js`** imports: `registry.js`, all `layouts/{name}/{name}.js`
 - **`layouts/helpers.js`** imports: `composite.js`, `views/helpers.js` (createElement), `util/dates.js`; exports `safeRenderCard`, `renderErrorCard`
 - **`composite.js`** imports: `util/dates.js`, `util/tags.js`. It imports nothing that touches the DOM
-- **`views/helpers.js`** imports: `composite.js`, `router.js`, `ui/rsvp-state.js`, `util/dates.js`, `util/tags.js`; exports `bindEventClick`, `createElement`, `createTagPills`, etc.
-- **`views/card-decoration.js`** imports: `views/helpers.js` (bindEventClick), `ui/card-parts.js`, `ui/rsvp-form.js`, `util/dates.js`; exports `decorateEventCard`, the one way to decorate a card
-- **`views/placement.js`** imports: `composite.js`, `util/dates.js`
+- **`views/helpers.js`** imports: `composite.js`, `util/dates.js`, `util/tags.js`; exports `bindEventClick`, `createElement`, `createTagPills`, `eventLinkText`, etc.
+- **`views/card-decoration.js`** imports: `router.js` (eventHref), `views/helpers.js` (bindEventClick, eventLinkText), `ui/card-parts.js`, `ui/event-link.js`, `ui/rsvp-form.js`, `ui/rsvp-state.js`, `util/dates.js`; exports `decorateEventCard`, the one way to decorate a card
+- **`ui/event-link.js`** imports: `views/helpers.js` (createElement); exports `linkTitle` (moves a title's text into the event link and marks the host) and `eventAnchor` (an element that is the link itself)- **`views/placement.js`** imports: `composite.js`, `util/dates.js`
 - **`views/grid.js`** and **`views/list.js`** import: `layouts/helpers.js` (safeRenderCard), `layouts/registry.js`, `views/card-decoration.js`
 - **`views/detail.js`** imports: `composite.js`, `views/detail-entry.js`, `views/detail-parts.js`, `views/lightbox.js`
 - **`util/directives.js`** imports: `util/images.js` (for `normalizeImageUrl`, `imageCanonicalId`), `util/sanitize.js` (for `cleanupHtml`, `stripMatches`)

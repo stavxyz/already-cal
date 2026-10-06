@@ -14,7 +14,9 @@ import { startOrder } from "../util/dates.js";
  *
  * Nothing in the input is changed. A parent is the object every other view
  * receives, with every part still in `parts`. Which parts are folded on the
- * parent's day is recorded only in `sameDayParts`.
+ * parent's day is recorded only in `sameDayParts`. It is keyed by the parent
+ * object, not its id, because two calendars can each carry an event with the
+ * same id.
  *
  * Within a day, the top-level events keep the order they came in: the widget
  * does not sort what a producer hands it, and this does not start to. A part
@@ -24,7 +26,7 @@ import { startOrder } from "../util/dates.js";
  *
  * @param {object[]} events the top-level list, after the past and tag filters
  * @param {(start: string) => string} dayKeyOf the viewer-zone day key
- * @returns {{ byDay: Map<string, object[]>, sameDayParts: Map<string, object[]> }}
+ * @returns {{ byDay: Map<string, object[]>, sameDayParts: Map<object, object[]> }}
  */
 export function placeByDay(events, dayKeyOf) {
   const byDay = new Map();
@@ -55,7 +57,7 @@ export function placeByDay(events, dayKeyOf) {
       // A second listing adds nothing under its own parent's row.
       else if (!isSecondListing(part, event)) folded.push(part);
     }
-    if (folded.length > 0) sameDayParts.set(event.id, folded);
+    if (folded.length > 0) sameDayParts.set(event, folded);
   }
 
   for (const { part, day } of elsewhere) {

@@ -70,15 +70,16 @@ describe("placeByDay", () => {
     const { byDay, sameDayParts } = place([parent]);
     assert.deepStrictEqual(ids(byDay.get(FRI)), ["parent"]);
     assert.strictEqual(byDay.has(SAT), false);
-    assert.deepStrictEqual(ids(sameDayParts.get("parent")), ["part-1"]);
+    assert.deepStrictEqual(ids(sameDayParts.get(parent)), ["part-1"]);
   });
 
   it("files a part on another day under that day, with parentId", () => {
-    const { byDay, sameDayParts } = place([saturdayPart()]);
+    const parent = saturdayPart();
+    const { byDay, sameDayParts } = place([parent]);
     assert.deepStrictEqual(ids(byDay.get(FRI)), ["parent"]);
     assert.deepStrictEqual(ids(byDay.get(SAT)), ["part-1"]);
     assert.strictEqual(byDay.get(SAT)[0].parentId, "parent");
-    assert.strictEqual(sameDayParts.has("parent"), false);
+    assert.strictEqual(sameDayParts.has(parent), false);
   });
 
   it("leaves every part on the parent it files", () => {
@@ -102,7 +103,7 @@ describe("placeByDay", () => {
     const { byDay, sameDayParts } = place([parent]);
     assert.deepStrictEqual(ids(byDay.get(FRI)), ["parent"]);
     assert.strictEqual(byDay.has(SAT), false);
-    assert.strictEqual(sameDayParts.has("parent"), false);
+    assert.strictEqual(sameDayParts.has(parent), false);
   });
 
   it("files a second listing on another day under that day", () => {
@@ -124,7 +125,7 @@ describe("placeByDay", () => {
     ]);
     const { byDay, sameDayParts } = place([parent]);
     assert.deepStrictEqual(ids(byDay.get(SAT)), ["part-1"]);
-    assert.strictEqual(sameDayParts.has("parent"), false);
+    assert.strictEqual(sameDayParts.has(parent), false);
   });
 
   it("files a part with no usable start under no day", () => {

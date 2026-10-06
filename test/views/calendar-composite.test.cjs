@@ -210,6 +210,46 @@ describe("day view with a composite", () => {
     );
   });
 
+  it("shows a part's row once when another calendar has an event with the parent's id", () => {
+    const c = document.createElement("div");
+    const composed = createComposite(
+      {
+        title: "Cocktail Class",
+        start: "2026-06-19T23:00:00Z",
+        end: "2026-06-21T02:00:00Z",
+      },
+      [
+        {
+          title: "Negroni Hour",
+          start: "2026-06-20T00:00:00Z",
+          end: "2026-06-20T01:00:00Z",
+        },
+      ],
+    );
+    const copy = createTestEvent({
+      id: composed.id,
+      title: composed.title,
+      start: composed.start,
+      end: composed.end,
+    });
+    renderDayView(
+      c,
+      place([composed, copy]),
+      "America/Chicago",
+      friday,
+      config,
+    );
+    assert.deepStrictEqual(texts(c, ".already-day-event-title"), [
+      "Cocktail Class",
+      "Negroni Hour",
+      "Cocktail Class",
+    ]);
+    assert.strictEqual(
+      c.querySelectorAll(".already-day-event--part").length,
+      1,
+    );
+  });
+
   it("does not throw on an event with a malformed start", () => {
     const c = document.createElement("div");
     const bad = createTestEvent({ id: "bad", title: "Bad", start: "nope" });
@@ -254,7 +294,7 @@ describe("one day key everywhere", () => {
     assert.deepStrictEqual(idsOn("2026-06-19"), ["parent"]);
     assert.deepStrictEqual(idsOn("2026-06-20"), ["part-2"]);
     assert.deepStrictEqual(
-      placement.sameDayParts.get("parent").map((e) => e.id),
+      placement.sameDayParts.get(parent).map((e) => e.id),
       ["part-1"],
     );
 

@@ -5798,7 +5798,7 @@ ${text}</tr>
     } else {
       for (const event of dayEvents) {
         day.appendChild(renderRow(event, false));
-        for (const part of sameDayParts.get(event.id) || []) {
+        for (const part of sameDayParts.get(event) || []) {
           day.appendChild(renderRow(part, true));
         }
       }
@@ -6375,7 +6375,7 @@ ${text}</tr>
         if (partDay !== day) elsewhere.push({ part, day: partDay });
         else if (!isSecondListing(part, event)) folded.push(part);
       }
-      if (folded.length > 0) sameDayParts.set(event.id, folded);
+      if (folded.length > 0) sameDayParts.set(event, folded);
     }
     for (const { part, day } of elsewhere) {
       const items = itemsOn(day);

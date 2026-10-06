@@ -95,7 +95,7 @@ export function renderDayView(
       day.appendChild(renderRow(event, false));
       // A parent's parts on this same day sit under it. A click on one opens
       // the composite's detail at that part.
-      for (const part of sameDayParts.get(event.id) || []) {
+      for (const part of sameDayParts.get(event) || []) {
         day.appendChild(renderRow(part, true));
       }
     }

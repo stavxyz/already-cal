@@ -3826,6 +3826,9 @@ ${text}</tr>
     return tag2.key === "tag" ? value : `${tag2.key}: ${value}`;
   }
 
+  // src/ui/rsvp-state.js
+  var RSVP_OPEN_CLASS = "already-card--rsvp-open";
+
   // src/views/helpers.js
   function createElement(tag2, className, attrs) {
     const el = document.createElement(tag2);
@@ -3838,7 +3841,9 @@ ${text}</tr>
     return el;
   }
   function bindEventClick(el, event, viewName, config, { stopPropagation = false } = {}) {
+    const rsvpOpen = () => el.classList.contains(RSVP_OPEN_CLASS);
     function handleClick(e) {
+      if (rsvpOpen()) return;
       if (stopPropagation) e.stopPropagation();
       if (config.onEventClick) {
         const result = config.onEventClick(event, viewName);
@@ -3849,6 +3854,7 @@ ${text}</tr>
     el.addEventListener("click", handleClick);
     el.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
+        if (rsvpOpen()) return;
         e.preventDefault();
         if (stopPropagation) e.stopPropagation();
         handleClick(e);
@@ -5323,6 +5329,7 @@ ${text}</tr>
   var NAME_MAX = 80;
   var EMAIL_MAX = 254;
   var PARTY_MAX = 20;
+  var CRAMPED_BODY_PX = 320;
   var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   function offersRsvp(event, config, now = /* @__PURE__ */ new Date()) {
     if (!config || typeof config.onRsvp !== "function") return false;
@@ -5345,11 +5352,18 @@ ${text}</tr>
     form.appendChild(wrap);
     return input;
   }
-  function createRsvpForm(event, config, onClose) {
+  function createRsvpForm(event, config, { onClose, onDone }) {
     const i18n = config.i18n || {};
     const invalidText = i18n.rsvpInvalid || "Check your name, email and party size.";
     const startedText = i18n.rsvpStarted || "This event has already started.";
     const failedText = i18n.rsvpFailed || "Could not save your RSVP. Try again.";
+    const closedText = i18n.rsvpClosed || "This event is not taking RSVPs.";
+    const rejectionText = /* @__PURE__ */ new Map([
+      ["event_started", startedText],
+      ["invalid_field", invalidText],
+      ["rsvp_unavailable", closedText],
+      ["event_not_found", closedText]
+    ]);
     const form = createElement("form", "already-rsvp", { novalidate: "" });
     const name = field(form, "name", i18n.rsvpName || "Name", {
       type: "text",
@@ -5432,14 +5446,19 @@ ${text}</tr>
       try {
         const result = await config.onRsvp(event, fields);
         const count = result && Number.isInteger(result.partySize) ? result.partySize : fields.partySize;
-        const done = createElement("p", "already-rsvp__done", { role: "status" });
+        const done = createElement("p", "already-rsvp__done", {
+          role: "status",
+          tabindex: "-1"
+        });
         done.textContent = (i18n.rsvpDone || "You're on the list: {count} going").replaceAll("{count}", String(count));
         form.replaceWith(done);
+        onDone();
+        done.focus();
       } catch (err) {
         pending = false;
         submit.disabled = false;
         cancel.disabled = false;
-        showError(err && err.code === "event_started" ? startedText : failedText);
+        showError(rejectionText.get(err?.code) || failedText);
       }
     });
     return { form, focus: () => name.focus() };
@@ -5453,13 +5472,26 @@ ${text}</tr>
       { type: "button" }
     );
     button.textContent = i18n.rsvp || "RSVP";
+    const setOpen = (open) => {
+      const card = container.closest(".already-card");
+      if (!card) return;
+      const body = card.querySelector(".already-card__body");
+      const cramped = open && !!body && body.clientWidth < CRAMPED_BODY_PX;
+      card.classList.toggle(RSVP_OPEN_CLASS, open);
+      card.classList.toggle("already-card--rsvp-cramped", cramped);
+    };
     button.addEventListener("click", (e) => {
       e.stopPropagation();
-      const { form, focus } = createRsvpForm(event, config, () => {
-        form.replaceWith(button);
-        button.focus();
+      const { form, focus } = createRsvpForm(event, config, {
+        onClose: () => {
+          form.replaceWith(button);
+          setOpen(false);
+          button.focus();
+        },
+        onDone: () => setOpen(false)
       });
       button.replaceWith(form);
+      setOpen(true);
       focus();
     });
     button.addEventListener("keydown", (e) => e.stopPropagation());
@@ -5467,9 +5499,26 @@ ${text}</tr>
     return button;
   }
   function decorateRsvp(card, event, config) {
-    const footer = card.querySelector(".already-card__footer");
-    if (!footer) return;
-    appendRsvpControl(footer, event, config);
+    if (card.classList.contains("already-card--error")) return;
+    if (card.querySelector(
+      ".already-rsvp__open, .already-rsvp, .already-rsvp__done"
+    ))
+      return;
+    if (!offersRsvp(event, config)) return;
+    const actionFooter = [...card.querySelectorAll(".already-card__footer")].find(
+      (footer) => footer.querySelector(".already-card__action")
+    );
+    if (actionFooter) {
+      actionFooter.classList.add("already-card__footer--rsvp");
+      appendRsvpControl(actionFooter, event, config);
+      return;
+    }
+    const row = createElement(
+      "div",
+      "already-card__footer already-card__footer--rsvp already-card__rsvp"
+    );
+    appendRsvpControl(row, event, config);
+    (card.querySelector(".already-card__body") || card).appendChild(row);
   }
 
   // src/views/lightbox.js
@@ -6128,6 +6177,7 @@ ${text}</tr>
     rsvpDone: "You're on the list: {count} going",
     rsvpInvalid: "Check your name, email and party size.",
     rsvpStarted: "This event has already started.",
+    rsvpClosed: "This event is not taking RSVPs.",
     rsvpFailed: "Could not save your RSVP. Try again."
   };
   function registerLayout(name, renderFn) {
@@ -6510,7 +6560,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.12.0" : "unknown"
+        true ? "0.12.1" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

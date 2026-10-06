@@ -1596,6 +1596,13 @@ button.already-card__action {
   padding: 0.4rem 0.5rem;
   max-width: 100%;
 }
+/* The one width cap for the form, on its contents rather than the form so
+   the form keeps its full flex basis and still wraps below a sibling
+   action in a card footer. */
+.already-rsvp__field,
+.already-rsvp__error {
+  max-width: 24rem;
+}
 .already-rsvp__hp {
   position: absolute;
   left: -9999px;
@@ -1638,6 +1645,48 @@ button.already-card__action {
   font-size: var(--already-font-size-sm);
   color: var(--already-text);
 }
+.already-card__footer--rsvp {
+  flex-wrap: wrap;
+}
+/* The open form takes a line of its own below any sibling action, at the
+   card's full content width. */
+.already-card__footer--rsvp > .already-rsvp {
+  flex: 1 0 100%;
+}
+/* A layout footer above the RSVP row (Hero's location and date) already
+   draws the divider; a second rule right under it would read as an empty
+   section. */
+.already-card__footer + .already-card__rsvp {
+  border-top: none;
+  padding-top: 0;
+}
+/* Set by the RSVP control when the card's text column is too narrow for
+   the form (CRAMPED_BODY_PX in rsvp-form.js); the image steps aside so the
+   form gets the card's width, whatever the window size. */
+.already-card--horizontal.already-card--rsvp-cramped .already-card__image {
+  display: none;
+}
 .already-detail-rsvp {
   margin-top: 1rem;
+}
+/* The main action on this surface, so it drops the card's text-link look.
+   Two classes outrank button.already-card__action's resets. */
+.already-detail-rsvp .already-rsvp__open {
+  font-size: var(--already-font-size-base);
+  font-weight: 600;
+  color: var(--already-primary-text);
+  background: var(--already-primary);
+  border: none;
+  border-radius: var(--already-radius-sm);
+  padding: 0.55rem 1.25rem;
+  cursor: pointer;
+}
+.already-detail-rsvp .already-rsvp__open:hover {
+  opacity: 0.85;
+}
+/* Same ring as the other filled button (.already-error-retry): the text
+   color stays distinct from a primary-filled background. */
+.already-detail-rsvp .already-rsvp__open:focus-visible {
+  outline: 2px solid var(--already-text);
+  outline-offset: 2px;
 }

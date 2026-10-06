@@ -1,9 +1,13 @@
 import { parseEventDate } from "../util/dates.js";
 import { createElement } from "../views/helpers.js";
+import { RSVP_OPEN_CLASS } from "./rsvp-state.js";
 
 const NAME_MAX = 80;
 const EMAIL_MAX = 254;
 const PARTY_MAX = 20;
+// Below this text-column width the form's fields are too narrow to use, so
+// a horizontal card hides its image while the form is open.
+const CRAMPED_BODY_PX = 320;
 // Same rule the server applies: one @ with a dot after it, no whitespace.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -37,12 +41,22 @@ function field(form, name, labelText, attrs) {
   return input;
 }
 
-function createRsvpForm(event, config, onClose) {
+function createRsvpForm(event, config, { onClose, onDone }) {
   const i18n = config.i18n || {};
   const invalidText =
     i18n.rsvpInvalid || "Check your name, email and party size.";
   const startedText = i18n.rsvpStarted || "This event has already started.";
   const failedText = i18n.rsvpFailed || "Could not save your RSVP. Try again.";
+  const closedText = i18n.rsvpClosed || "This event is not taking RSVPs.";
+  // Rejection codes a retry cannot fix get their own message; any other
+  // code, or none, keeps the "try again" text. A Map, so a code such as
+  // "toString" from a host's server cannot hit an Object prototype key.
+  const rejectionText = new Map([
+    ["event_started", startedText],
+    ["invalid_field", invalidText],
+    ["rsvp_unavailable", closedText],
+    ["event_not_found", closedText],
+  ]);
   // novalidate: this function is the one validator, so the message a
   // visitor sees is the widget's (translatable) one, not the browser's.
   const form = createElement("form", "already-rsvp", { novalidate: "" });
@@ -145,16 +159,23 @@ function createRsvpForm(event, config, onClose) {
         result && Number.isInteger(result.partySize)
           ? result.partySize
           : fields.partySize;
-      const done = createElement("p", "already-rsvp__done", { role: "status" });
+      // tabindex -1: focus lands on the confirmation instead of dropping to
+      // the page when the form it replaces leaves the DOM.
+      const done = createElement("p", "already-rsvp__done", {
+        role: "status",
+        tabindex: "-1",
+      });
       done.textContent = (
         i18n.rsvpDone || "You're on the list: {count} going"
       ).replaceAll("{count}", String(count));
       form.replaceWith(done);
+      onDone();
+      done.focus();
     } catch (err) {
       pending = false;
       submit.disabled = false;
       cancel.disabled = false;
-      showError(err && err.code === "event_started" ? startedText : failedText);
+      showError(rejectionText.get(err?.code) || failedText);
     }
   });
 
@@ -166,7 +187,9 @@ function createRsvpForm(event, config, onClose) {
  * offers RSVP, else appends nothing and returns null. Clicking the button
  * swaps it for the form in place; cancel or Escape swaps back. The card
  * decorator and the detail view both call this, so the predicate and the
- * control have one owner.
+ * control have one owner. While the form is open the enclosing card, if
+ * any, carries already-card--rsvp-open so the stylesheet can give the form
+ * the card's width on a phone.
  */
 export function appendRsvpControl(container, event, config) {
   if (!offersRsvp(event, config)) return null;
@@ -177,13 +200,29 @@ export function appendRsvpControl(container, event, config) {
     { type: "button" },
   );
   button.textContent = i18n.rsvp || "RSVP";
+  // The card is looked up per call: decorateRsvp mounts into a row before
+  // attaching it to the card. Width is measured on open because the host's
+  // column, not the window, decides how much room the card has.
+  const setOpen = (open) => {
+    const card = container.closest(".already-card");
+    if (!card) return;
+    const body = card.querySelector(".already-card__body");
+    const cramped = open && !!body && body.clientWidth < CRAMPED_BODY_PX;
+    card.classList.toggle(RSVP_OPEN_CLASS, open);
+    card.classList.toggle("already-card--rsvp-cramped", cramped);
+  };
   button.addEventListener("click", (e) => {
     e.stopPropagation();
-    const { form, focus } = createRsvpForm(event, config, () => {
-      form.replaceWith(button);
-      button.focus();
+    const { form, focus } = createRsvpForm(event, config, {
+      onClose: () => {
+        form.replaceWith(button);
+        setOpen(false);
+        button.focus();
+      },
+      onDone: () => setOpen(false),
     });
     button.replaceWith(form);
+    setOpen(true);
     focus();
   });
   button.addEventListener("keydown", (e) => e.stopPropagation());
@@ -193,11 +232,37 @@ export function appendRsvpControl(container, event, config) {
 
 /**
  * Card decoration, applied by the list and grid views beside decorateCard.
- * Layouts know nothing about RSVP: the button lands in whatever action
- * footer the layout rendered, so only Badge gets it today.
+ * Layouts know nothing about RSVP, so the decorator owns the row: if the
+ * layout rendered a footer holding an action (Badge's Details link), the
+ * button joins it; otherwise the button gets a footer row of its own at the
+ * end of the body. A footer without an action is not reused because it
+ * holds information (Hero's location and date), not things to click. Every
+ * layout that renders cards therefore offers the button, always in a row
+ * meant for actions. The fallback card a failed layout renders says the
+ * event could not be displayed, so it offers nothing to act on.
  */
 export function decorateRsvp(card, event, config) {
-  const footer = card.querySelector(".already-card__footer");
-  if (!footer) return;
-  appendRsvpControl(footer, event, config);
+  if (card.classList.contains("already-card--error")) return;
+  // Safe to run twice: an existing control, in any of its states, wins.
+  if (
+    card.querySelector(
+      ".already-rsvp__open, .already-rsvp, .already-rsvp__done",
+    )
+  )
+    return;
+  if (!offersRsvp(event, config)) return;
+  const actionFooter = [...card.querySelectorAll(".already-card__footer")].find(
+    (footer) => footer.querySelector(".already-card__action"),
+  );
+  if (actionFooter) {
+    actionFooter.classList.add("already-card__footer--rsvp");
+    appendRsvpControl(actionFooter, event, config);
+    return;
+  }
+  const row = createElement(
+    "div",
+    "already-card__footer already-card__footer--rsvp already-card__rsvp",
+  );
+  appendRsvpControl(row, event, config);
+  (card.querySelector(".already-card__body") || card).appendChild(row);
 }

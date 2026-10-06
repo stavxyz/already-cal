@@ -1,8 +1,12 @@
 import { formatEventWhen } from "../../util/dates.js";
 import { renderDescription } from "../../util/description.js";
-import { isCategoryTag, tagLabel } from "../../util/tags.js";
-import { createElement } from "../../views/helpers.js";
-import { buildBadge, buildCardClasses, createCardImage } from "../helpers.js";
+import { createElement, createTagPills } from "../../views/helpers.js";
+import {
+  buildBadge,
+  buildCardClasses,
+  createCardImage,
+  createPartsSlot,
+} from "../helpers.js";
 
 /**
  * Render a badge layout card.
@@ -19,7 +23,7 @@ export function render(event, options) {
   const imageEl = createCardImage(event);
   if (imageEl) {
     imageEl.classList.add("already-card__image--badged");
-    const badge = buildBadge(event.start, locale);
+    const badge = buildBadge(event.start);
     imageEl.appendChild(badge);
     card.appendChild(imageEl);
   }
@@ -28,8 +32,10 @@ export function render(event, options) {
   const body = createElement("div", "already-card__body");
 
   // Badge inline if no image
-  if (!event.image) {
-    const badge = buildBadge(event.start, locale);
+  // From what createCardImage returned, not from the event's own field: a
+  // composite can lead with a part's image when the parent has none.
+  if (!imageEl) {
+    const badge = buildBadge(event.start);
     badge.classList.add("already-card__badge--inline");
     body.appendChild(badge);
   }
@@ -54,17 +60,16 @@ export function render(event, options) {
     body.appendChild(loc);
   }
 
+  const partsSlot = createPartsSlot(event);
+  if (partsSlot) body.appendChild(partsSlot);
+
   // Tags
-  const tags = (event.tags || []).filter(isCategoryTag);
-  if (tags.length > 0) {
-    const tagsEl = createElement("div", "already-card__tags");
-    for (const tag of tags) {
-      const pill = createElement("span", "already-card__tag");
-      pill.textContent = tagLabel(tag);
-      tagsEl.appendChild(pill);
-    }
-    body.appendChild(tagsEl);
-  }
+  const tagsEl = createTagPills(
+    event,
+    "already-card__tags",
+    "already-card__tag",
+  );
+  if (tagsEl) body.appendChild(tagsEl);
 
   // Description: shared sanitization with the detail view via renderDescription.
   // Trim-gate: avoid emitting an empty `.already-card__description` div for

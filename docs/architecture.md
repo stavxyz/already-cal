@@ -36,20 +36,29 @@ eventFilter() — user hook (optional)
   Return true to keep, false to exclude.
   │
   ▼
-Stored as data.events
+Passed to onDataLoad as data.events
+  │
+  ▼
+composeEvents() (src/composite.js), once per load
+  1. visibility: entries with a truthy event.hidden leave
+  2. grouping: an entry flagged composite takes the entries that start
+     inside its hours as its parts, and the parts leave the top level
+  The widget keeps the composed result and the calendar's metadata as its
+  render-time state. It does not keep the flat list.
   │
   ▼
 Per render (on view switch, filter change, pagination, etc.):
-  1. isPast filter — past events toggle
-  2. hidden filter — removes event.hidden === true
-  3. tag filter — tag pill selection (union/OR)
-  4. sort + paginate (grid/list only)
+  1. isPast filter: past events toggle
+  2. tag filter: tag pill selection (union/OR)
+  3. sort + paginate (grid/list), or day placement (month/week/day)
   │
   ▼
 View renderer
 ```
 
 Data loading is in `src/data.js`. Enrichment helpers are in `src/util/` (comments.js, directives.js, images.js, links.js, attachments.js). The `TokenSet` deduplication container is in `src/util/tokens.js`.
+
+Composition is in `src/composite.js`: the grouping, the lookup from an id to its place in the composed result, and the accessors that combine a composite's images and tags. The day placement that the month, week, and day views receive is in `src/views/placement.js`.
 
 ## Rendering Flow
 
@@ -65,6 +74,7 @@ Data loading is in `src/data.js`. Enrichment helpers are in `src/util/` (comment
    - Renders a loading state in viewContainer
    - Loads data via `loadData(config)` (async)
    - Guards against `destroyed` flag after await (in case `destroy()` was called during load)
+   - Calls `onDataLoad` with the flat data, then composes the events once via `composeEvents()` and keeps the composed result
    - Renders the sticky header (calendar name, description, subscribe button) via `renderHeader(headerContainer, ...)` after data loads
    - Determines initial view via `getInitialView()` (priority: `initialEvent` > URL hash/path > localStorage > `defaultView`). On mobile, `mobileDefaultView` overrides if no hash is present.
    - Calls `renderView()` with the initial view state
@@ -76,7 +86,7 @@ Data loading is in `src/data.js`. Enrichment helpers are in `src/util/` (comment
 
 `renderView(viewState)` updates the UI using the persistent container structure:
 
-1. Applies past/hidden/tag filters to produce the visible event list
+1. Applies the past and tag filters to the composed top-level list. Hidden entries and the parts of a composite were set aside when the data loaded
 2. Renders tag filter pills into tagFilterContainer (or clears it for detail view) via `tagFilter.render()`
 3. Renders view selector tabs into selectorContainer (skipped for detail view) via `src/ui/view-selector.js`
 4. Updates sticky offsets for the header/selector/tag-filter stack
@@ -85,7 +95,7 @@ Data loading is in `src/data.js`. Enrichment helpers are in `src/util/` (comment
 7. Renders the past events toggle into toggleContainer via `src/ui/past-toggle.js` (only when past events exist; skipped for detail view)
 8. Renders an empty state if no events match the current filters
 
-Grid and list views use `getLayout(theme.layout)` from `src/layouts/registry.js` to get the card renderer. Month, week, and day views have their own rendering logic.
+Grid and list views use `getLayout(theme.layout)` from `src/layouts/registry.js` to get the card renderer, and pass every card through `decorateEventCard()` in `src/views/card-decoration.js`, as the month and week popover does. That one step applies the state classes and the click binding, lists a composite's parts, and adds the RSVP control. Month, week, and day views have their own rendering logic and receive a day placement from `placeByDay()` in `src/views/placement.js`. The detail view resolves its event through the composed result's `lookup(id)`, so a link to a part opens its parent.
 
 ### Hash Routing
 
@@ -190,7 +200,7 @@ Constraint violations (e.g., passing `orientation: "horizontal"` to a theme that
 
 ### Error Handling
 
-`safeRenderCard()` in `src/layouts/helpers.js` wraps every layout render call in a try/catch. If a layout function throws or returns a non-`HTMLElement` value, an error card is rendered in place of the event and the error is logged via `console.error`. `decorateCard()` in `src/views/helpers.js` applies modifier classes (`--past`, `--featured`), `data-event-id`, and click bindings — but skips error cards entirely. An unrecognized layout name in `resolveTheme()` triggers a `console.warn` before falling back to `"clean"`.
+`safeRenderCard()` in `src/layouts/helpers.js` wraps every layout render call in a try/catch. If a layout function throws or returns a non-`HTMLElement` value, an error card is rendered in place of the event and the error is logged via `console.error`. `decorateEventCard()` in `src/views/card-decoration.js` applies every decoration a card gets after its layout renders it, and skips error cards entirely. An unrecognized layout name in `resolveTheme()` triggers a `console.warn` before falling back to `"clean"`.
 
 ## Extraction Pipeline
 
@@ -266,14 +276,17 @@ The `destroyed` flag also guards the async gap in `start()` — if `destroy()` i
 
 Key import relationships (simplified):
 
-- **`already-cal.js`** imports: `registry.js`, `data.js`, `router.js`, `theme.js`, all `views/*`, all `ui/*`
+- **`already-cal.js`** imports: `registry.js`, `composite.js`, `data.js`, `router.js`, `theme.js`, all `views/*`, all `ui/*`
 - **`data.js`** imports: `util/directives.js`, `util/images.js`, `util/links.js`, `util/attachments.js`, `util/description.js`, `util/tokens.js`
 - **`theme.js`** imports: `registry.js`, `themes/registry.js` (which transitively initializes the layout registry)
 - **`themes/registry.js`** imports: `registry.js`, `layouts/registry.js` (side-effect import for layout type initialization)
 - **`layouts/registry.js`** imports: `registry.js`, all `layouts/{name}/{name}.js`
-- **`layouts/helpers.js`** imports: `views/helpers.js` (createElement), `util/dates.js`; exports `safeRenderCard`, `renderErrorCard`
-- **`views/helpers.js`** imports: `router.js`, `util/dates.js`; exports `decorateCard`, `bindEventClick`, `createElement`, etc.
-- **`views/grid.js`** and **`views/list.js`** import: `layouts/helpers.js` (safeRenderCard), `layouts/registry.js`, `views/helpers.js` (decorateCard)
-- **`views/detail.js`** imports: `views/lightbox.js`
+- **`layouts/helpers.js`** imports: `composite.js`, `views/helpers.js` (createElement), `util/dates.js`; exports `safeRenderCard`, `renderErrorCard`
+- **`composite.js`** imports: `util/dates.js`, `util/tags.js`. It imports nothing that touches the DOM
+- **`views/helpers.js`** imports: `composite.js`, `router.js`, `ui/rsvp-state.js`, `util/dates.js`, `util/tags.js`; exports `bindEventClick`, `createElement`, `createTagPills`, etc.
+- **`views/card-decoration.js`** imports: `views/helpers.js` (bindEventClick), `ui/card-parts.js`, `ui/rsvp-form.js`, `util/dates.js`; exports `decorateEventCard`, the one way to decorate a card
+- **`views/placement.js`** imports: `composite.js`, `util/dates.js`
+- **`views/grid.js`** and **`views/list.js`** import: `layouts/helpers.js` (safeRenderCard), `layouts/registry.js`, `views/card-decoration.js`
+- **`views/detail.js`** imports: `composite.js`, `views/detail-entry.js`, `views/detail-parts.js`, `views/lightbox.js`
 - **`util/directives.js`** imports: `util/images.js` (for `normalizeImageUrl`, `imageCanonicalId`), `util/sanitize.js` (for `cleanupHtml`, `stripMatches`)
 - **`ui/*` modules** are leaf nodes — they don't import from each other

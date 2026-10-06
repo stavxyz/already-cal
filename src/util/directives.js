@@ -16,6 +16,30 @@ const DIRECTIVE_PATTERN = /#already:([^\s<>]+)/gi;
 const LINKED_VALUE = /(#already:[a-z0-9-]+:)<a\b([^<>]*)>[^<]*<\/a>/gi;
 const LINKED_HREF = /(?:^|\s)href\s*=\s*(["'])([^"']*)\1/i;
 
+// Flag directives: a bare keyword after `#already:` that sets one boolean on
+// the event. One row per flag. extractDirectives intercepts the keyword and
+// enrichEvent copies the field, so a new flag is a new row here. A Map, not
+// an object, so a body such as `constructor` cannot match an inherited key.
+export const FLAG_FIELDS = new Map([
+  ["featured", "featured"],
+  ["hidden", "hidden"],
+  ["image-shuffle", "imageShuffle"],
+  ["rsvp", "rsvp"],
+  ["composite", "composite"],
+  ["standalone", "standalone"],
+  ["part-of", "partOf"],
+]);
+
+// Key-value forms held back for membership by name. They are stripped from
+// the description like any directive, and they make no tag.
+const RESERVED_KEYS = new Set(["composite", "part-of"]);
+
+function noFlags() {
+  const flags = {};
+  for (const field of FLAG_FIELDS.values()) flags[field] = false;
+  return flags;
+}
+
 // Map directive platform names to their labels, canonical prefix, and URL builder.
 // The url function constructs a real link from the directive value so that
 // directive-sourced tokens can be rendered as clickable buttons.
@@ -205,15 +229,7 @@ function parseDirective(body) {
 
 /** Extract #already: directives from description text, returning tokens and cleaned description. */
 export function extractDirectives(description) {
-  if (!description)
-    return {
-      tokens: [],
-      description,
-      featured: false,
-      hidden: false,
-      imageShuffle: false,
-      rsvp: false,
-    };
+  if (!description) return { tokens: [], description, ...noFlags() };
   description = decodeAmp(description).replace(
     LINKED_VALUE,
     (m, key, attrs) => {
@@ -224,34 +240,23 @@ export function extractDirectives(description) {
 
   const tokens = [];
   const seen = new Set();
-  let featured = false;
-  let hidden = false;
-  let imageShuffle = false;
-  let rsvp = false;
+  const flags = noFlags();
 
   const matches = [...description.matchAll(DIRECTIVE_PATTERN)];
   for (const match of matches) {
     const body = match[1];
-
-    // Intercept featured/hidden/image-shuffle flags before parseDirective
-    // (they have no colon in body)
     const bodyLower = body.toLowerCase();
-    if (bodyLower === "featured") {
-      featured = true;
+
+    // A bare keyword is a flag. A keyed body such as `rsvp:<url>` is not in
+    // the table, so it falls through to parseDirective.
+    const field = FLAG_FIELDS.get(bodyLower);
+    if (field) {
+      flags[field] = true;
       continue;
     }
-    if (bodyLower === "hidden") {
-      hidden = true;
-      continue;
-    }
-    if (bodyLower === "image-shuffle") {
-      imageShuffle = true;
-      continue;
-    }
-    // A bare `rsvp` is the native-RSVP flag; `rsvp:<url>` keeps falling
-    // through to parseDirective as a URL-valued tag (a link button).
-    if (bodyLower === "rsvp") {
-      rsvp = true;
+
+    const colonIdx = bodyLower.indexOf(":");
+    if (colonIdx > 0 && RESERVED_KEYS.has(bodyLower.slice(0, colonIdx))) {
       continue;
     }
 
@@ -271,5 +276,5 @@ export function extractDirectives(description) {
       matches.map((m) => ({ index: m.index, text: m[0] })),
     ),
   );
-  return { tokens, description: cleaned, featured, hidden, imageShuffle, rsvp };
+  return { tokens, description: cleaned, ...flags };
 }

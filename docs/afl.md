@@ -52,6 +52,7 @@ Directives let you control already-cal behavior using `#already:<type>:<value>` 
 #already:featured                  → pins event to top
 #already:hidden                    → hides from views
 #already:image-shuffle             → a stable image per occurrence, chosen from the list by a hash of the occurrence id
+#already:composite                 → shows the entries inside this one's hours as its parts
 ```
 
 All 18 built-in platforms are supported, plus aliases. For the complete reference including all platforms, URL construction, tag types, and deduplication rules, see the **[Directives Reference](directives.md)**.

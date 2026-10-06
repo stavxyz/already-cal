@@ -34,6 +34,453 @@ var Already = (() => {
     setConfig: () => setConfig
   });
 
+  // src/util/dates.js
+  var DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+  function zoneFor(isoString, timezone) {
+    return DATE_ONLY_RE.test(isoString) ? "UTC" : timezone;
+  }
+  function viewerTimeZone() {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    } catch {
+      return "UTC";
+    }
+  }
+  function resolveTimeZone(timeZone, fallback) {
+    for (const candidate of [timeZone, fallback]) {
+      if (!candidate) continue;
+      try {
+        new Intl.DateTimeFormat(void 0, { timeZone: candidate });
+        return candidate;
+      } catch {
+      }
+    }
+    return "UTC";
+  }
+  function zoneAbbrev(isoString, timeZone, locale) {
+    const parts = new Intl.DateTimeFormat(locale || "en-US", {
+      timeZone,
+      hour: "numeric",
+      timeZoneName: "short"
+    }).formatToParts(new Date(isoString));
+    const part = parts.find((p) => p.type === "timeZoneName");
+    return part ? part.value : "";
+  }
+  function wallClockDiffers(isoString, zoneA, zoneB, locale) {
+    const opts = { hour: "numeric", minute: "2-digit" };
+    const date = new Date(isoString);
+    const a = new Intl.DateTimeFormat(locale || "en-US", {
+      ...opts,
+      timeZone: zoneA
+    }).format(date);
+    const b = new Intl.DateTimeFormat(locale || "en-US", {
+      ...opts,
+      timeZone: zoneB
+    }).format(date);
+    return a !== b;
+  }
+  function parseEventDate(value) {
+    return DATE_ONLY_RE.test(value) ? /* @__PURE__ */ new Date(`${value}T00:00:00`) : new Date(value);
+  }
+  function formatDate(isoString, timezone, locale) {
+    locale = locale || "en-US";
+    return new Intl.DateTimeFormat(locale, {
+      timeZone: zoneFor(isoString, resolveTimeZone(timezone)),
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric"
+    }).format(new Date(isoString));
+  }
+  function formatDateShort(isoString, timezone, locale) {
+    locale = locale || "en-US";
+    return new Intl.DateTimeFormat(locale, {
+      timeZone: zoneFor(isoString, resolveTimeZone(timezone)),
+      month: "short",
+      day: "numeric"
+    }).format(new Date(isoString));
+  }
+  function formatDateRange(start, end, opts = {}) {
+    const {
+      allDay = false,
+      timeZone,
+      locale = "en-US",
+      withTime = true,
+      dateStyle = "short"
+    } = opts;
+    if (!start) return "";
+    const zone = zoneFor(start, timeZone);
+    const showTime = withTime && !allDay;
+    const dateOpts = dateStyle === "time" ? {} : dateStyle === "full" ? { weekday: "long", month: "long", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" };
+    const timeOpts = showTime || dateStyle === "time" ? { hour: "numeric", minute: "2-digit" } : {};
+    const fmt = new Intl.DateTimeFormat(locale || "en-US", {
+      timeZone: zone,
+      ...dateOpts,
+      ...timeOpts
+    });
+    const startDate = new Date(start);
+    if (Number.isNaN(startDate.getTime())) return "";
+    let endDate = end ? new Date(end) : null;
+    if (endDate && allDay) endDate = new Date(endDate.getTime() - 864e5);
+    const raw = !endDate || Number.isNaN(endDate.getTime()) || endDate <= startDate ? fmt.format(startDate) : fmt.formatRange(startDate, endDate);
+    return raw.replace(/\s+/g, " ");
+  }
+  function formatEventWhen(event, opts = {}) {
+    const { sourceZoneFallback, locale = "en-US", dateStyle = "short" } = opts;
+    const start = event.start;
+    const end = event.end;
+    if (!start) return "";
+    if (event.allDay || DATE_ONLY_RE.test(start)) {
+      return formatDateRange(start, end, { allDay: true, locale, dateStyle });
+    }
+    const viewer = viewerTimeZone();
+    const source = resolveTimeZone(event._sourceTimeZone, sourceZoneFallback);
+    const primary = formatDateRange(start, end, {
+      timeZone: viewer,
+      locale,
+      dateStyle
+    });
+    if (source === viewer || !wallClockDiffers(start, source, viewer, locale)) {
+      return primary;
+    }
+    const sourceTime = formatDateRange(start, void 0, {
+      timeZone: source,
+      locale,
+      dateStyle: "time"
+    });
+    const abbrev = zoneAbbrev(start, source, locale);
+    return `${primary} \xB7 ${sourceTime}${abbrev ? ` ${abbrev}` : ""}`;
+  }
+  function getDaysInMonth(year, month) {
+    return new Date(year, month + 1, 0).getDate();
+  }
+  function getFirstDayOfMonth(year, month, weekStartDay) {
+    weekStartDay = weekStartDay || 0;
+    const raw = new Date(year, month, 1).getDay();
+    return (raw - weekStartDay + 7) % 7;
+  }
+  function isSameDay(d1, d2) {
+    return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+  }
+  function isToday(date) {
+    return isSameDay(date, /* @__PURE__ */ new Date());
+  }
+  function isPast(isoString) {
+    return parseEventDate(isoString) < /* @__PURE__ */ new Date();
+  }
+  function getMonthName(year, month, locale) {
+    locale = locale || "en-US";
+    return new Intl.DateTimeFormat(locale, {
+      month: "long",
+      year: "numeric"
+    }).format(new Date(year, month));
+  }
+  function getDatePartsInTz(isoString, timezone) {
+    const d = new Date(isoString);
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: zoneFor(isoString, timezone),
+      year: "numeric",
+      month: "numeric",
+      day: "numeric"
+    });
+    const parts = {};
+    for (const { type, value } of fmt.formatToParts(d)) {
+      if (type === "year") parts.year = parseInt(value, 10);
+      if (type === "month") parts.month = parseInt(value, 10) - 1;
+      if (type === "day") parts.day = parseInt(value, 10);
+    }
+    return parts;
+  }
+  function getEventDateParts(isoString) {
+    return getDatePartsInTz(isoString, viewerTimeZone());
+  }
+  function dayKey(isoString, zone) {
+    if (!isoString || Number.isNaN(new Date(isoString).getTime())) return "";
+    const p = getDatePartsInTz(isoString, zone);
+    const two = (n) => String(n).padStart(2, "0");
+    return `${p.year}-${two(p.month + 1)}-${two(p.day)}`;
+  }
+  function dayKeyInZone(isoString, timeZone, fallback) {
+    return dayKey(isoString, resolveTimeZone(timeZone, fallback));
+  }
+  function eventDayKey(isoString) {
+    return dayKey(isoString, viewerTimeZone());
+  }
+  function startOrder(entry) {
+    return parseEventDate(entry.start).getTime();
+  }
+  function formatScheduleTime(event, opts = {}) {
+    const { sourceZoneFallback, locale, allDayLabel = "All Day" } = opts;
+    if (event.allDay) return allDayLabel;
+    const startDay = eventDayKey(event.start);
+    const oneDay = startDay !== "" && startDay === eventDayKey(event.end);
+    return formatEventWhen(
+      { ...event, end: oneDay ? event.end : void 0 },
+      { sourceZoneFallback, locale, dateStyle: "time" }
+    );
+  }
+  var MONTH_NAMES_SHORT = [
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAY",
+    "JUN",
+    "JUL",
+    "AUG",
+    "SEP",
+    "OCT",
+    "NOV",
+    "DEC"
+  ];
+  function toDateKey(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  function parseDateKey(key) {
+    const [year, month, day] = String(key).split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+  function getWeekDates(date, weekStartDay) {
+    weekStartDay = weekStartDay || 0;
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = (day - weekStartDay + 7) % 7;
+    const start = new Date(d);
+    start.setDate(d.getDate() - diff);
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const current = new Date(start);
+      current.setDate(start.getDate() + i);
+      dates.push(current);
+    }
+    return dates;
+  }
+  function getDayNames(locale, weekStartDay) {
+    locale = locale || "en-US";
+    weekStartDay = weekStartDay || 0;
+    const names = [];
+    const base = new Date(2026, 0, 4);
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + (weekStartDay + i) % 7);
+      names.push(new Intl.DateTimeFormat(locale, { weekday: "short" }).format(d));
+    }
+    return names;
+  }
+
+  // src/util/tags.js
+  function hasKey(tag2) {
+    return tag2 != null && typeof tag2 === "object" && typeof tag2.key === "string" && tag2.key !== "";
+  }
+  function isLinkTag(tag2) {
+    return hasKey(tag2) && tag2.key !== "tag" && typeof tag2.value === "string" && tag2.value.startsWith("http");
+  }
+  function isCategoryTag(tag2) {
+    if (typeof tag2 === "string") return tag2.trim() !== "";
+    if (!hasKey(tag2) || isLinkTag(tag2)) return false;
+    if (typeof tag2.value === "string") return tag2.value.trim() !== "";
+    return Number.isFinite(tag2.value);
+  }
+  function tagLabel(tag2) {
+    if (typeof tag2 === "string") return tag2;
+    if (tag2 == null) return "";
+    const value = String(tag2.value ?? "");
+    return tag2.key === "tag" ? value : `${tag2.key}: ${value}`;
+  }
+
+  // src/composite.js
+  var NO_PARTS = Object.freeze([]);
+  function isDateOnly(value) {
+    return typeof value === "string" && DATE_ONLY_RE.test(value);
+  }
+  var FLOATING_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/;
+  var isFloating = (value) => typeof value === "string" && FLOATING_RE.test(value);
+  var OFFSET_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/;
+  function zoneFreeTime(value) {
+    if (isDateOnly(value)) return new Date(value).getTime();
+    if (isFloating(value)) return (/* @__PURE__ */ new Date(`${value}Z`)).getTime();
+    if (typeof value === "string" && OFFSET_RE.test(value)) {
+      return new Date(value).getTime();
+    }
+    return Number.NaN;
+  }
+  var sourceOf = (entry) => entry._sourceKey ?? null;
+  var startInstant = (entry) => zoneFreeTime(entry.start);
+  function windowOf(parent) {
+    if (isDateOnly(parent.start)) {
+      if (!isDateOnly(parent.end) || parent.end <= parent.start) return null;
+      return {
+        allDay: true,
+        from: parent.start,
+        to: parent.end,
+        length: zoneFreeTime(parent.end) - zoneFreeTime(parent.start)
+      };
+    }
+    const from = zoneFreeTime(parent.start);
+    const to = zoneFreeTime(parent.end);
+    if (Number.isNaN(from) || Number.isNaN(to) || to <= from) return null;
+    return { allDay: false, from, to, length: to - from };
+  }
+  function positionOf(entry) {
+    if (isDateOnly(entry.start)) return { date: entry.start, at: Number.NaN };
+    return { date: null, at: zoneFreeTime(entry.start) };
+  }
+  function dateInOwnZone(entry, calendarZone) {
+    if (isFloating(entry.start)) return entry.start.slice(0, 10);
+    return dayKeyInZone(entry.start, entry._sourceTimeZone, calendarZone);
+  }
+  function startsInside(entry, position2, win, calendarZone) {
+    if (position2.date !== null) {
+      return win.allDay && position2.date >= win.from && position2.date < win.to;
+    }
+    if (Number.isNaN(position2.at)) return false;
+    if (!win.allDay) return position2.at >= win.from && position2.at < win.to;
+    position2.ownDate ??= dateInOwnZone(entry, calendarZone);
+    return position2.ownDate >= win.from && position2.ownDate < win.to;
+  }
+  function isCloser(a, b) {
+    if (a.own !== b.own) return a.own;
+    if (a.parent.win.length !== b.parent.win.length) {
+      return a.parent.win.length < b.parent.win.length;
+    }
+    if (a.parent.start !== b.parent.start) return a.parent.start > b.parent.start;
+    return a.parent.index < b.parent.index;
+  }
+  function selectVisible(events) {
+    return events.filter((e) => !e.hidden);
+  }
+  function groupParts(visible, { timeZone } = {}) {
+    const parents = [];
+    for (const [index, entry] of visible.entries()) {
+      if (!entry.composite || entry.id == null) continue;
+      const win = windowOf(entry);
+      if (!win) continue;
+      parents.push({
+        entry,
+        index,
+        win,
+        start: startInstant(entry),
+        source: sourceOf(entry),
+        taken: []
+      });
+    }
+    if (parents.length === 0) return visible;
+    const partIndexes = /* @__PURE__ */ new Set();
+    for (const [index, entry] of visible.entries()) {
+      if (entry.composite || entry.standalone) continue;
+      const position2 = positionOf(entry);
+      const source = sourceOf(entry);
+      let best = null;
+      for (const parent of parents) {
+        const own = parent.source === source;
+        if (!own && !entry.partOf) continue;
+        if (!startsInside(entry, position2, parent.win, timeZone)) continue;
+        const candidate = { parent, own };
+        if (best === null || isCloser(candidate, best)) best = candidate;
+      }
+      if (!best) continue;
+      best.parent.taken.push({ entry, index });
+      partIndexes.add(index);
+    }
+    const composed = /* @__PURE__ */ new Map();
+    for (const parent of parents) {
+      if (parent.taken.length === 0) continue;
+      parent.taken.sort(
+        (a, b) => startOrder(a.entry) - startOrder(b.entry) || a.index - b.index
+      );
+      composed.set(parent.index, {
+        ...parent.entry,
+        parts: parent.taken.map((t) => ({
+          ...t.entry,
+          parentId: parent.entry.id
+        }))
+      });
+    }
+    const topLevel = [];
+    for (const [index, entry] of visible.entries()) {
+      if (partIndexes.has(index)) continue;
+      topLevel.push(composed.get(index) ?? entry);
+    }
+    return topLevel;
+  }
+  function partsOf(event) {
+    const parts = event?.parts;
+    if (!event?.composite || event.id == null) return NO_PARTS;
+    if (!Array.isArray(parts) || parts.length === 0) return NO_PARTS;
+    return parts.every((p) => p && p.parentId === event.id) ? parts : NO_PARTS;
+  }
+  function composeEvents(events, options2 = {}) {
+    const all = Array.isArray(events) ? events : [];
+    const topLevel = groupParts(selectVisible(all), options2);
+    const index = /* @__PURE__ */ new Map();
+    const remember = (id, value) => {
+      if (id != null && !index.has(id)) index.set(id, value);
+    };
+    for (const event of topLevel) {
+      remember(event.id, { event, part: null });
+      for (const part of partsOf(event)) {
+        remember(part.id, { event, part });
+      }
+    }
+    for (const entry of all) {
+      if (entry.hidden) remember(entry.id, { event: entry, part: null });
+    }
+    return { events: topLevel, lookup: (id) => index.get(id) ?? null };
+  }
+  var SET_ASIDE_MARKS = /[\u0300-\u036f\u20d0-\u20ff\ufe00-\ufe0f\u{e0100}-\u{e01ef}]/gu;
+  var KEPT = /[\p{L}\p{N}]\p{M}*/gu;
+  function titleKey(title) {
+    const text = String(title ?? "").normalize("NFKD").toLowerCase();
+    return (text.replace(SET_ASIDE_MARKS, "").match(KEPT) ?? []).join("");
+  }
+  function isSecondListing(part, parent) {
+    const key = titleKey(part?.title);
+    return key !== "" && key === titleKey(parent?.title);
+  }
+  function ownImages(event) {
+    if (Array.isArray(event.images) && event.images.length > 0) {
+      return event.images;
+    }
+    return event.image ? [event.image] : [];
+  }
+  function compositeImages(event) {
+    const parts = partsOf(event);
+    const own = ownImages(event);
+    if (parts.length === 0) return own;
+    const seen = /* @__PURE__ */ new Set();
+    const out = [];
+    for (const url of [...own, ...parts.flatMap(ownImages)]) {
+      if (seen.has(url)) continue;
+      seen.add(url);
+      out.push(url);
+    }
+    return out;
+  }
+  function compositeLeadImage(event) {
+    const own = event.image || null;
+    if (own || partsOf(event).length === 0) return own;
+    return compositeImages(event)[0] || null;
+  }
+  function compositeTags(event) {
+    const parts = partsOf(event);
+    const own = event.tags || [];
+    if (parts.length === 0) return own;
+    const seen = new Set(own.map(tagLabel));
+    const out = [...own];
+    for (const part of parts) {
+      for (const tag2 of part.tags || []) {
+        const label = tagLabel(tag2);
+        if (seen.has(label)) continue;
+        seen.add(label);
+        out.push(tag2);
+      }
+    }
+    return out;
+  }
+
   // src/util/html-entities.js
   function decodeAmp(text) {
     return text.replace(/&amp;/g, "&");
@@ -3027,6 +3474,21 @@ ${text}</tr>
   var DIRECTIVE_PATTERN = /#already:([^\s<>]+)/gi;
   var LINKED_VALUE = /(#already:[a-z0-9-]+:)<a\b([^<>]*)>[^<]*<\/a>/gi;
   var LINKED_HREF = /(?:^|\s)href\s*=\s*(["'])([^"']*)\1/i;
+  var FLAG_FIELDS = /* @__PURE__ */ new Map([
+    ["featured", "featured"],
+    ["hidden", "hidden"],
+    ["image-shuffle", "imageShuffle"],
+    ["rsvp", "rsvp"],
+    ["composite", "composite"],
+    ["standalone", "standalone"],
+    ["part-of", "partOf"]
+  ]);
+  var RESERVED_KEYS = /* @__PURE__ */ new Set(["composite", "part-of"]);
+  function noFlags() {
+    const flags = {};
+    for (const field2 of FLAG_FIELDS.values()) flags[field2] = false;
+    return flags;
+  }
   var DIRECTIVE_PLATFORMS = {
     instagram: {
       label: (v) => `Follow @${v} on Instagram`,
@@ -3200,15 +3662,7 @@ ${text}</tr>
     };
   }
   function extractDirectives(description) {
-    if (!description)
-      return {
-        tokens: [],
-        description,
-        featured: false,
-        hidden: false,
-        imageShuffle: false,
-        rsvp: false
-      };
+    if (!description) return { tokens: [], description, ...noFlags() };
     description = decodeAmp(description).replace(
       LINKED_VALUE,
       (m, key, attrs) => {
@@ -3218,28 +3672,18 @@ ${text}</tr>
     );
     const tokens = [];
     const seen = /* @__PURE__ */ new Set();
-    let featured = false;
-    let hidden = false;
-    let imageShuffle = false;
-    let rsvp = false;
+    const flags = noFlags();
     const matches = [...description.matchAll(DIRECTIVE_PATTERN)];
     for (const match of matches) {
       const body = match[1];
       const bodyLower = body.toLowerCase();
-      if (bodyLower === "featured") {
-        featured = true;
+      const field2 = FLAG_FIELDS.get(bodyLower);
+      if (field2) {
+        flags[field2] = true;
         continue;
       }
-      if (bodyLower === "hidden") {
-        hidden = true;
-        continue;
-      }
-      if (bodyLower === "image-shuffle") {
-        imageShuffle = true;
-        continue;
-      }
-      if (bodyLower === "rsvp") {
-        rsvp = true;
+      const colonIdx = bodyLower.indexOf(":");
+      if (colonIdx > 0 && RESERVED_KEYS.has(bodyLower.slice(0, colonIdx))) {
         continue;
       }
       const token = parseDirective(body);
@@ -3255,7 +3699,7 @@ ${text}</tr>
         matches.map((m) => ({ index: m.index, text: m[0] }))
       )
     );
-    return { tokens, description: cleaned, featured, hidden, imageShuffle, rsvp };
+    return { tokens, description: cleaned, ...flags };
   }
 
   // src/util/hash.js
@@ -3309,20 +3753,18 @@ ${text}</tr>
     let image = event.image || null;
     let images = event.images && event.images.length > 0 ? event.images : [];
     let links = event.links && event.links.length > 0 ? event.links : [];
-    let featured = event.featured || false;
-    let hidden = event.hidden || false;
-    let imageShuffle = event.imageShuffle || false;
-    let rsvp = event.rsvp || false;
+    const flags = {};
+    for (const field2 of FLAG_FIELDS.values())
+      flags[field2] = event[field2] || false;
     const tokenSet = new TokenSet();
     description = stripComments(description);
     if (description) {
       const result = extractDirectives(description);
       description = result.description;
       tokenSet.addAll(result.tokens);
-      if (result.featured) featured = true;
-      if (result.hidden) hidden = true;
-      if (result.imageShuffle) imageShuffle = true;
-      if (result.rsvp) rsvp = true;
+      for (const field2 of FLAG_FIELDS.values()) {
+        if (result[field2]) flags[field2] = true;
+      }
     }
     if (images.length === 0 && description) {
       const result = extractImageTokens(description, config);
@@ -3365,7 +3807,7 @@ ${text}</tr>
     if (imageTokens.length > 0 && images.length === 0) {
       images = imageTokens.map((t) => t.url);
     }
-    if (imageShuffle && images.length > 1 && !image) {
+    if (flags.imageShuffle && images.length > 1 && !image) {
       const i = stableIndex(event.id, images.length);
       images = [images[i], ...images.slice(0, i), ...images.slice(i + 1)];
     }
@@ -3400,10 +3842,7 @@ ${text}</tr>
       links,
       attachments,
       tags,
-      featured,
-      hidden,
-      imageShuffle,
-      rsvp,
+      ...flags,
       htmlLink: event.htmlLink || ""
     };
   }
@@ -3449,7 +3888,10 @@ ${text}</tr>
         htmlLink: item.htmlLink || "",
         attachments: apiAttachments,
         _imageAttachments: imageAttachments,
-        _sourceTimeZone: item._sourceTimeZone
+        _sourceTimeZone: item._sourceTimeZone,
+        // Only when the producer supplied one: an absent key and an undefined
+        // one are different things to a host comparing event shapes.
+        ...item._sourceKey !== void 0 ? { _sourceKey: item._sourceKey } : {}
       },
       config
     );
@@ -3593,239 +4035,6 @@ ${text}</tr>
     return () => window.removeEventListener("hashchange", handler);
   }
 
-  // src/util/dates.js
-  var DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
-  function zoneFor(isoString, timezone) {
-    return DATE_ONLY_RE.test(isoString) ? "UTC" : timezone;
-  }
-  function viewerTimeZone() {
-    try {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-    } catch {
-      return "UTC";
-    }
-  }
-  function resolveTimeZone(timeZone, fallback) {
-    for (const candidate of [timeZone, fallback]) {
-      if (!candidate) continue;
-      try {
-        new Intl.DateTimeFormat(void 0, { timeZone: candidate });
-        return candidate;
-      } catch {
-      }
-    }
-    return "UTC";
-  }
-  function zoneAbbrev(isoString, timeZone, locale) {
-    const parts = new Intl.DateTimeFormat(locale || "en-US", {
-      timeZone,
-      hour: "numeric",
-      timeZoneName: "short"
-    }).formatToParts(new Date(isoString));
-    const part = parts.find((p) => p.type === "timeZoneName");
-    return part ? part.value : "";
-  }
-  function wallClockDiffers(isoString, zoneA, zoneB, locale) {
-    const opts = { hour: "numeric", minute: "2-digit" };
-    const date = new Date(isoString);
-    const a = new Intl.DateTimeFormat(locale || "en-US", {
-      ...opts,
-      timeZone: zoneA
-    }).format(date);
-    const b = new Intl.DateTimeFormat(locale || "en-US", {
-      ...opts,
-      timeZone: zoneB
-    }).format(date);
-    return a !== b;
-  }
-  function parseEventDate(value) {
-    return DATE_ONLY_RE.test(value) ? /* @__PURE__ */ new Date(`${value}T00:00:00`) : new Date(value);
-  }
-  function formatDate(isoString, timezone, locale) {
-    locale = locale || "en-US";
-    return new Intl.DateTimeFormat(locale, {
-      timeZone: zoneFor(isoString, resolveTimeZone(timezone)),
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric"
-    }).format(new Date(isoString));
-  }
-  function formatDateShort(isoString, timezone, locale) {
-    locale = locale || "en-US";
-    return new Intl.DateTimeFormat(locale, {
-      timeZone: zoneFor(isoString, resolveTimeZone(timezone)),
-      month: "short",
-      day: "numeric"
-    }).format(new Date(isoString));
-  }
-  function formatDateRange(start, end, opts = {}) {
-    const {
-      allDay = false,
-      timeZone,
-      locale = "en-US",
-      withTime = true,
-      dateStyle = "short"
-    } = opts;
-    if (!start) return "";
-    const zone = zoneFor(start, timeZone);
-    const showTime = withTime && !allDay;
-    const dateOpts = dateStyle === "time" ? {} : dateStyle === "full" ? { weekday: "long", month: "long", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" };
-    const timeOpts = showTime || dateStyle === "time" ? { hour: "numeric", minute: "2-digit" } : {};
-    const fmt = new Intl.DateTimeFormat(locale || "en-US", {
-      timeZone: zone,
-      ...dateOpts,
-      ...timeOpts
-    });
-    const startDate = new Date(start);
-    if (Number.isNaN(startDate.getTime())) return "";
-    let endDate = end ? new Date(end) : null;
-    if (endDate && allDay) endDate = new Date(endDate.getTime() - 864e5);
-    const raw = !endDate || Number.isNaN(endDate.getTime()) || endDate <= startDate ? fmt.format(startDate) : fmt.formatRange(startDate, endDate);
-    return raw.replace(/\s+/g, " ");
-  }
-  function formatEventWhen(event, opts = {}) {
-    const { sourceZoneFallback, locale = "en-US", dateStyle = "short" } = opts;
-    const start = event.start;
-    const end = event.end;
-    if (!start) return "";
-    if (event.allDay || DATE_ONLY_RE.test(start)) {
-      return formatDateRange(start, end, { allDay: true, locale, dateStyle });
-    }
-    const viewer = viewerTimeZone();
-    const source = resolveTimeZone(event._sourceTimeZone, sourceZoneFallback);
-    const primary = formatDateRange(start, end, {
-      timeZone: viewer,
-      locale,
-      dateStyle
-    });
-    if (source === viewer || !wallClockDiffers(start, source, viewer, locale)) {
-      return primary;
-    }
-    const sourceTime = formatDateRange(start, void 0, {
-      timeZone: source,
-      locale,
-      dateStyle: "time"
-    });
-    const abbrev = zoneAbbrev(start, source, locale);
-    return `${primary} \xB7 ${sourceTime}${abbrev ? ` ${abbrev}` : ""}`;
-  }
-  function getDaysInMonth(year, month) {
-    return new Date(year, month + 1, 0).getDate();
-  }
-  function getFirstDayOfMonth(year, month, weekStartDay) {
-    weekStartDay = weekStartDay || 0;
-    const raw = new Date(year, month, 1).getDay();
-    return (raw - weekStartDay + 7) % 7;
-  }
-  function isSameDay(d1, d2) {
-    return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
-  }
-  function isToday(date) {
-    return isSameDay(date, /* @__PURE__ */ new Date());
-  }
-  function isPast(isoString) {
-    return parseEventDate(isoString) < /* @__PURE__ */ new Date();
-  }
-  function getMonthName(year, month, locale) {
-    locale = locale || "en-US";
-    return new Intl.DateTimeFormat(locale, {
-      month: "long",
-      year: "numeric"
-    }).format(new Date(year, month));
-  }
-  function getDatePartsInTz(isoString, timezone, locale) {
-    locale = locale || "en-US";
-    const d = new Date(isoString);
-    const fmt = new Intl.DateTimeFormat(locale, {
-      timeZone: zoneFor(isoString, timezone),
-      year: "numeric",
-      month: "numeric",
-      day: "numeric"
-    });
-    const parts = {};
-    for (const { type, value } of fmt.formatToParts(d)) {
-      if (type === "year") parts.year = parseInt(value, 10);
-      if (type === "month") parts.month = parseInt(value, 10) - 1;
-      if (type === "day") parts.day = parseInt(value, 10);
-    }
-    return parts;
-  }
-  function getEventDateParts(isoString, locale) {
-    return getDatePartsInTz(isoString, viewerTimeZone(), locale);
-  }
-  var MONTH_NAMES_SHORT = [
-    "JAN",
-    "FEB",
-    "MAR",
-    "APR",
-    "MAY",
-    "JUN",
-    "JUL",
-    "AUG",
-    "SEP",
-    "OCT",
-    "NOV",
-    "DEC"
-  ];
-  function toDateKey(date) {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  }
-  function parseDateKey(key) {
-    const [year, month, day] = String(key).split("-").map(Number);
-    return new Date(year, month - 1, day);
-  }
-  function getWeekDates(date, weekStartDay) {
-    weekStartDay = weekStartDay || 0;
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = (day - weekStartDay + 7) % 7;
-    const start = new Date(d);
-    start.setDate(d.getDate() - diff);
-    const dates = [];
-    for (let i = 0; i < 7; i++) {
-      const current = new Date(start);
-      current.setDate(start.getDate() + i);
-      dates.push(current);
-    }
-    return dates;
-  }
-  function getDayNames(locale, weekStartDay) {
-    locale = locale || "en-US";
-    weekStartDay = weekStartDay || 0;
-    const names = [];
-    const base = new Date(2026, 0, 4);
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(base);
-      d.setDate(base.getDate() + (weekStartDay + i) % 7);
-      names.push(new Intl.DateTimeFormat(locale, { weekday: "short" }).format(d));
-    }
-    return names;
-  }
-
-  // src/util/tags.js
-  function hasKey(tag2) {
-    return tag2 != null && typeof tag2 === "object" && typeof tag2.key === "string" && tag2.key !== "";
-  }
-  function isLinkTag(tag2) {
-    return hasKey(tag2) && tag2.key !== "tag" && typeof tag2.value === "string" && tag2.value.startsWith("http");
-  }
-  function isCategoryTag(tag2) {
-    if (typeof tag2 === "string") return tag2.trim() !== "";
-    if (!hasKey(tag2) || isLinkTag(tag2)) return false;
-    if (typeof tag2.value === "string") return tag2.value.trim() !== "";
-    return Number.isFinite(tag2.value);
-  }
-  function tagLabel(tag2) {
-    if (typeof tag2 === "string") return tag2;
-    if (tag2 == null) return "";
-    const value = String(tag2.value ?? "");
-    return tag2.key === "tag" ? value : `${tag2.key}: ${value}`;
-  }
-
   // src/ui/rsvp-state.js
   var RSVP_OPEN_CLASS = "already-card--rsvp-open";
 
@@ -3840,6 +4049,17 @@ ${text}</tr>
     }
     return el;
   }
+  function createTagPills(event, wrapperClass, pillClass) {
+    const tags = compositeTags(event).filter(isCategoryTag);
+    if (tags.length === 0) return null;
+    const wrapper = createElement("div", wrapperClass);
+    for (const tag2 of tags) {
+      const pill = createElement("span", pillClass);
+      pill.textContent = tagLabel(tag2);
+      wrapper.appendChild(pill);
+    }
+    return wrapper;
+  }
   function bindEventClick(el, event, viewName, config, { stopPropagation = false } = {}) {
     const rsvpOpen = () => el.classList.contains(RSVP_OPEN_CLASS);
     function handleClick(e) {
@@ -3849,7 +4069,7 @@ ${text}</tr>
         const result = config.onEventClick(event, viewName);
         if (result === false) return;
       }
-      setEventDetail(event.id);
+      setEventDetail(event.id ?? event.parentId);
     }
     el.addEventListener("click", handleClick);
     el.addEventListener("keydown", (e) => {
@@ -3869,27 +4089,13 @@ ${text}</tr>
     if (event.featured) cls += ` ${baseClass}--featured`;
     el.className = cls;
   }
-  function decorateCard(card, event, viewName, config) {
-    if (card.classList.contains("already-card--error")) return;
-    if (isPast(event.end || event.start))
-      card.classList.add("already-card--past");
-    if (event.featured) card.classList.add("already-card--featured");
-    card.dataset.eventId = event.id;
-    bindEventClick(card, event, viewName, config);
-  }
-  function filterHidden(events) {
-    return events.filter((e) => !e.hidden);
-  }
   function sortFeatured(events) {
     return [...events].sort(
       (a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0)
     );
   }
-  function sortFeaturedByDate(events, locale) {
-    const dateKey = (e) => {
-      const p = getEventDateParts(e.start, locale);
-      return `${p.year}-${p.month}-${p.day}`;
-    };
+  function sortFeaturedByDate(events) {
+    const dateKey = (e) => eventDayKey(e.start);
     const groups = /* @__PURE__ */ new Map();
     for (const e of events) {
       const key = dateKey(e);
@@ -3911,10 +4117,11 @@ ${text}</tr>
     return cls;
   }
   function createCardImage(event) {
-    if (!event.image) return null;
+    const src = compositeLeadImage(event);
+    if (!src) return null;
     const wrapper = createElement("div", "already-card__image");
     const img = document.createElement("img");
-    img.src = event.image;
+    img.src = src;
     img.alt = event.title;
     img.setAttribute("loading", "lazy");
     img.onerror = () => {
@@ -3932,8 +4139,12 @@ ${text}</tr>
     wrapper.appendChild(img);
     return wrapper;
   }
-  function buildBadge(isoString, locale) {
-    const dateParts = getEventDateParts(isoString, locale);
+  function createPartsSlot(event) {
+    if (partsOf(event).length === 0) return null;
+    return createElement("div", "already-card__parts");
+  }
+  function buildBadge(isoString) {
+    const dateParts = getEventDateParts(isoString);
     const badge = createElement("div", "already-card__badge");
     const day = createElement("div", "already-card__badge-day");
     day.textContent = dateParts.day;
@@ -3981,13 +4192,13 @@ ${text}</tr>
     const imageEl = createCardImage(event);
     if (imageEl) {
       imageEl.classList.add("already-card__image--badged");
-      const badge = buildBadge(event.start, locale);
+      const badge = buildBadge(event.start);
       imageEl.appendChild(badge);
       card.appendChild(imageEl);
     }
     const body = createElement("div", "already-card__body");
-    if (!event.image) {
-      const badge = buildBadge(event.start, locale);
+    if (!imageEl) {
+      const badge = buildBadge(event.start);
       badge.classList.add("already-card__badge--inline");
       body.appendChild(badge);
     }
@@ -4006,16 +4217,14 @@ ${text}</tr>
       loc.textContent = `\u{1F4CD} ${event.location}`;
       body.appendChild(loc);
     }
-    const tags = (event.tags || []).filter(isCategoryTag);
-    if (tags.length > 0) {
-      const tagsEl = createElement("div", "already-card__tags");
-      for (const tag2 of tags) {
-        const pill = createElement("span", "already-card__tag");
-        pill.textContent = tagLabel(tag2);
-        tagsEl.appendChild(pill);
-      }
-      body.appendChild(tagsEl);
-    }
+    const partsSlot = createPartsSlot(event);
+    if (partsSlot) body.appendChild(partsSlot);
+    const tagsEl = createTagPills(
+      event,
+      "already-card__tags",
+      "already-card__tag"
+    );
+    if (tagsEl) body.appendChild(tagsEl);
     if (event.description?.trim()) {
       const desc = createElement("div", "already-card__description");
       desc.innerHTML = renderDescription(event.description, options2.config);
@@ -4059,6 +4268,8 @@ ${text}</tr>
       loc.textContent = event.location;
       body.appendChild(loc);
     }
+    const partsSlot = createPartsSlot(event);
+    if (partsSlot) body.appendChild(partsSlot);
     card.appendChild(body);
     return card;
   }
@@ -4086,21 +4297,19 @@ ${text}</tr>
       loc.textContent = `\u{1F4CD} ${event.location}`;
       info.appendChild(loc);
     }
+    const partsSlot = createPartsSlot(event);
+    if (partsSlot) info.appendChild(partsSlot);
     row.appendChild(info);
-    const badge = buildBadge(event.start, locale);
+    const badge = buildBadge(event.start);
     badge.classList.add("already-card__badge--inline");
     row.appendChild(badge);
     body.appendChild(row);
-    const tags = (event.tags || []).filter(isCategoryTag);
-    if (tags.length > 0) {
-      const tagsEl = createElement("div", "already-card__tags");
-      for (const tag2 of tags) {
-        const pill = createElement("span", "already-card__tag");
-        pill.textContent = tagLabel(tag2);
-        tagsEl.appendChild(pill);
-      }
-      body.appendChild(tagsEl);
-    }
+    const tagsEl = createTagPills(
+      event,
+      "already-card__tags",
+      "already-card__tag"
+    );
+    if (tagsEl) body.appendChild(tagsEl);
     card.appendChild(body);
     return card;
   }
@@ -4116,6 +4325,8 @@ ${text}</tr>
     const title = createElement("div", "already-card__title");
     title.textContent = event.title;
     body.appendChild(title);
+    const partsSlot = createPartsSlot(event);
+    if (partsSlot) body.appendChild(partsSlot);
     if (event.description?.trim()) {
       const desc = createElement("div", "already-card__description");
       desc.innerHTML = renderDescription(event.description, options2.config);
@@ -4346,6 +4557,273 @@ ${text}</tr>
     return { ...theme, overrideKeys };
   }
 
+  // src/ui/card-parts.js
+  var MAX_PARTS = 3;
+  function partWhen(part, parent, { timezone, locale, i18n }) {
+    const otherDay = eventDayKey(part.start) !== eventDayKey(parent.start);
+    if (part.allDay && !otherDay) return i18n.allDay || "All Day";
+    return formatEventWhen(
+      { ...part, end: void 0 },
+      {
+        sourceZoneFallback: timezone,
+        locale,
+        dateStyle: otherDay ? "short" : "time"
+      }
+    );
+  }
+  function decorateParts(card, event, config, { timezone } = {}) {
+    const slot = card.querySelector(".already-card__parts");
+    const parts = partsOf(event);
+    if (parts.length === 0) {
+      slot?.remove();
+      return;
+    }
+    card.classList.add("already-card--composite");
+    const listed = parts.filter((part) => !isSecondListing(part, event));
+    if (listed.length === 0) {
+      slot?.remove();
+      return;
+    }
+    const i18n = config?.i18n || {};
+    const format = { timezone, locale: config?.locale, i18n };
+    const block2 = slot || createElement("div", "already-card__parts");
+    block2.textContent = "";
+    for (const part of listed.slice(0, MAX_PARTS)) {
+      const line = createElement("div", "already-card__part");
+      const when = createElement("span", "already-card__part-time");
+      when.textContent = partWhen(part, event, format);
+      line.appendChild(when);
+      if (part.title) {
+        const title = createElement("span", "already-card__part-title");
+        title.textContent = part.title;
+        line.append(" ", title);
+      }
+      block2.appendChild(line);
+    }
+    if (listed.length > MAX_PARTS) {
+      const more = createElement("div", "already-card__parts-more");
+      more.textContent = (i18n.moreParts || "+{count} more").replace(
+        "{count}",
+        listed.length - MAX_PARTS
+      );
+      block2.appendChild(more);
+    }
+    if (!slot) {
+      (card.querySelector(".already-card__body") || card).appendChild(block2);
+    }
+  }
+
+  // src/ui/rsvp-form.js
+  var NAME_MAX = 80;
+  var EMAIL_MAX = 254;
+  var PARTY_MAX = 20;
+  var CRAMPED_BODY_PX = 320;
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  function offersRsvp(event, config, now = /* @__PURE__ */ new Date()) {
+    if (!config || typeof config.onRsvp !== "function") return false;
+    if (!(event.rsvp || config.rsvpAllEvents)) return false;
+    if (!event.start) return false;
+    const start = parseEventDate(event.start);
+    if (Number.isNaN(start.getTime())) return false;
+    return start > now;
+  }
+  function field(form, name, labelText, attrs) {
+    const wrap = createElement("label", "already-rsvp__field");
+    const text = createElement("span", "already-rsvp__label");
+    text.textContent = labelText;
+    const input = createElement("input", "already-rsvp__input", {
+      name,
+      ...attrs
+    });
+    wrap.appendChild(text);
+    wrap.appendChild(input);
+    form.appendChild(wrap);
+    return input;
+  }
+  function createRsvpForm(event, config, { onClose, onDone }) {
+    const i18n = config.i18n || {};
+    const invalidText = i18n.rsvpInvalid || "Check your name, email and party size.";
+    const startedText = i18n.rsvpStarted || "This event has already started.";
+    const failedText = i18n.rsvpFailed || "Could not save your RSVP. Try again.";
+    const closedText = i18n.rsvpClosed || "This event is not taking RSVPs.";
+    const rejectionText = /* @__PURE__ */ new Map([
+      ["event_started", startedText],
+      ["invalid_field", invalidText],
+      ["rsvp_unavailable", closedText],
+      ["event_not_found", closedText]
+    ]);
+    const form = createElement("form", "already-rsvp", { novalidate: "" });
+    const name = field(form, "name", i18n.rsvpName || "Name", {
+      type: "text",
+      maxlength: String(NAME_MAX),
+      autocomplete: "name",
+      required: ""
+    });
+    const email = field(form, "email", i18n.rsvpEmail || "Email", {
+      type: "email",
+      maxlength: String(EMAIL_MAX),
+      autocomplete: "email",
+      required: ""
+    });
+    const size = field(
+      form,
+      "partySize",
+      i18n.rsvpPartySize || "How many are coming?",
+      {
+        type: "number",
+        min: "1",
+        max: String(PARTY_MAX),
+        value: "1",
+        inputmode: "numeric"
+      }
+    );
+    const website = createElement("input", "already-rsvp__hp", {
+      type: "text",
+      name: "website",
+      tabindex: "-1",
+      autocomplete: "off",
+      "aria-hidden": "true"
+    });
+    form.appendChild(website);
+    const actions = createElement("div", "already-rsvp__actions");
+    const submit = createElement("button", "already-rsvp__submit", {
+      type: "submit"
+    });
+    submit.textContent = i18n.rsvpSubmit || "RSVP";
+    const cancel = createElement("button", "already-rsvp__cancel", {
+      type: "button"
+    });
+    cancel.textContent = i18n.rsvpCancel || "Cancel";
+    actions.appendChild(submit);
+    actions.appendChild(cancel);
+    form.appendChild(actions);
+    const error = createElement("p", "already-rsvp__error", { role: "alert" });
+    error.hidden = true;
+    form.appendChild(error);
+    function showError(text) {
+      error.textContent = text;
+      error.hidden = false;
+    }
+    let pending = false;
+    form.addEventListener("click", (e) => e.stopPropagation());
+    form.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key !== "Escape") return;
+      if (pending) return;
+      onClose();
+    });
+    cancel.addEventListener("click", onClose);
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fields = {
+        name: name.value.trim(),
+        email: email.value.trim().toLowerCase(),
+        partySize: Number.parseInt(size.value, 10),
+        website: website.value
+      };
+      if (!fields.name || fields.name.length > NAME_MAX)
+        return showError(invalidText);
+      if (!EMAIL_RE.test(fields.email) || fields.email.length > EMAIL_MAX)
+        return showError(invalidText);
+      if (!Number.isInteger(fields.partySize) || fields.partySize < 1 || fields.partySize > PARTY_MAX)
+        return showError(invalidText);
+      error.hidden = true;
+      submit.disabled = true;
+      cancel.disabled = true;
+      pending = true;
+      try {
+        const result = await config.onRsvp(event, fields);
+        const count = result && Number.isInteger(result.partySize) ? result.partySize : fields.partySize;
+        const done = createElement("p", "already-rsvp__done", {
+          role: "status",
+          tabindex: "-1"
+        });
+        done.textContent = (i18n.rsvpDone || "You're on the list: {count} going").replaceAll("{count}", String(count));
+        form.replaceWith(done);
+        onDone();
+        done.focus();
+      } catch (err) {
+        pending = false;
+        submit.disabled = false;
+        cancel.disabled = false;
+        showError(rejectionText.get(err?.code) || failedText);
+      }
+    });
+    return { form, focus: () => name.focus() };
+  }
+  function appendRsvpControl(container, event, config) {
+    if (!offersRsvp(event, config)) return null;
+    const i18n = config.i18n || {};
+    const button = createElement(
+      "button",
+      "already-card__action already-rsvp__open",
+      { type: "button" }
+    );
+    button.textContent = i18n.rsvp || "RSVP";
+    const setOpen = (open) => {
+      const card = container.closest(".already-card");
+      if (!card) return;
+      const body = card.querySelector(".already-card__body");
+      const cramped = open && !!body && body.clientWidth < CRAMPED_BODY_PX;
+      card.classList.toggle(RSVP_OPEN_CLASS, open);
+      card.classList.toggle("already-card--rsvp-cramped", cramped);
+    };
+    button.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const { form, focus } = createRsvpForm(event, config, {
+        onClose: () => {
+          form.replaceWith(button);
+          setOpen(false);
+          button.focus();
+        },
+        onDone: () => setOpen(false)
+      });
+      button.replaceWith(form);
+      setOpen(true);
+      focus();
+    });
+    button.addEventListener("keydown", (e) => e.stopPropagation());
+    container.appendChild(button);
+    return button;
+  }
+  function decorateRsvp(card, event, config) {
+    if (card.classList.contains("already-card--error")) return;
+    if (card.querySelector(
+      ".already-rsvp__open, .already-rsvp, .already-rsvp__done"
+    ))
+      return;
+    if (!offersRsvp(event, config)) return;
+    const actionFooter = [...card.querySelectorAll(".already-card__footer")].find(
+      (footer) => footer.querySelector(".already-card__action")
+    );
+    if (actionFooter) {
+      actionFooter.classList.add("already-card__footer--rsvp");
+      appendRsvpControl(actionFooter, event, config);
+      return;
+    }
+    const row = createElement(
+      "div",
+      "already-card__footer already-card__footer--rsvp already-card__rsvp"
+    );
+    appendRsvpControl(row, event, config);
+    (card.querySelector(".already-card__body") || card).appendChild(row);
+  }
+
+  // src/views/card-decoration.js
+  function applyCardState(card, event, viewName, config) {
+    if (isPast(event.end || event.start))
+      card.classList.add("already-card--past");
+    if (event.featured) card.classList.add("already-card--featured");
+    card.dataset.eventId = event.id;
+    bindEventClick(card, event, viewName, config);
+  }
+  function decorateEventCard(card, event, viewName, config, { timezone, rsvp = true } = {}) {
+    if (card.classList.contains("already-card--error")) return;
+    applyCardState(card, event, viewName, config);
+    decorateParts(card, event, config, { timezone });
+    if (rsvp) decorateRsvp(card, event, config);
+  }
+
   // src/ui/event-popover.js
   var OPEN_DELAY_MS = 150;
   var CLOSE_GRACE_MS = 120;
@@ -4373,7 +4851,7 @@ ${text}</tr>
     detach();
     el.remove();
   }
-  function openEventPopover(anchorEl, event, root, config, viewName) {
+  function openEventPopover(anchorEl, event, root, config, viewName, timezone) {
     closeEventPopover();
     config = config || {};
     const theme = config._theme || THEME_DEFAULTS;
@@ -4383,12 +4861,15 @@ ${text}</tr>
       orientation: theme.orientation,
       imagePosition: theme.imagePosition,
       index: 0,
-      timezone: config.timezone,
+      timezone,
       locale: config.locale,
       config
     });
     card.classList.add("already-event-popover__card");
-    decorateCard(card, event, viewName || "month", config);
+    decorateEventCard(card, event, viewName || "month", config, {
+      timezone,
+      rsvp: false
+    });
     card.addEventListener("click", () => closeEventPopover());
     el.appendChild(card);
     root.appendChild(el);
@@ -4451,7 +4932,7 @@ ${text}</tr>
     clearTimers();
     closeTimer = setTimeout(() => closeEventPopover(), CLOSE_GRACE_MS);
   }
-  function bindEventPopover(anchorEl, event, root, config, viewName) {
+  function bindEventPopover(anchorEl, event, root, config, viewName, timezone) {
     anchorEl.addEventListener("pointerdown", (e) => {
       if (e.pointerType !== "touch") {
         lastPointerWasTouch = false;
@@ -4461,13 +4942,13 @@ ${text}</tr>
       clearTimers();
       if (active?.anchorEl === anchorEl) return;
       if (e.cancelable) e.preventDefault();
-      openEventPopover(anchorEl, event, root, config, viewName);
+      openEventPopover(anchorEl, event, root, config, viewName, timezone);
     });
     anchorEl.addEventListener("mouseenter", () => {
       if (lastPointerWasTouch) return;
       clearTimers();
       openTimer = setTimeout(() => {
-        openEventPopover(anchorEl, event, root, config, viewName);
+        openEventPopover(anchorEl, event, root, config, viewName, timezone);
       }, OPEN_DELAY_MS);
     });
     anchorEl.addEventListener("mouseleave", () => {
@@ -5017,7 +5498,7 @@ ${text}</tr>
     function render5(container, events) {
       const tagCounts = /* @__PURE__ */ new Map();
       for (const event of events) {
-        for (const tag2 of event.tags || []) {
+        for (const tag2 of compositeTags(event)) {
           if (!isCategoryTag(tag2)) continue;
           const label = tagLabel(tag2);
           tagCounts.set(label, (tagCounts.get(label) || 0) + 1);
@@ -5062,7 +5543,7 @@ ${text}</tr>
     function getFilter() {
       if (selectedTags.size === 0) return null;
       return (event) => {
-        for (const tag2 of event.tags || []) {
+        for (const tag2 of compositeTags(event)) {
           if (!isCategoryTag(tag2)) continue;
           if (selectedTags.has(tagLabel(tag2))) return true;
         }
@@ -5255,13 +5736,13 @@ ${text}</tr>
   }
 
   // src/views/day.js
-  function renderDayView(container, events, timezone, currentDate, config) {
+  function renderDayView(container, placement, timezone, currentDate, config) {
     config = config || {};
     const locale = config.locale;
     const i18n = config.i18n || {};
     const allDayLabel = i18n.allDay || "All Day";
     const noEventsLabel = i18n.noEventsThisDay || "No events this day.";
-    events = filterHidden(events);
+    const { byDay, sameDayParts } = placement;
     const day = createElement("div", "already-day");
     const nav = createElement("div", "already-day-nav");
     const prevBtn = createElement("button", "already-day-prev", {
@@ -5271,7 +5752,7 @@ ${text}</tr>
     prevBtn.addEventListener("click", () => {
       const prev = new Date(currentDate);
       prev.setDate(prev.getDate() - 1);
-      renderDayView(container, events, timezone, prev, config);
+      renderDayView(container, placement, timezone, prev, config);
     });
     nav.appendChild(prevBtn);
     const title = createElement("span", "already-day-title");
@@ -5284,241 +5765,164 @@ ${text}</tr>
     nextBtn.addEventListener("click", () => {
       const next = new Date(currentDate);
       next.setDate(next.getDate() + 1);
-      renderDayView(container, events, timezone, next, config);
+      renderDayView(container, placement, timezone, next, config);
     });
     nav.appendChild(nextBtn);
     day.appendChild(nav);
-    let dayEvents = events.filter(
-      (e) => isSameDay(parseEventDate(e.start), currentDate)
-    );
-    dayEvents = sortFeatured(dayEvents);
+    const dayEvents = sortFeatured(byDay.get(toDateKey(currentDate)) || []);
+    function renderRow(entry, isPart) {
+      const item = createElement("div");
+      applyEventClasses(item, entry, "already-day-event");
+      if (isPart) item.classList.add("already-day-event--part");
+      bindEventClick(item, entry, "day", config);
+      const timeEl = createElement("div", "already-day-event-time");
+      timeEl.textContent = formatScheduleTime(entry, {
+        sourceZoneFallback: timezone,
+        locale,
+        allDayLabel
+      });
+      item.appendChild(timeEl);
+      const info = createElement("div", "already-day-event-info");
+      const titleEl = createElement("div", "already-day-event-title");
+      titleEl.textContent = entry.title;
+      info.appendChild(titleEl);
+      if (entry.location) {
+        const loc = createElement("div", "already-day-event-location");
+        loc.textContent = entry.location;
+        info.appendChild(loc);
+      }
+      item.appendChild(info);
+      return item;
+    }
     if (dayEvents.length === 0) {
       const empty = createElement("div", "already-day-empty");
       empty.textContent = noEventsLabel;
       day.appendChild(empty);
     } else {
       for (const event of dayEvents) {
-        const item = createElement("div");
-        applyEventClasses(item, event, "already-day-event");
-        bindEventClick(item, event, "day", config);
-        const sameDay = event.end && isSameDay(parseEventDate(event.start), parseEventDate(event.end));
-        const timeEl = createElement("div", "already-day-event-time");
-        timeEl.textContent = event.allDay ? allDayLabel : formatEventWhen(
-          { ...event, end: sameDay ? event.end : void 0 },
-          { sourceZoneFallback: timezone, locale, dateStyle: "time" }
-        );
-        item.appendChild(timeEl);
-        const info = createElement("div", "already-day-event-info");
-        const titleEl = createElement("div", "already-day-event-title");
-        titleEl.textContent = event.title;
-        info.appendChild(titleEl);
-        if (event.location) {
-          const loc = createElement("div", "already-day-event-location");
-          loc.textContent = event.location;
-          info.appendChild(loc);
+        day.appendChild(renderRow(event, false));
+        for (const part of sameDayParts.get(event) || []) {
+          day.appendChild(renderRow(part, true));
         }
-        item.appendChild(info);
-        day.appendChild(item);
       }
     }
     container.innerHTML = "";
     container.appendChild(day);
   }
 
-  // src/ui/rsvp-form.js
-  var NAME_MAX = 80;
-  var EMAIL_MAX = 254;
-  var PARTY_MAX = 20;
-  var CRAMPED_BODY_PX = 320;
-  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  function offersRsvp(event, config, now = /* @__PURE__ */ new Date()) {
-    if (!config || typeof config.onRsvp !== "function") return false;
-    if (!(event.rsvp || config.rsvpAllEvents)) return false;
-    if (!event.start) return false;
-    const start = parseEventDate(event.start);
-    if (Number.isNaN(start.getTime())) return false;
-    return start > now;
-  }
-  function field(form, name, labelText, attrs) {
-    const wrap = createElement("label", "already-rsvp__field");
-    const text = createElement("span", "already-rsvp__label");
-    text.textContent = labelText;
-    const input = createElement("input", "already-rsvp__input", {
-      name,
-      ...attrs
-    });
-    wrap.appendChild(text);
-    wrap.appendChild(input);
-    form.appendChild(wrap);
-    return input;
-  }
-  function createRsvpForm(event, config, { onClose, onDone }) {
-    const i18n = config.i18n || {};
-    const invalidText = i18n.rsvpInvalid || "Check your name, email and party size.";
-    const startedText = i18n.rsvpStarted || "This event has already started.";
-    const failedText = i18n.rsvpFailed || "Could not save your RSVP. Try again.";
-    const closedText = i18n.rsvpClosed || "This event is not taking RSVPs.";
-    const rejectionText = /* @__PURE__ */ new Map([
-      ["event_started", startedText],
-      ["invalid_field", invalidText],
-      ["rsvp_unavailable", closedText],
-      ["event_not_found", closedText]
-    ]);
-    const form = createElement("form", "already-rsvp", { novalidate: "" });
-    const name = field(form, "name", i18n.rsvpName || "Name", {
-      type: "text",
-      maxlength: String(NAME_MAX),
-      autocomplete: "name",
-      required: ""
-    });
-    const email = field(form, "email", i18n.rsvpEmail || "Email", {
-      type: "email",
-      maxlength: String(EMAIL_MAX),
-      autocomplete: "email",
-      required: ""
-    });
-    const size = field(
-      form,
-      "partySize",
-      i18n.rsvpPartySize || "How many are coming?",
-      {
-        type: "number",
-        min: "1",
-        max: String(PARTY_MAX),
-        value: "1",
-        inputmode: "numeric"
-      }
-    );
-    const website = createElement("input", "already-rsvp__hp", {
-      type: "text",
-      name: "website",
-      tabindex: "-1",
-      autocomplete: "off",
-      "aria-hidden": "true"
-    });
-    form.appendChild(website);
-    const actions = createElement("div", "already-rsvp__actions");
-    const submit = createElement("button", "already-rsvp__submit", {
-      type: "submit"
-    });
-    submit.textContent = i18n.rsvpSubmit || "RSVP";
-    const cancel = createElement("button", "already-rsvp__cancel", {
-      type: "button"
-    });
-    cancel.textContent = i18n.rsvpCancel || "Cancel";
-    actions.appendChild(submit);
-    actions.appendChild(cancel);
-    form.appendChild(actions);
-    const error = createElement("p", "already-rsvp__error", { role: "alert" });
-    error.hidden = true;
-    form.appendChild(error);
-    function showError(text) {
-      error.textContent = text;
-      error.hidden = false;
+  // src/views/detail-entry.js
+  var titleCase = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  function renderEntryBody(container, event, config) {
+    if (event.description?.trim()) {
+      const desc = createElement("div", "already-detail-description");
+      desc.innerHTML = renderDescription(event.description, config);
+      container.appendChild(desc);
     }
-    let pending = false;
-    form.addEventListener("click", (e) => e.stopPropagation());
-    form.addEventListener("keydown", (e) => {
-      e.stopPropagation();
-      if (e.key !== "Escape") return;
-      if (pending) return;
-      onClose();
-    });
-    cancel.addEventListener("click", onClose);
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const fields = {
-        name: name.value.trim(),
-        email: email.value.trim().toLowerCase(),
-        partySize: Number.parseInt(size.value, 10),
-        website: website.value
-      };
-      if (!fields.name || fields.name.length > NAME_MAX)
-        return showError(invalidText);
-      if (!EMAIL_RE.test(fields.email) || fields.email.length > EMAIL_MAX)
-        return showError(invalidText);
-      if (!Number.isInteger(fields.partySize) || fields.partySize < 1 || fields.partySize > PARTY_MAX)
-        return showError(invalidText);
-      error.hidden = true;
-      submit.disabled = true;
-      cancel.disabled = true;
-      pending = true;
-      try {
-        const result = await config.onRsvp(event, fields);
-        const count = result && Number.isInteger(result.partySize) ? result.partySize : fields.partySize;
-        const done = createElement("p", "already-rsvp__done", {
-          role: "status",
-          tabindex: "-1"
+    if (event.attachments && event.attachments.length > 0) {
+      const attachDiv = createElement("div", "already-detail-attachments");
+      for (const att of event.attachments) {
+        const a = createElement("a", "already-detail-attachment", {
+          href: att.url,
+          target: "_blank",
+          rel: "noopener"
         });
-        done.textContent = (i18n.rsvpDone || "You're on the list: {count} going").replaceAll("{count}", String(count));
-        form.replaceWith(done);
-        onDone();
-        done.focus();
-      } catch (err) {
-        pending = false;
-        submit.disabled = false;
-        cancel.disabled = false;
-        showError(rejectionText.get(err?.code) || failedText);
+        a.textContent = att.label;
+        attachDiv.appendChild(a);
       }
-    });
-    return { form, focus: () => name.focus() };
-  }
-  function appendRsvpControl(container, event, config) {
-    if (!offersRsvp(event, config)) return null;
-    const i18n = config.i18n || {};
-    const button = createElement(
-      "button",
-      "already-card__action already-rsvp__open",
-      { type: "button" }
-    );
-    button.textContent = i18n.rsvp || "RSVP";
-    const setOpen = (open) => {
-      const card = container.closest(".already-card");
-      if (!card) return;
-      const body = card.querySelector(".already-card__body");
-      const cramped = open && !!body && body.clientWidth < CRAMPED_BODY_PX;
-      card.classList.toggle(RSVP_OPEN_CLASS, open);
-      card.classList.toggle("already-card--rsvp-cramped", cramped);
-    };
-    button.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const { form, focus } = createRsvpForm(event, config, {
-        onClose: () => {
-          form.replaceWith(button);
-          setOpen(false);
-          button.focus();
-        },
-        onDone: () => setOpen(false)
-      });
-      button.replaceWith(form);
-      setOpen(true);
-      focus();
-    });
-    button.addEventListener("keydown", (e) => e.stopPropagation());
-    container.appendChild(button);
-    return button;
-  }
-  function decorateRsvp(card, event, config) {
-    if (card.classList.contains("already-card--error")) return;
-    if (card.querySelector(
-      ".already-rsvp__open, .already-rsvp, .already-rsvp__done"
-    ))
-      return;
-    if (!offersRsvp(event, config)) return;
-    const actionFooter = [...card.querySelectorAll(".already-card__footer")].find(
-      (footer) => footer.querySelector(".already-card__action")
-    );
-    if (actionFooter) {
-      actionFooter.classList.add("already-card__footer--rsvp");
-      appendRsvpControl(actionFooter, event, config);
-      return;
+      container.appendChild(attachDiv);
     }
-    const row = createElement(
-      "div",
-      "already-card__footer already-card__footer--rsvp already-card__rsvp"
-    );
-    appendRsvpControl(row, event, config);
-    (card.querySelector(".already-card__body") || card).appendChild(row);
+    const urlTags = (event.tags || []).filter(isLinkTag);
+    const allLinks = [
+      ...event.links || [],
+      ...urlTags.map((t) => ({ label: titleCase(t.key), url: t.value }))
+    ];
+    if (allLinks.length > 0) {
+      const linksDiv = createElement("div", "already-detail-links");
+      for (const link2 of allLinks) {
+        const a = createElement("a", "already-detail-link", {
+          href: link2.url,
+          target: "_blank",
+          rel: "noopener"
+        });
+        a.textContent = link2.label;
+        linksDiv.appendChild(a);
+      }
+      container.appendChild(linksDiv);
+    }
+    const rsvpRow = createElement("div", "already-detail-rsvp");
+    if (appendRsvpControl(rsvpRow, event, config)) container.appendChild(rsvpRow);
+  }
+
+  // src/views/detail-parts.js
+  var sameInstant = (a, b) => new Date(a).getTime() === new Date(b).getTime();
+  function renderDetailParts(event, { timezone, locale, config, focusPartId } = {}) {
+    const parts = partsOf(event);
+    if (parts.length === 0) return null;
+    const i18n = config?.i18n || {};
+    const list2 = createElement("div", "already-detail-parts", {
+      role: "group",
+      "aria-label": i18n.compositeParts || "Schedule"
+    });
+    const dayOf = (part) => eventDayKey(part.start);
+    const parentDay = eventDayKey(event.start);
+    const needsDays = parts.some((part) => dayOf(part) !== parentDay);
+    let lastDay = null;
+    let pendingHeading = null;
+    for (const part of parts) {
+      const day = dayOf(part);
+      if (needsDays && day !== lastDay) {
+        const heading2 = createElement("div", "already-detail-parts-day", {
+          role: "heading",
+          "aria-level": "3"
+        });
+        heading2.textContent = formatDate(part.start, viewerTimeZone(), locale);
+        pendingHeading = heading2;
+        lastDay = day;
+      }
+      const item = createElement("div", "already-detail-part");
+      if (part.id != null) item.dataset.eventId = part.id;
+      if (focusPartId != null && part.id === focusPartId) {
+        item.classList.add("already-detail-part--target");
+        item.setAttribute("aria-current", "true");
+      }
+      const showTitle = Boolean(part.title) && !isSecondListing(part, event);
+      const showTime = !(sameInstant(part.start, event.start) && sameInstant(part.end, event.end));
+      if (showTime || showTitle) {
+        const head = createElement("div", "already-detail-part-head");
+        if (showTime) {
+          const when = createElement("span", "already-detail-part-time");
+          when.textContent = formatScheduleTime(part, {
+            sourceZoneFallback: timezone,
+            locale,
+            allDayLabel: i18n.allDay || "All Day"
+          });
+          head.appendChild(when);
+        }
+        if (showTime && showTitle) head.append(" ");
+        if (showTitle) {
+          const title = createElement("span", "already-detail-part-title", {
+            role: "heading",
+            "aria-level": needsDays ? "4" : "3"
+          });
+          title.textContent = part.title;
+          head.appendChild(title);
+        }
+        item.appendChild(head);
+      }
+      if (part.location && part.location !== event.location) {
+        const loc = createElement("div", "already-detail-part-location");
+        loc.textContent = part.location;
+        item.appendChild(loc);
+      }
+      renderEntryBody(item, part, config);
+      if (item.childNodes.length > 0) {
+        if (pendingHeading) list2.appendChild(pendingHeading);
+        pendingHeading = null;
+        list2.appendChild(item);
+      }
+    }
+    if (list2.querySelector(".already-detail-part") === null) return null;
+    return list2;
   }
 
   // src/views/lightbox.js
@@ -5700,13 +6104,13 @@ ${text}</tr>
     });
     return gallery;
   }
-  function renderDetailView(container, event, timezone, onBack, config) {
+  function renderDetailView(container, event, timezone, onBack, config, options2 = {}) {
     config = config || {};
     const locale = config.locale;
     const i18n = config.i18n || {};
     const backLabel = i18n.back || "\u2190 Back";
     const locationTemplate = config.locationLinkTemplate || "https://maps.google.com/?q={location}";
-    const images = event.images && event.images.length > 0 ? event.images : event.image ? [event.image] : [];
+    const images = compositeImages(event);
     const hasImages = images.length > 0;
     const detail = createElement("div", "already-detail");
     const actions = createElement("div", "already-detail-actions");
@@ -5763,60 +6167,26 @@ ${text}</tr>
       meta.appendChild(locDiv);
     }
     content.appendChild(meta);
-    const scalarAndTextTags = (event.tags || []).filter(isCategoryTag);
-    if (scalarAndTextTags.length > 0) {
-      const tagsDiv = createElement("div", "already-detail-tags");
-      for (const tag2 of scalarAndTextTags) {
-        const span = createElement("span", "already-detail-tag");
-        span.textContent = tagLabel(tag2);
-        tagsDiv.appendChild(span);
-      }
-      content.appendChild(tagsDiv);
-    }
-    if (event.description?.trim()) {
-      const desc = createElement("div", "already-detail-description");
-      desc.innerHTML = renderDescription(event.description, config);
-      content.appendChild(desc);
-    }
-    if (event.attachments && event.attachments.length > 0) {
-      const attachDiv = createElement("div", "already-detail-attachments");
-      for (const att of event.attachments) {
-        const a = createElement("a", "already-detail-attachment", {
-          href: att.url,
-          target: "_blank",
-          rel: "noopener"
-        });
-        a.textContent = att.label;
-        attachDiv.appendChild(a);
-      }
-      content.appendChild(attachDiv);
-    }
-    const urlTags = (event.tags || []).filter(isLinkTag);
-    const titleCase = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-    const allLinks = [
-      ...event.links || [],
-      ...urlTags.map((t) => ({ label: titleCase(t.key), url: t.value }))
-    ];
-    if (allLinks.length > 0) {
-      const linksDiv = createElement("div", "already-detail-links");
-      for (const link2 of allLinks) {
-        const a = createElement("a", "already-detail-link", {
-          href: link2.url,
-          target: "_blank",
-          rel: "noopener"
-        });
-        a.textContent = link2.label;
-        linksDiv.appendChild(a);
-      }
-      content.appendChild(linksDiv);
-    }
-    const rsvpRow = createElement("div", "already-detail-rsvp");
-    if (appendRsvpControl(rsvpRow, event, config)) content.appendChild(rsvpRow);
+    const tagsEl = createTagPills(
+      event,
+      "already-detail-tags",
+      "already-detail-tag"
+    );
+    if (tagsEl) content.appendChild(tagsEl);
+    renderEntryBody(content, event, config);
+    const partsEl = renderDetailParts(event, {
+      timezone,
+      locale,
+      config,
+      focusPartId: options2.focusPartId
+    });
+    if (partsEl) content.appendChild(partsEl);
     body.appendChild(content);
     detail.appendChild(body);
     container.innerHTML = "";
     container.appendChild(detail);
     backBtn.focus();
+    detail.querySelector(".already-detail-part--target")?.scrollIntoView?.({ block: "nearest" });
   }
 
   // src/views/grid.js
@@ -5824,8 +6194,7 @@ ${text}</tr>
     config = config || {};
     const locale = config.locale;
     const theme = config._theme || THEME_DEFAULTS;
-    events = filterHidden(events);
-    events = sortFeaturedByDate(events, locale);
+    events = sortFeaturedByDate(events);
     const grid = createElement("div", "already-grid");
     const renderCard = getLayout(theme.layout);
     for (let i = 0; i < events.length; i++) {
@@ -5838,8 +6207,7 @@ ${text}</tr>
         locale,
         config
       });
-      decorateCard(card, event, "grid", config);
-      decorateRsvp(card, event, config);
+      decorateEventCard(card, event, "grid", config, { timezone });
       grid.appendChild(card);
     }
     container.innerHTML = "";
@@ -5852,8 +6220,7 @@ ${text}</tr>
     const locale = config.locale;
     const theme = config._theme || THEME_DEFAULTS;
     const orientation = theme.layout === "compact" ? "vertical" : "horizontal";
-    events = filterHidden(events);
-    events = sortFeaturedByDate(events, locale);
+    events = sortFeaturedByDate(events);
     const list2 = createElement("div", "already-list");
     const renderCard = getLayout(theme.layout);
     for (let i = 0; i < events.length; i++) {
@@ -5866,8 +6233,7 @@ ${text}</tr>
         locale,
         config
       });
-      decorateCard(card, event, "list", config);
-      decorateRsvp(card, event, config);
+      decorateEventCard(card, event, "list", config, { timezone });
       list2.appendChild(card);
     }
     container.innerHTML = "";
@@ -5875,7 +6241,7 @@ ${text}</tr>
   }
 
   // src/views/month.js
-  function renderMonthView(container, events, timezone, currentDate, config) {
+  function renderMonthView(container, placement, timezone, currentDate, config) {
     config = config || {};
     const locale = config.locale;
     const weekStartDay = config.weekStartDay || 0;
@@ -5883,7 +6249,7 @@ ${text}</tr>
     const i18n = config.i18n || {};
     const moreEventsTemplate = i18n.moreEvents || "+{count} more";
     closeEventPopover(container.closest?.(".already") || container);
-    events = filterHidden(events);
+    const { byDay } = placement;
     const popoverRoot = container.closest?.(".already") || container;
     const dayViewEnabled = !config.views || config.views.includes("day");
     const year = currentDate.getFullYear();
@@ -5892,13 +6258,6 @@ ${text}</tr>
     const firstDay = getFirstDayOfMonth(year, month, weekStartDay);
     const monthName = getMonthName(year, month, locale);
     const dayNames = getDayNames(locale, weekStartDay);
-    const eventsByDate = {};
-    for (const event of events) {
-      const parts = getEventDateParts(event.start, locale);
-      const key = `${parts.year}-${parts.month}-${parts.day}`;
-      if (!eventsByDate[key]) eventsByDate[key] = [];
-      eventsByDate[key].push(event);
-    }
     const grid = createElement("div", "already-month");
     const nav = createElement("div", "already-month-nav");
     const prevBtn = createElement("button", "already-month-prev", {
@@ -5908,7 +6267,7 @@ ${text}</tr>
     prevBtn.addEventListener("click", () => {
       renderMonthView(
         container,
-        events,
+        placement,
         timezone,
         new Date(year, month - 1, 1),
         config
@@ -5925,7 +6284,7 @@ ${text}</tr>
     nextBtn.addEventListener("click", () => {
       renderMonthView(
         container,
-        events,
+        placement,
         timezone,
         new Date(year, month + 1, 1),
         config
@@ -5953,8 +6312,7 @@ ${text}</tr>
     }
     for (let d = 1; d <= daysInMonth; d++) {
       const cellDate = new Date(year, month, d);
-      const key = `${year}-${month}-${d}`;
-      const dayEvents = sortFeatured(eventsByDate[key] || []);
+      const dayEvents = sortFeatured(byDay.get(toDateKey(cellDate)) || []);
       const today = isToday(cellDate);
       const cell = createElement("div", null, { role: "gridcell" });
       cell.className = "already-month-cell" + (today ? " already-month-cell--today" : "") + (dayEvents.length ? " already-month-cell--has-events" : "");
@@ -5973,7 +6331,7 @@ ${text}</tr>
         );
         chip.textContent = event.title;
         bindEventClick(chip, event, "month", config);
-        bindEventPopover(chip, event, popoverRoot, config, "month");
+        bindEventPopover(chip, event, popoverRoot, config, "month", timezone);
         cell.appendChild(chip);
       }
       if (dayEvents.length > maxEventsPerDay) {
@@ -6006,13 +6364,48 @@ ${text}</tr>
     container.appendChild(grid);
   }
 
+  // src/views/placement.js
+  function placeByDay(events, dayKeyOf) {
+    const byDay = /* @__PURE__ */ new Map();
+    const sameDayParts = /* @__PURE__ */ new Map();
+    const elsewhere = [];
+    const itemsOn = (day) => {
+      let items = byDay.get(day);
+      if (!items) {
+        items = [];
+        byDay.set(day, items);
+      }
+      return items;
+    };
+    for (const event of events) {
+      const day = dayKeyOf(event.start);
+      if (day === "") continue;
+      itemsOn(day).push(event);
+      const folded = [];
+      for (const part of partsOf(event)) {
+        const partDay = dayKeyOf(part.start);
+        if (partDay === "") continue;
+        if (partDay !== day) elsewhere.push({ part, day: partDay });
+        else if (!isSecondListing(part, event)) folded.push(part);
+      }
+      if (folded.length > 0) sameDayParts.set(event, folded);
+    }
+    for (const { part, day } of elsewhere) {
+      const items = itemsOn(day);
+      const when = startOrder(part);
+      const later = items.findIndex((item) => startOrder(item) > when);
+      items.splice(later === -1 ? items.length : later, 0, part);
+    }
+    return { byDay, sameDayParts };
+  }
+
   // src/views/week.js
-  function renderWeekView(container, events, timezone, currentDate, config) {
+  function renderWeekView(container, placement, timezone, currentDate, config) {
     config = config || {};
     const locale = config.locale;
     const weekStartDay = config.weekStartDay || 0;
     const dates = getWeekDates(currentDate, weekStartDay);
-    events = filterHidden(events);
+    const { byDay } = placement;
     const popoverRoot = container.closest?.(".already") || container;
     closeEventPopover(popoverRoot);
     const dayViewEnabled = !config.views || config.views.includes("day");
@@ -6027,7 +6420,7 @@ ${text}</tr>
     prevBtn.addEventListener("click", () => {
       const prev = new Date(currentDate);
       prev.setDate(prev.getDate() - 7);
-      renderWeekView(container, events, timezone, prev, config);
+      renderWeekView(container, placement, timezone, prev, config);
     });
     nav.appendChild(prevBtn);
     const title = createElement("span", "already-week-title");
@@ -6040,7 +6433,7 @@ ${text}</tr>
     nextBtn.addEventListener("click", () => {
       const next = new Date(currentDate);
       next.setDate(next.getDate() + 7);
-      renderWeekView(container, events, timezone, next, config);
+      renderWeekView(container, placement, timezone, next, config);
     });
     nav.appendChild(nextBtn);
     week.appendChild(nav);
@@ -6062,12 +6455,7 @@ ${text}</tr>
       dayNumEl.textContent = date.getDate();
       header.appendChild(dayNumEl);
       col.appendChild(header);
-      const dayEvents = sortFeatured(
-        events.filter((e) => {
-          const parts = getEventDateParts(e.start, locale);
-          return parts.year === date.getFullYear() && parts.month === date.getMonth() && parts.day === date.getDate();
-        })
-      );
+      const dayEvents = sortFeatured(byDay.get(toDateKey(date)) || []);
       for (const event of dayEvents) {
         const block2 = createElement(
           "div",
@@ -6075,7 +6463,7 @@ ${text}</tr>
         );
         block2.textContent = event.title;
         bindEventClick(block2, event, "week", config);
-        bindEventPopover(block2, event, popoverRoot, config, "week");
+        bindEventPopover(block2, event, popoverRoot, config, "week", timezone);
         col.appendChild(block2);
       }
       col.addEventListener("click", (e) => {
@@ -6157,6 +6545,8 @@ ${text}</tr>
     noEventsThisDay: "No events this day.",
     back: "\u2190 Back",
     moreEvents: "+{count} more",
+    moreParts: "+{count} more",
+    compositeParts: "Schedule",
     subscribe: "Subscribe",
     subscribeApple: "Apple Calendar",
     subscribeGoogle: "Google Calendar",
@@ -6287,7 +6677,8 @@ ${text}</tr>
       tagFilterContainer
     );
     let destroyed = false;
-    let data = null;
+    let calendar = null;
+    let composition = null;
     let showPast = config.showPastEvents;
     const currentDate = /* @__PURE__ */ new Date();
     let lastView = null;
@@ -6317,7 +6708,7 @@ ${text}</tr>
       metaEl.setAttribute("content", content);
     }
     function setEventMeta(event) {
-      const calendarTz = data?.calendar?.timezone || "UTC";
+      const calendarTz = calendar?.timezone || "UTC";
       const sourceTz = resolveTimeZone(event._sourceTimeZone, calendarTz);
       const dateStr = formatDateRange(event.start, event.end, {
         allDay: event.allDay,
@@ -6331,7 +6722,8 @@ ${text}</tr>
       if (event.location) descParts.push(event.location);
       setMetaTag("og:title", event.title);
       setMetaTag("og:description", descParts.join(" \xB7 "));
-      if (event.image) setMetaTag("og:image", event.image);
+      const image = compositeLeadImage(event);
+      if (image) setMetaTag("og:image", image);
       setMetaTag("og:url", window.location.href);
     }
     function restoreOriginalMeta() {
@@ -6346,13 +6738,13 @@ ${text}</tr>
       }
     }
     function getFilteredEvents() {
-      if (!data) return [];
-      if (showPast) return data.events;
-      return data.events.filter((e) => !isPast(e.end || e.start));
+      if (!composition) return [];
+      if (showPast) return composition.events;
+      return composition.events.filter((e) => !isPast(e.end || e.start));
     }
     function hasPastEvents() {
-      if (!data) return false;
-      return data.events.some((e) => isPast(e.end || e.start));
+      if (!composition) return false;
+      return composition.events.some((e) => isPast(e.end || e.start));
     }
     function makePaginationCallbacks(viewState) {
       return {
@@ -6393,15 +6785,14 @@ ${text}</tr>
       headerContainer.querySelector(".already-header-share")?.toggleAttribute("hidden", viewState.view === "detail");
       lastViewState = viewState;
       const allEvents = getFilteredEvents();
-      const timezone = data?.calendar?.timezone || "UTC";
-      const visibleEvents = allEvents.filter((e) => !e.hidden);
+      const timezone = calendar?.timezone || "UTC";
       if (viewState.view !== "detail") {
-        tagFilter.render(tagFilterContainer, visibleEvents);
+        tagFilter.render(tagFilterContainer, allEvents);
       } else {
         tagFilterContainer.innerHTML = "";
       }
       const tagFilterFn = tagFilter.getFilter();
-      const events = tagFilterFn ? visibleEvents.filter(tagFilterFn) : visibleEvents;
+      const events = tagFilterFn ? allEvents.filter(tagFilterFn) : allEvents;
       if (viewState.view !== "detail") {
         restoreOriginalMeta();
       }
@@ -6429,16 +6820,29 @@ ${text}</tr>
       );
       paginationTopContainer.innerHTML = "";
       paginationBottomContainer.innerHTML = "";
+      const dayPlacement = () => placeByDay(events, eventDayKey);
       switch (viewState.view) {
         case "month":
-          renderMonthView(viewContainer, events, timezone, currentDate, config);
+          renderMonthView(
+            viewContainer,
+            dayPlacement(),
+            timezone,
+            currentDate,
+            config
+          );
           break;
         case "week":
-          renderWeekView(viewContainer, events, timezone, currentDate, config);
+          renderWeekView(
+            viewContainer,
+            dayPlacement(),
+            timezone,
+            currentDate,
+            config
+          );
           break;
         case "day": {
           const dayDate = viewState.date ? parseDateKey(viewState.date) : currentDate;
-          renderDayView(viewContainer, events, timezone, dayDate, config);
+          renderDayView(viewContainer, dayPlacement(), timezone, dayDate, config);
           break;
         }
         case "grid": {
@@ -6476,10 +6880,11 @@ ${text}</tr>
           break;
         }
         case "detail": {
-          const event = data?.events?.find((e) => e.id === viewState.eventId);
-          if (event) {
+          const found = composition?.lookup(viewState.eventId) ?? null;
+          if (found) {
+            const { event, part } = found;
             if (config.onEventClick) {
-              const result = config.onEventClick(event, "detail");
+              const result = config.onEventClick(part ?? event, "detail");
               if (result === false) return;
             }
             setEventMeta(event);
@@ -6491,7 +6896,8 @@ ${text}</tr>
               () => {
                 setView(lastView || config.defaultView, config);
               },
-              config
+              config,
+              { focusPartId: part?.id }
             );
           } else {
             renderError(
@@ -6536,11 +6942,15 @@ ${text}</tr>
       captureOriginalMeta();
       renderLoading(viewContainer, config);
       try {
-        data = await loadData(config);
+        const data = await loadData(config);
         if (destroyed) return;
         if (config.onDataLoad) {
           config.onDataLoad(data);
         }
+        calendar = data.calendar;
+        composition = composeEvents(data.events, {
+          timeZone: data.calendar?.timezone
+        });
       } catch (err) {
         if (destroyed) return;
         console.error("already-cal:", err);
@@ -6550,7 +6960,7 @@ ${text}</tr>
         renderError(viewContainer, err.message, start, config);
         return;
       }
-      renderHeader(headerContainer, data.calendar, config);
+      renderHeader(headerContainer, calendar, config);
       const initial = getInitialView(config.defaultView, config.views, config);
       if (isMobile() && !parseHash()) {
         initial.view = config.mobileDefaultView;
@@ -6560,7 +6970,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.12.1" : "unknown"
+        true ? "0.13.0" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({
@@ -6651,7 +7061,7 @@ ${text}</tr>
           );
         }
       }
-      if (needsRerender && data && lastViewState) {
+      if (needsRerender && composition && lastViewState) {
         paginationState = { futureCount: 0, pastCount: 0 };
         renderView(lastViewState);
       }

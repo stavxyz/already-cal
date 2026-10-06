@@ -3,14 +3,13 @@ const { describe, it, before, beforeEach, after } = require("node:test");
 const assert = require("node:assert");
 
 let createElement, bindEventClick, applyEventClasses;
-let filterHidden, sortFeatured, sortFeaturedByDate;
+let sortFeatured, sortFeaturedByDate;
 
 before(async () => {
   const mod = await import("../../src/views/helpers.js");
   createElement = mod.createElement;
   bindEventClick = mod.bindEventClick;
   applyEventClasses = mod.applyEventClasses;
-  filterHidden = mod.filterHidden;
   sortFeatured = mod.sortFeatured;
   sortFeaturedByDate = mod.sortFeaturedByDate;
 });
@@ -19,7 +18,7 @@ beforeEach(() => {
   window.location.hash = "";
 });
 
-// Card/date grouping is now keyed by the VIEWER's zone (see getEventDateParts),
+// Card/date grouping is now keyed by the VIEWER's zone (see eventDayKey),
 // so the ambient TZ decides which date bucket an event falls in. Pin it to UTC
 // — the zone these fixtures are written against — so the assertions below are
 // deterministic on every machine and in CI, and restore it afterward so no
@@ -221,33 +220,6 @@ describe("applyEventClasses", () => {
   });
 });
 
-describe("filterHidden", () => {
-  it("removes hidden events", () => {
-    const events = [
-      { id: "1", hidden: false },
-      { id: "2", hidden: true },
-      { id: "3", hidden: false },
-    ];
-    const result = filterHidden(events);
-    assert.strictEqual(result.length, 2);
-    assert.strictEqual(result[0].id, "1");
-    assert.strictEqual(result[1].id, "3");
-  });
-
-  it("returns all events when none hidden", () => {
-    const events = [
-      { id: "1", hidden: false },
-      { id: "2", hidden: false },
-    ];
-    assert.strictEqual(filterHidden(events).length, 2);
-  });
-
-  it("returns empty array for all hidden", () => {
-    const events = [{ id: "1", hidden: true }];
-    assert.strictEqual(filterHidden(events).length, 0);
-  });
-});
-
 describe("sortFeatured", () => {
   it("sorts featured events first", () => {
     const events = [
@@ -289,7 +261,7 @@ describe("sortFeaturedByDate", () => {
       { id: "c", start: "2026-04-15T14:00:00Z", featured: true },
       { id: "d", start: "2026-04-16T10:00:00Z", featured: false },
     ];
-    const result = sortFeaturedByDate(events, "en-US");
+    const result = sortFeaturedByDate(events);
     assert.strictEqual(result[0].id, "a");
     assert.strictEqual(result[1].id, "c");
     assert.strictEqual(result[2].id, "b");
@@ -301,7 +273,7 @@ describe("sortFeaturedByDate", () => {
       { id: "a", start: "2026-04-14T10:00:00Z", featured: false },
       { id: "b", start: "2026-04-15T10:00:00Z", featured: true },
     ];
-    const result = sortFeaturedByDate(events, "en-US");
+    const result = sortFeaturedByDate(events);
     assert.strictEqual(result[0].id, "a");
     assert.strictEqual(result[1].id, "b");
   });
@@ -313,7 +285,7 @@ describe("sortFeaturedByDate", () => {
       { id: "c", start: "2026-04-15T10:00:00Z", featured: false },
       { id: "d", start: "2026-04-14T16:00:00Z", featured: false },
     ];
-    const result = sortFeaturedByDate(events, "en-US");
+    const result = sortFeaturedByDate(events);
     // Apr 14 events grouped together: featured first, then non-featured in original order
     assert.strictEqual(result[0].id, "b");
     assert.strictEqual(result[1].id, "a");

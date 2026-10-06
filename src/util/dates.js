@@ -84,7 +84,7 @@ export function wallClockDiffers(isoString, zoneA, zoneB, locale) {
  * belongs to, and stays current through, the viewer's calendar day. Do NOT make
  * the date-only branch UTC, or all-day events flip to past in the evening of
  * their last day in negative-offset (US) zones. Timed values parse to their
- * instant. Shared by `isPast` and the day view.
+ * instant. Shared by `isPast`, `startOrder`, and the RSVP form.
  */
 export function parseEventDate(value) {
   return DATE_ONLY_RE.test(value)
@@ -287,10 +287,12 @@ export function getMonthName(year, month, locale) {
 }
 
 /** Extract year, month (0-indexed), and day from an ISO string in a given timezone. */
-export function getDatePartsInTz(isoString, timezone, locale) {
-  locale = locale || "en-US";
+export function getDatePartsInTz(isoString, timezone) {
   const d = new Date(isoString);
-  const fmt = new Intl.DateTimeFormat(locale, {
+  // A fixed locale, on purpose. The parts are parsed back into numbers, and
+  // a display locale may write digits in another script or count years in
+  // another calendar, which would parse to NaN or to the wrong year.
+  const fmt = new Intl.DateTimeFormat("en-US", {
     timeZone: zoneFor(isoString, timezone),
     year: "numeric",
     month: "numeric",
@@ -313,18 +315,90 @@ export function getDatePartsInTz(isoString, timezone, locale) {
  * with the viewer-local time `formatEventWhen` prints on it; before this, a
  * merged multi-calendar feed placed events by the FIRST calendar's zone while
  * labelling them viewer-local, so a late-evening event could sit in one day's
- * cell showing the next day's time. (The day view already bucketed viewer-local
- * via `isSameDay(parseEventDate(...))`; this brings the rest in line.)
+ * cell showing the next day's time.
  *
  * All-day (date-only) values stay ABSOLUTE — `getDatePartsInTz` routes them
  * through `zoneFor` → UTC — so they never shift a day. Passing the viewer zone
  * here does not change that.
  *
  * @param {string} isoString event start ("2026-07-15T20:00:00Z" or "2026-07-15")
- * @param {string} [locale="en-US"]
  */
-export function getEventDateParts(isoString, locale) {
-  return getDatePartsInTz(isoString, viewerTimeZone(), locale);
+export function getEventDateParts(isoString) {
+  return getDatePartsInTz(isoString, viewerTimeZone());
+}
+
+/**
+ * The one encoding of a day: `YYYY-MM-DD`, the form toDateKey gives a local
+ * Date and the router puts in `#day/2026-04-04`. `zone` must be one Intl
+ * accepts. A missing or malformed value has the empty key, which matches no
+ * day. It must not throw: one bad `start` would otherwise blank a whole view.
+ */
+function dayKey(isoString, zone) {
+  if (!isoString || Number.isNaN(new Date(isoString).getTime())) return "";
+  const p = getDatePartsInTz(isoString, zone);
+  const two = (n) => String(n).padStart(2, "0");
+  return `${p.year}-${two(p.month + 1)}-${two(p.day)}`;
+}
+
+/**
+ * The calendar day a value falls on in a named zone. An all-day (date-only)
+ * value is absolute and keys to its own date in every zone. A zone Intl
+ * cannot use gives way to `fallback`, and then to UTC (see resolveTimeZone).
+ */
+export function dayKeyInZone(isoString, timeZone, fallback) {
+  return dayKey(isoString, resolveTimeZone(timeZone, fallback));
+}
+
+/**
+ * Day key for EVENT PLACEMENT: the viewer's calendar day of an event value
+ * (all-day values stay absolute). Every display question of the form "is
+ * this the same day" compares these keys, with each other or with toDateKey
+ * of a local Date, so a month cell, a week column, the day view, a date
+ * group, and a composite's folded parts cannot disagree.
+ */
+export function eventDayKey(isoString) {
+  return dayKey(isoString, viewerTimeZone());
+}
+
+/**
+ * The number display code sorts entries by: the ordering counterpart of
+ * eventDayKey. A timed entry sorts at its instant. An all-day entry sorts at
+ * the viewer's local midnight of its date, the start of the day it is filed
+ * under (see parseEventDate), so a list in this order never shows a later
+ * day before an earlier one. A missing or malformed start has no order (NaN).
+ *
+ * Viewer-dependent, so it is for display only: nothing that decides which
+ * entries belong together may use it.
+ */
+export function startOrder(entry) {
+  return parseEventDate(entry.start).getTime();
+}
+
+/**
+ * The time label of one row in a per-day schedule: a row of the day view, or
+ * a part of a composite in the detail view. One owner, so the two cannot
+ * drift apart.
+ *
+ * An all-day event shows `allDayLabel`. A timed event that ends on the day it
+ * starts shows its range ("3:00 – 5:00 PM"). One that runs into another day
+ * shows only its start: passing that end would make formatRange inject
+ * numeric M/D/YYYY dates to tell the two days apart, which clashes with the
+ * widget's house style and overflows a narrow column. "The same day" is the
+ * viewer's day, by the shared day key.
+ *
+ * @param {object} event `{ start, end, allDay, _sourceTimeZone }`
+ * @param {object} [opts] `{ sourceZoneFallback, locale, allDayLabel }`
+ * @returns {string}
+ */
+export function formatScheduleTime(event, opts = {}) {
+  const { sourceZoneFallback, locale, allDayLabel = "All Day" } = opts;
+  if (event.allDay) return allDayLabel;
+  const startDay = eventDayKey(event.start);
+  const oneDay = startDay !== "" && startDay === eventDayKey(event.end);
+  return formatEventWhen(
+    { ...event, end: oneDay ? event.end : undefined },
+    { sourceZoneFallback, locale, dateStyle: "time" },
+  );
 }
 
 export const MONTH_NAMES_SHORT = [

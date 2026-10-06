@@ -1,16 +1,16 @@
 import { safeRenderCard } from "../layouts/helpers.js";
 import { getLayout } from "../layouts/registry.js";
 import { THEME_DEFAULTS } from "../theme.js";
-import { decorateCard } from "../views/helpers.js";
+import { decorateEventCard } from "../views/card-decoration.js";
 
 /**
  * The event card, shown on hover (pointer) or tap (touch) from the month and
  * week views.
  *
  * The card is built by the same getLayout() + safeRenderCard() call the grid
- * view makes and then handed to the same decorateCard(), so it carries the
+ * view makes and then handed to the same decorateEventCard(), so it carries the
  * past and featured modifiers, the data-event-id hook, and the click binding
- * that honors config.onEventClick. Skipping decorateCard made this a lookalike
+ * that honors config.onEventClick. Skipping that step made this a lookalike
  * rather than the same component.
  *
  * ONE popover exists at a time across every mounted calendar, which is the
@@ -76,8 +76,19 @@ export function closeEventPopover(root) {
  * and stays inside the embed's stacking context. `.already` sets
  * `position: relative` so that root is also the containing block these
  * coordinates are measured against.
+ *
+ * `timezone` is the calendar's zone. The card's time is labelled against it
+ * when the event carries no zone of its own, as on the grid card. Without it
+ * the label falls back to UTC.
  */
-export function openEventPopover(anchorEl, event, root, config, viewName) {
+export function openEventPopover(
+  anchorEl,
+  event,
+  root,
+  config,
+  viewName,
+  timezone,
+) {
   closeEventPopover();
   config = config || {};
   const theme = config._theme || THEME_DEFAULTS;
@@ -89,15 +100,21 @@ export function openEventPopover(anchorEl, event, root, config, viewName) {
     orientation: theme.orientation,
     imagePosition: theme.imagePosition,
     index: 0,
-    timezone: config.timezone,
+    timezone,
     locale: config.locale,
     config,
   });
   card.classList.add("already-event-popover__card");
-  // decorateCard binds the click through bindEventClick, so config.onEventClick
-  // is consulted and can veto navigation exactly as it does from the grid.
-  decorateCard(card, event, viewName || "month", config);
-  // decorateCard bound navigation above; this only dismisses the card so it
+  // The same decoration the grid applies, so the click goes through
+  // bindEventClick and config.onEventClick can veto navigation exactly as it
+  // does from the grid, and a composite lists its parts. The zone is the one
+  // the layout above was rendered with. No RSVP control: the card is a
+  // preview and closes on any click.
+  decorateEventCard(card, event, viewName || "month", config, {
+    timezone,
+    rsvp: false,
+  });
+  // The decoration bound navigation above. This only dismisses the card so it
   // does not outlive the view it was opened from.
   card.addEventListener("click", () => closeEventPopover());
   el.appendChild(card);
@@ -197,7 +214,14 @@ function scheduleClose() {
  * and navigates straight to the detail view, collapsing the two-step into one.
  * A second tap on the same anchor is allowed through to do exactly that.
  */
-export function bindEventPopover(anchorEl, event, root, config, viewName) {
+export function bindEventPopover(
+  anchorEl,
+  event,
+  root,
+  config,
+  viewName,
+  timezone,
+) {
   anchorEl.addEventListener("pointerdown", (e) => {
     if (e.pointerType !== "touch") {
       lastPointerWasTouch = false;
@@ -207,14 +231,14 @@ export function bindEventPopover(anchorEl, event, root, config, viewName) {
     clearTimers();
     if (active?.anchorEl === anchorEl) return;
     if (e.cancelable) e.preventDefault();
-    openEventPopover(anchorEl, event, root, config, viewName);
+    openEventPopover(anchorEl, event, root, config, viewName, timezone);
   });
 
   anchorEl.addEventListener("mouseenter", () => {
     if (lastPointerWasTouch) return;
     clearTimers();
     openTimer = setTimeout(() => {
-      openEventPopover(anchorEl, event, root, config, viewName);
+      openEventPopover(anchorEl, event, root, config, viewName, timezone);
     }, OPEN_DELAY_MS);
   });
 

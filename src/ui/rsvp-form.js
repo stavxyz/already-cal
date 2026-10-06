@@ -231,7 +231,7 @@ export function appendRsvpControl(container, event, config) {
 }
 
 /**
- * Card decoration, applied by the list and grid views beside decorateCard.
+ * Card decoration, applied through decorateEventCard (views/card-decoration.js).
  * Layouts know nothing about RSVP, so the decorator owns the row: if the
  * layout rendered a footer holding an action (Badge's Details link), the
  * button joins it; otherwise the button gets a footer row of its own at the

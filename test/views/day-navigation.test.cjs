@@ -13,9 +13,13 @@ after(() => {
 });
 
 let renderMonthView, renderWeekView;
+let place;
 before(async () => {
   ({ renderMonthView } = await import("../../src/views/month.js"));
   ({ renderWeekView } = await import("../../src/views/week.js"));
+  const { placeByDay } = await import("../../src/views/placement.js");
+  const { eventDayKey } = await import("../../src/util/dates.js");
+  place = (events) => placeByDay(events, eventDayKey);
 });
 
 let container;
@@ -29,7 +33,7 @@ const APRIL = new Date(2026, 3, 1);
 
 describe("month view: clicking a day cell", () => {
   it("navigates to that day, using the local calendar date", () => {
-    renderMonthView(container, [], "America/Chicago", APRIL, {});
+    renderMonthView(container, place([]), "America/Chicago", APRIL, {});
     const cells = container.querySelectorAll(
       ".already-month-cell:not(.already-month-cell--empty)",
     );
@@ -38,7 +42,7 @@ describe("month view: clicking a day cell", () => {
   });
 
   it("navigates for a day with no events", () => {
-    renderMonthView(container, [], "America/Chicago", APRIL, {});
+    renderMonthView(container, place([]), "America/Chicago", APRIL, {});
     const cells = container.querySelectorAll(
       ".already-month-cell:not(.already-month-cell--empty)",
     );
@@ -47,7 +51,7 @@ describe("month view: clicking a day cell", () => {
   });
 
   it("does NOT navigate from a padding cell", () => {
-    renderMonthView(container, [], "America/Chicago", APRIL, {});
+    renderMonthView(container, place([]), "America/Chicago", APRIL, {});
     const empty = container.querySelector(".already-month-cell--empty");
     assert.ok(
       empty,
@@ -60,7 +64,7 @@ describe("month view: clicking a day cell", () => {
   it("does not advertise itself to assistive tech as a button", () => {
     // Deliberate: this is a pointer-only affordance, so it must not claim to
     // be keyboard-operable when it is not.
-    renderMonthView(container, [], "America/Chicago", APRIL, {});
+    renderMonthView(container, place([]), "America/Chicago", APRIL, {});
     const cell = container.querySelector(
       ".already-month-cell:not(.already-month-cell--empty)",
     );
@@ -70,7 +74,7 @@ describe("month view: clicking a day cell", () => {
 
   it("clicking an event chip opens the event, not the day", () => {
     const events = [createTestEvent({ start: "2026-04-04T15:00:00Z" })];
-    renderMonthView(container, events, "America/Chicago", APRIL, {});
+    renderMonthView(container, place(events), "America/Chicago", APRIL, {});
     const chip = container.querySelector(".already-month-chip");
     chip.click();
     assert.match(window.location.hash, /^#event\//);
@@ -79,7 +83,13 @@ describe("month view: clicking a day cell", () => {
 
 describe("week view: clicking a day column", () => {
   it("navigates to that day", () => {
-    renderWeekView(container, [], "America/Chicago", new Date(2026, 3, 8), {});
+    renderWeekView(
+      container,
+      place([]),
+      "America/Chicago",
+      new Date(2026, 3, 8),
+      {},
+    );
     const col = container.querySelector(".already-week-col");
     col.click();
     assert.match(window.location.hash, /^#day\/2026-04-\d{2}$/);
@@ -89,7 +99,7 @@ describe("week view: clicking a day column", () => {
     const events = [createTestEvent({ start: "2026-04-08T15:00:00Z" })];
     renderWeekView(
       container,
-      events,
+      place(events),
       "America/Chicago",
       new Date(2026, 3, 8),
       {},
@@ -105,7 +115,7 @@ describe("week view: clicking a day column", () => {
 // selector does not list.
 describe("day navigation respects config.views", () => {
   it("month does not navigate when day is not an enabled view", () => {
-    renderMonthView(container, [], "America/Chicago", APRIL, {
+    renderMonthView(container, place([]), "America/Chicago", APRIL, {
       views: ["month", "grid"],
     });
     const cell = container.querySelector(
@@ -116,15 +126,21 @@ describe("day navigation respects config.views", () => {
   });
 
   it("week does not navigate when day is not an enabled view", () => {
-    renderWeekView(container, [], "America/Chicago", new Date(2026, 3, 8), {
-      views: ["week", "list"],
-    });
+    renderWeekView(
+      container,
+      place([]),
+      "America/Chicago",
+      new Date(2026, 3, 8),
+      {
+        views: ["week", "list"],
+      },
+    );
     container.querySelector(".already-week-col").click();
     assert.equal(window.location.hash, "");
   });
 
   it("navigates when views is unset", () => {
-    renderMonthView(container, [], "America/Chicago", APRIL, {});
+    renderMonthView(container, place([]), "America/Chicago", APRIL, {});
     container
       .querySelector(".already-month-cell:not(.already-month-cell--empty)")
       .click();
@@ -138,7 +154,7 @@ describe("day navigation respects config.views", () => {
 describe("event clicks still bubble to the root", () => {
   it("month chip click reaches an ancestor listener without navigating to the day", () => {
     const events = [createTestEvent({ start: "2026-04-04T15:00:00Z" })];
-    renderMonthView(container, events, "America/Chicago", APRIL, {});
+    renderMonthView(container, place(events), "America/Chicago", APRIL, {});
     let reachedRoot = 0;
     container.addEventListener("click", () => reachedRoot++);
     container.querySelector(".already-month-chip").click();
@@ -150,7 +166,7 @@ describe("event clicks still bubble to the root", () => {
     const events = [createTestEvent({ start: "2026-04-08T15:00:00Z" })];
     renderWeekView(
       container,
-      events,
+      place(events),
       "America/Chicago",
       new Date(2026, 3, 8),
       {},

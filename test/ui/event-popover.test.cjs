@@ -215,7 +215,7 @@ describe("event popover", () => {
 });
 
 // M6: the popover claimed to render "the same component" the grid does, but it
-// skipped decorateCard, so it lacked the past and featured modifiers and the
+// skipped the card decoration step, so it lacked the past and featured modifiers and the
 // data-event-id hook. Compare the two directly rather than asserting a list.
 describe("popover card matches the grid card", () => {
   let renderGridView;
@@ -363,5 +363,52 @@ describe("popover placement", () => {
     openEventPopover(anchor, event, root, {});
     // 230 - 200
     assert.equal(find().style.top, "30px");
+  });
+});
+
+describe("the zone a popover card is labelled against", () => {
+  // This file pins the viewer to Chicago. With the calendar in Chicago too
+  // and no zone on the event, the time needs no source-zone suffix, as on
+  // the grid card. A card that falls back to UTC prints one.
+  const config = { locale: "en-US", i18n: {} };
+  // The dash is the date formatter's own output.
+  const TIME = "Jun 15, 10:00 – 11:00 AM";
+  const meta = () => find().querySelector(".already-card__meta").textContent;
+
+  it("uses the calendar's zone it is given", () => {
+    openEventPopover(anchor, event, root, config, "month", "America/Chicago");
+    assert.strictEqual(meta(), TIME);
+  });
+
+  it("is given the calendar's zone by a bound chip", () => {
+    bindEventPopover(anchor, event, root, config, "month", "America/Chicago");
+    anchor.dispatchEvent(touchDown());
+    assert.strictEqual(meta(), TIME);
+  });
+
+  it("is given the calendar's zone by the month and week views", async () => {
+    const { renderMonthView } = await import("../../src/views/month.js");
+    const { renderWeekView } = await import("../../src/views/week.js");
+    const { placeByDay } = await import("../../src/views/placement.js");
+    const { eventDayKey } = await import("../../src/util/dates.js");
+    const cases = [
+      [renderMonthView, ".already-month-chip"],
+      [renderWeekView, ".already-week-event"],
+    ];
+    for (const [render, selector] of cases) {
+      const container = document.createElement("div");
+      root.appendChild(container);
+      render(
+        container,
+        placeByDay([event], eventDayKey),
+        "America/Chicago",
+        new Date(2099, 5, 15),
+        config,
+      );
+      container.querySelector(selector).dispatchEvent(touchDown());
+      assert.strictEqual(meta(), TIME);
+      closeEventPopover();
+      container.remove();
+    }
   });
 });

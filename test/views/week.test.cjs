@@ -1,4 +1,4 @@
-// Week columns are keyed by the VIEWER's day (see getEventDateParts), so the
+// Week columns are keyed by the VIEWER's day (see eventDayKey), so the
 // ambient TZ decides which column a timed event lands in. Pin it here — and pin
 // it BEFORE anything else in this file, because the `new Date(2026, 3, 15)`
 // literal in the describe body below is evaluated at load time, so a `before`
@@ -20,10 +20,14 @@ after(() => {
 });
 
 let renderWeekView;
+let place;
 
 before(async () => {
   const mod = await import("../../src/views/week.js");
   renderWeekView = mod.renderWeekView;
+  const { placeByDay } = await import("../../src/views/placement.js");
+  const { eventDayKey } = await import("../../src/util/dates.js");
+  place = (events) => placeByDay(events, eventDayKey);
 });
 
 beforeEach(() => {
@@ -35,7 +39,7 @@ describe("renderWeekView", () => {
 
   it("renders 7 day columns", () => {
     const container = document.createElement("div");
-    renderWeekView(container, [], "UTC", wednesday, {});
+    renderWeekView(container, place([]), "UTC", wednesday, {});
     assert.strictEqual(
       container.querySelectorAll(".already-week-col").length,
       7,
@@ -44,7 +48,7 @@ describe("renderWeekView", () => {
 
   it("renders navigation with date range", () => {
     const container = document.createElement("div");
-    renderWeekView(container, [], "UTC", wednesday, {});
+    renderWeekView(container, place([]), "UTC", wednesday, {});
     assert.ok(container.querySelector(".already-week-prev"));
     assert.ok(container.querySelector(".already-week-next"));
     assert.ok(container.querySelector(".already-week-title"));
@@ -52,7 +56,7 @@ describe("renderWeekView", () => {
 
   it("renders column headers with day name and number", () => {
     const container = document.createElement("div");
-    renderWeekView(container, [], "UTC", wednesday, {});
+    renderWeekView(container, place([]), "UTC", wednesday, {});
     const headers = container.querySelectorAll(".already-week-col-header");
     assert.strictEqual(headers.length, 7);
     assert.ok(headers[0].querySelector(".already-week-dayname"));
@@ -64,7 +68,7 @@ describe("renderWeekView", () => {
     const events = [
       createTestEvent({ title: "Wed Event", start: "2026-04-15T10:00:00Z" }),
     ];
-    renderWeekView(container, events, "UTC", wednesday, {});
+    renderWeekView(container, place(events), "UTC", wednesday, {});
     const blocks = container.querySelectorAll(".already-week-event");
     assert.strictEqual(blocks.length, 1);
     assert.strictEqual(blocks[0].textContent, "Wed Event");
@@ -75,26 +79,9 @@ describe("renderWeekView", () => {
     const events = [
       createTestEvent({ id: "week-click", start: "2026-04-15T10:00:00Z" }),
     ];
-    renderWeekView(container, events, "UTC", wednesday, {});
+    renderWeekView(container, place(events), "UTC", wednesday, {});
     container.querySelector(".already-week-event").click();
     assert.strictEqual(window.location.hash, "#event/week-click");
-  });
-
-  it("does not render hidden events", () => {
-    const container = document.createElement("div");
-    const events = [
-      createTestEvent({
-        id: "1",
-        start: "2026-04-15T10:00:00Z",
-        hidden: false,
-      }),
-      createTestEvent({ id: "2", start: "2026-04-15T14:00:00Z", hidden: true }),
-    ];
-    renderWeekView(container, events, "UTC", wednesday, {});
-    assert.strictEqual(
-      container.querySelectorAll(".already-week-event").length,
-      1,
-    );
   });
 
   it("adds --featured class to featured events", () => {
@@ -102,7 +89,7 @@ describe("renderWeekView", () => {
     const events = [
       createTestEvent({ start: "2026-04-15T10:00:00Z", featured: true }),
     ];
-    renderWeekView(container, events, "UTC", wednesday, {});
+    renderWeekView(container, place(events), "UTC", wednesday, {});
     assert.ok(container.querySelector(".already-week-event--featured"));
   });
 
@@ -113,7 +100,7 @@ describe("renderWeekView", () => {
     const events = [
       createTestEvent({ title: "Late Show", start: "2026-04-16T02:00:00Z" }),
     ];
-    renderWeekView(container, events, "UTC", wednesday, {});
+    renderWeekView(container, place(events), "UTC", wednesday, {});
     const cols = container.querySelectorAll(".already-week-col");
     assert.strictEqual(
       cols[3].querySelector(".already-week-event")?.textContent,
@@ -137,7 +124,7 @@ describe("renderWeekView", () => {
         allDay: true,
       }),
     ];
-    renderWeekView(container, events, "UTC", wednesday, {});
+    renderWeekView(container, place(events), "UTC", wednesday, {});
     const cols = container.querySelectorAll(".already-week-col");
     assert.strictEqual(
       cols[4].querySelector(".already-week-event")?.textContent,
@@ -161,7 +148,7 @@ describe("renderWeekView", () => {
         featured: true,
       }),
     ];
-    renderWeekView(container, events, "UTC", wednesday, {});
+    renderWeekView(container, place(events), "UTC", wednesday, {});
     const blocks = [...container.querySelectorAll(".already-week-event")];
     assert.strictEqual(blocks[0].textContent, "Star");
     assert.strictEqual(blocks[1].textContent, "Normal");

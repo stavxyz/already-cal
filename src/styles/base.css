@@ -699,6 +699,11 @@
   margin-top: 0.25rem;
 }
 
+/* A composite's part, listed under its parent's row */
+.already-day-event--part {
+  padding-left: 2.5rem;
+}
+
 /* ===== Detail View ===== */
 .already-detail {
   background: var(--already-surface);
@@ -1689,4 +1694,46 @@ button.already-card__action {
 .already-detail-rsvp .already-rsvp__open:focus-visible {
   outline: 2px solid var(--already-text);
   outline-offset: 2px;
+}
+
+/* Composite parts in the detail view */
+.already-detail-parts {
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--already-border-grid);
+}
+
+.already-detail-parts-day {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--already-text-secondary);
+}
+
+.already-detail-part {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--already-border-grid);
+}
+
+.already-detail-part:last-child {
+  border-bottom: none;
+}
+
+.already-detail-part--target {
+  border-left: 3px solid var(--already-primary);
+  padding-left: 0.75rem;
+}
+
+.already-detail-part-time {
+  font-weight: 600;
+  color: var(--already-primary);
+}
+
+.already-detail-part-title {
+  font-weight: 600;
+}
+
+.already-detail-part-location {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--already-text-secondary);
 }

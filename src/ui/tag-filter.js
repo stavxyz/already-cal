@@ -1,5 +1,6 @@
 // src/ui/tag-filter.js
 
+import { compositeTags } from "../composite.js";
 import { isCategoryTag, tagLabel } from "../util/tags.js";
 
 /** Create a tag filter controller with render, getFilter, and getSelectedTags methods. */
@@ -11,7 +12,9 @@ export function createTagFilter(onFilterChange, config) {
     // Collect unique tags from visible events, count frequency
     const tagCounts = new Map();
     for (const event of events) {
-      for (const tag of event.tags || []) {
+      // The tags of the event as a whole: a composite counts once for a tag
+      // any of its parts carries.
+      for (const tag of compositeTags(event)) {
         if (!isCategoryTag(tag)) continue;
         const label = tagLabel(tag);
         tagCounts.set(label, (tagCounts.get(label) || 0) + 1);
@@ -66,7 +69,7 @@ export function createTagFilter(onFilterChange, config) {
   function getFilter() {
     if (selectedTags.size === 0) return null;
     return (event) => {
-      for (const tag of event.tags || []) {
+      for (const tag of compositeTags(event)) {
         if (!isCategoryTag(tag)) continue;
         if (selectedTags.has(tagLabel(tag))) return true;
       }

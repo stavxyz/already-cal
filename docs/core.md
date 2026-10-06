@@ -57,8 +57,11 @@ import {
 
 Turns one raw Google Calendar API event into the event object the widget
 renders: extracts `#already:` directives, images, links, attachments, and
-tags from the description, and sets the `featured`, `hidden` and
-`imageShuffle` flags. This is the same function the widget itself calls, so a
+tags from the description, and sets the flag fields (`featured`, `hidden`,
+`imageShuffle`, `rsvp`, `composite`, `standalone`, and `partOf`). It copies
+`item._sourceKey` onto the event when the item has one. Grouping entries into
+composites is the widget's own step and is not part of this entry point.
+This is the same function the widget itself calls, so a
 server-side consumer and the widget interpret event content identically. See
 [Event Schema](event-schema.md) for the full shape of the returned event and
 [Directives Reference](directives.md) for the `#already:` syntax.

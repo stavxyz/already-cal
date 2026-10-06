@@ -18,6 +18,7 @@ npm install
 ```
 src/
 ├── already-cal.js          # Main entry point — init(), setConfig(), registerLayout(), registerTheme(), DEFAULTS, THEMES
+├── composite.js            # Composite events: grouping, id lookup, combined image and tag accessors
 ├── core.js                 # DOM-free server-side entry: enrichGoogleEvent, plainTextDescription, CONTENT_DEFAULTS
 ├── content-defaults.js     # CONTENT_DEFAULTS shared by the widget and the core entry
 ├── data.js                 # Data loading, format detection, event enrichment
@@ -42,9 +43,14 @@ src/
 │   ├── list.js             # Chronological list (uses theme layout)
 │   ├── detail.js           # Two-column event detail with gallery
 │   ├── lightbox.js         # Fullscreen image overlay
+│   ├── card-decoration.js  # The one step that decorates a card after its layout renders it
+│   ├── detail-entry.js     # One entry's body in the detail view (description, links, RSVP)
+│   ├── detail-parts.js     # A composite's parts list in the detail view
+│   ├── placement.js        # Day placement for month, week, and day
 │   └── helpers.js          # Shared view rendering utilities
 ├── ui/
 │   ├── header.js           # Calendar name, description, subscribe button
+│   ├── card-parts.js       # The parts block on a composite's card
 │   ├── view-selector.js    # View tabs with SVG icons
 │   ├── tag-filter.js       # Clickable tag pills with OR filtering
 │   ├── past-toggle.js      # Show/hide past events button

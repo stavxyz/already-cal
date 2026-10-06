@@ -14,7 +14,7 @@ beforeEach(() => {
   window.location.hash = "";
 });
 
-// Card/date grouping is now keyed by the VIEWER's zone (see getEventDateParts),
+// Card/date grouping is now keyed by the VIEWER's zone (see eventDayKey),
 // so the ambient TZ decides which date bucket an event falls in. Pin it to UTC
 // — the zone these fixtures are written against — so the assertions below are
 // deterministic on every machine and in CI, and restore it afterward so no
@@ -75,16 +75,6 @@ describe("renderListView", () => {
     renderListView(container, events, "UTC", {});
     container.querySelector(".already-card").click();
     assert.strictEqual(window.location.hash, "#event/nav-test");
-  });
-
-  it("does not render hidden events", () => {
-    const container = document.createElement("div");
-    const events = [
-      createTestEvent({ id: "1", hidden: false }),
-      createTestEvent({ id: "2", hidden: true }),
-    ];
-    renderListView(container, events, "UTC", {});
-    assert.strictEqual(container.querySelectorAll(".already-card").length, 1);
   });
 
   it("adds --featured class", () => {

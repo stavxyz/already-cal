@@ -1,7 +1,6 @@
 import { formatEventWhen } from "../../util/dates.js";
-import { isCategoryTag, tagLabel } from "../../util/tags.js";
-import { createElement } from "../../views/helpers.js";
-import { buildBadge } from "../helpers.js";
+import { createElement, createTagPills } from "../../views/helpers.js";
+import { buildBadge, createPartsSlot } from "../helpers.js";
 
 /**
  * Render a compact layout card.
@@ -39,26 +38,25 @@ export function render(event, options) {
     info.appendChild(loc);
   }
 
+  const partsSlot = createPartsSlot(event);
+  if (partsSlot) info.appendChild(partsSlot);
+
   row.appendChild(info);
 
   // Date badge (inline, right side)
-  const badge = buildBadge(event.start, locale);
+  const badge = buildBadge(event.start);
   badge.classList.add("already-card__badge--inline");
   row.appendChild(badge);
 
   body.appendChild(row);
 
   // Tags
-  const tags = (event.tags || []).filter(isCategoryTag);
-  if (tags.length > 0) {
-    const tagsEl = createElement("div", "already-card__tags");
-    for (const tag of tags) {
-      const pill = createElement("span", "already-card__tag");
-      pill.textContent = tagLabel(tag);
-      tagsEl.appendChild(pill);
-    }
-    body.appendChild(tagsEl);
-  }
+  const tagsEl = createTagPills(
+    event,
+    "already-card__tags",
+    "already-card__tag",
+  );
+  if (tagsEl) body.appendChild(tagsEl);
 
   card.appendChild(body);
   return card;

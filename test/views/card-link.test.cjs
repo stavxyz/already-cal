@@ -216,6 +216,26 @@ describe("a card opens through its title link", () => {
       "Abrir",
     );
   });
+
+  it("gives a built-in layout's card the hidden link when the event has no title", () => {
+    for (const name of NAMES) {
+      const c = grid([createTestEvent({ id: "nt", title: "" })], cfg(name));
+      const card = c.querySelector(".already-card");
+      const link = card.querySelector("a.already-event-link");
+      assert.ok(link, `${name}: a link exists`);
+      assert.strictEqual(
+        link.textContent,
+        "Open event",
+        `${name}: the link is named`,
+      );
+      assert.strictEqual(
+        card.querySelector(".already-card__title a"),
+        null,
+        `${name}: the empty title holds no link`,
+      );
+      document.body.innerHTML = "";
+    }
+  });
 });
 
 describe("the stretched link leaves a description's own links reachable", () => {

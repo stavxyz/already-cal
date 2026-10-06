@@ -4654,7 +4654,8 @@ ${text}</tr>
     const link2 = createElement("a", `already-event-link ${linkClass}`, { href });
     const title = host.querySelector(titleSelector);
     const holdsControl = title !== null && (title.matches("a, button") || title.querySelector("a, button") !== null);
-    if (title !== null && !holdsControl) {
+    const holdsText = title !== null && title.textContent.trim() !== "";
+    if (holdsText && !holdsControl) {
       while (title.firstChild) link2.appendChild(title.firstChild);
       title.appendChild(link2);
     } else {

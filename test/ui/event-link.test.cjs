@@ -67,6 +67,18 @@ describe("linkTitle", () => {
     assert.ok(host.classList.contains(LINK_HOST_CLASS));
   });
 
+  it("appends the hidden link when the title element holds no text", () => {
+    // Built-in layouts render the title element for a blank title too; a
+    // link that holds nothing would have no accessible name.
+    const host = hostWithTitle("   ");
+    const link = linkTitle(host, "#event/e1", opts);
+    const title = host.querySelector(".card__title");
+    assert.strictEqual(title.querySelector("a"), null);
+    assert.strictEqual(host.lastChild, link);
+    assert.ok(link.querySelector("span.already-sr-only"));
+    assert.strictEqual(link.textContent, opts.fallbackText);
+  });
+
   it("leaves a title that is already a link alone, with the hidden link beside it", () => {
     const host = document.createElement("div");
     host.innerHTML =

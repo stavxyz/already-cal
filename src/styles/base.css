@@ -1596,6 +1596,13 @@ button.already-card__action {
   padding: 0.4rem 0.5rem;
   max-width: 100%;
 }
+/* The one width cap for the form, on its contents rather than the form so
+   the form keeps its full flex basis and still wraps below a sibling
+   action in a card footer. */
+.already-rsvp__field,
+.already-rsvp__error {
+  max-width: 24rem;
+}
 .already-rsvp__hp {
   position: absolute;
   left: -9999px;
@@ -1684,7 +1691,4 @@ button.already-card__action {
 .already-detail-rsvp .already-rsvp__open:focus-visible {
   outline: 2px solid var(--already-text);
   outline-offset: 2px;
-}
-.already-detail-rsvp .already-rsvp {
-  max-width: 24rem;
 }

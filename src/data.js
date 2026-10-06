@@ -5,7 +5,7 @@ import {
 } from "./util/attachments.js";
 import { stripComments } from "./util/comments.js";
 import { detectFormat } from "./util/description.js";
-import { extractDirectives } from "./util/directives.js";
+import { extractDirectives, FLAG_FIELDS } from "./util/directives.js";
 import { stableIndex } from "./util/hash.js";
 import { extractImageTokens, normalizeImageUrl } from "./util/images.js";
 import { extractLinkTokens } from "./util/links.js";
@@ -66,10 +66,9 @@ export function enrichEvent(event, config) {
   let image = event.image || null;
   let images = event.images && event.images.length > 0 ? event.images : [];
   let links = event.links && event.links.length > 0 ? event.links : [];
-  let featured = event.featured || false;
-  let hidden = event.hidden || false;
-  let imageShuffle = event.imageShuffle || false;
-  let rsvp = event.rsvp || false;
+  const flags = {};
+  for (const field of FLAG_FIELDS.values())
+    flags[field] = event[field] || false;
 
   const tokenSet = new TokenSet();
 
@@ -81,10 +80,9 @@ export function enrichEvent(event, config) {
     const result = extractDirectives(description);
     description = result.description;
     tokenSet.addAll(result.tokens);
-    if (result.featured) featured = true;
-    if (result.hidden) hidden = true;
-    if (result.imageShuffle) imageShuffle = true;
-    if (result.rsvp) rsvp = true;
+    for (const field of FLAG_FIELDS.values()) {
+      if (result[field]) flags[field] = true;
+    }
   }
 
   // Step 2: Extract images from description if not already set
@@ -142,7 +140,7 @@ export function enrichEvent(event, config) {
   // always the first directive. Keyed by the occurrence's own id: the same
   // id always gives the same index, so the same occurrence always leads
   // with the same image.
-  if (imageShuffle && images.length > 1 && !image) {
+  if (flags.imageShuffle && images.length > 1 && !image) {
     const i = stableIndex(event.id, images.length);
     images = [images[i], ...images.slice(0, i), ...images.slice(i + 1)];
   }
@@ -185,10 +183,7 @@ export function enrichEvent(event, config) {
     links,
     attachments,
     tags,
-    featured,
-    hidden,
-    imageShuffle,
-    rsvp,
+    ...flags,
     htmlLink: event.htmlLink || "",
   };
 }
@@ -263,6 +258,9 @@ export function enrichGoogleEvent(item, config) {
       attachments: apiAttachments,
       _imageAttachments: imageAttachments,
       _sourceTimeZone: item._sourceTimeZone,
+      // Only when the producer supplied one: an absent key and an undefined
+      // one are different things to a host comparing event shapes.
+      ...(item._sourceKey !== undefined ? { _sourceKey: item._sourceKey } : {}),
     },
     config,
   );

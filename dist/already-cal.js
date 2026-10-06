@@ -3027,6 +3027,21 @@ ${text}</tr>
   var DIRECTIVE_PATTERN = /#already:([^\s<>]+)/gi;
   var LINKED_VALUE = /(#already:[a-z0-9-]+:)<a\b([^<>]*)>[^<]*<\/a>/gi;
   var LINKED_HREF = /(?:^|\s)href\s*=\s*(["'])([^"']*)\1/i;
+  var FLAG_FIELDS = /* @__PURE__ */ new Map([
+    ["featured", "featured"],
+    ["hidden", "hidden"],
+    ["image-shuffle", "imageShuffle"],
+    ["rsvp", "rsvp"],
+    ["composite", "composite"],
+    ["standalone", "standalone"],
+    ["part-of", "partOf"]
+  ]);
+  var RESERVED_KEYS = /* @__PURE__ */ new Set(["composite", "part-of"]);
+  function noFlags() {
+    const flags = {};
+    for (const field2 of FLAG_FIELDS.values()) flags[field2] = false;
+    return flags;
+  }
   var DIRECTIVE_PLATFORMS = {
     instagram: {
       label: (v) => `Follow @${v} on Instagram`,
@@ -3200,15 +3215,7 @@ ${text}</tr>
     };
   }
   function extractDirectives(description) {
-    if (!description)
-      return {
-        tokens: [],
-        description,
-        featured: false,
-        hidden: false,
-        imageShuffle: false,
-        rsvp: false
-      };
+    if (!description) return { tokens: [], description, ...noFlags() };
     description = decodeAmp(description).replace(
       LINKED_VALUE,
       (m, key, attrs) => {
@@ -3218,28 +3225,18 @@ ${text}</tr>
     );
     const tokens = [];
     const seen = /* @__PURE__ */ new Set();
-    let featured = false;
-    let hidden = false;
-    let imageShuffle = false;
-    let rsvp = false;
+    const flags = noFlags();
     const matches = [...description.matchAll(DIRECTIVE_PATTERN)];
     for (const match of matches) {
       const body = match[1];
       const bodyLower = body.toLowerCase();
-      if (bodyLower === "featured") {
-        featured = true;
+      const field2 = FLAG_FIELDS.get(bodyLower);
+      if (field2) {
+        flags[field2] = true;
         continue;
       }
-      if (bodyLower === "hidden") {
-        hidden = true;
-        continue;
-      }
-      if (bodyLower === "image-shuffle") {
-        imageShuffle = true;
-        continue;
-      }
-      if (bodyLower === "rsvp") {
-        rsvp = true;
+      const colonIdx = bodyLower.indexOf(":");
+      if (colonIdx > 0 && RESERVED_KEYS.has(bodyLower.slice(0, colonIdx))) {
         continue;
       }
       const token = parseDirective(body);
@@ -3255,7 +3252,7 @@ ${text}</tr>
         matches.map((m) => ({ index: m.index, text: m[0] }))
       )
     );
-    return { tokens, description: cleaned, featured, hidden, imageShuffle, rsvp };
+    return { tokens, description: cleaned, ...flags };
   }
 
   // src/util/hash.js
@@ -3309,20 +3306,18 @@ ${text}</tr>
     let image = event.image || null;
     let images = event.images && event.images.length > 0 ? event.images : [];
     let links = event.links && event.links.length > 0 ? event.links : [];
-    let featured = event.featured || false;
-    let hidden = event.hidden || false;
-    let imageShuffle = event.imageShuffle || false;
-    let rsvp = event.rsvp || false;
+    const flags = {};
+    for (const field2 of FLAG_FIELDS.values())
+      flags[field2] = event[field2] || false;
     const tokenSet = new TokenSet();
     description = stripComments(description);
     if (description) {
       const result = extractDirectives(description);
       description = result.description;
       tokenSet.addAll(result.tokens);
-      if (result.featured) featured = true;
-      if (result.hidden) hidden = true;
-      if (result.imageShuffle) imageShuffle = true;
-      if (result.rsvp) rsvp = true;
+      for (const field2 of FLAG_FIELDS.values()) {
+        if (result[field2]) flags[field2] = true;
+      }
     }
     if (images.length === 0 && description) {
       const result = extractImageTokens(description, config);
@@ -3365,7 +3360,7 @@ ${text}</tr>
     if (imageTokens.length > 0 && images.length === 0) {
       images = imageTokens.map((t) => t.url);
     }
-    if (imageShuffle && images.length > 1 && !image) {
+    if (flags.imageShuffle && images.length > 1 && !image) {
       const i = stableIndex(event.id, images.length);
       images = [images[i], ...images.slice(0, i), ...images.slice(i + 1)];
     }
@@ -3400,10 +3395,7 @@ ${text}</tr>
       links,
       attachments,
       tags,
-      featured,
-      hidden,
-      imageShuffle,
-      rsvp,
+      ...flags,
       htmlLink: event.htmlLink || ""
     };
   }
@@ -3449,7 +3441,10 @@ ${text}</tr>
         htmlLink: item.htmlLink || "",
         attachments: apiAttachments,
         _imageAttachments: imageAttachments,
-        _sourceTimeZone: item._sourceTimeZone
+        _sourceTimeZone: item._sourceTimeZone,
+        // Only when the producer supplied one: an absent key and an undefined
+        // one are different things to a host comparing event shapes.
+        ...item._sourceKey !== void 0 ? { _sourceKey: item._sourceKey } : {}
       },
       config
     );

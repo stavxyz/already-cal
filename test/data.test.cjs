@@ -414,6 +414,9 @@ describe("enrichGoogleEvent", () => {
     hidden: false,
     imageShuffle: false,
     rsvp: false,
+    composite: false,
+    standalone: false,
+    partOf: false,
   };
 
   it("matches the pinned pre-refactor output for a representative item", () => {

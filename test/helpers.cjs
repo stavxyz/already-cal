@@ -16,6 +16,9 @@ function createTestEvent(overrides = {}) {
     hidden: false,
     imageShuffle: false,
     rsvp: false,
+    composite: false,
+    standalone: false,
+    partOf: false,
     htmlLink: "",
     ...overrides,
   };

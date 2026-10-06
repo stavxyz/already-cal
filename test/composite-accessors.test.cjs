@@ -26,8 +26,8 @@ describe("isSecondListing", () => {
   it("matches titles that differ only in case, punctuation, and emoji", () => {
     assert.strictEqual(
       isSecondListing(
-        titled("Songwriter Night (7th Annual)"),
-        titled("SONGWRITER NIGHT 🌭 - 7TH ANNUAL"),
+        titled("Songwriter Night (3rd Annual)"),
+        titled("SONGWRITER NIGHT 🎸 - 3RD ANNUAL"),
       ),
       true,
     );
@@ -37,7 +37,7 @@ describe("isSecondListing", () => {
     assert.strictEqual(
       isSecondListing(
         titled("The Night Owls @ THE GRILL"),
-        titled("burger nite"),
+        titled("open mic nite"),
       ),
       false,
     );

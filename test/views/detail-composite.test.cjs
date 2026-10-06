@@ -30,8 +30,8 @@ const night = (parts, over = {}) =>
       title: "Burger Night",
       start: "2099-06-15T17:00:00Z",
       end: "2099-06-15T21:00:00Z",
-      location: "The Grocer",
-      description: "Burgers every Friday.",
+      location: "The Back Room",
+      description: "Small plates every Friday.",
       ...over,
     },
     parts,
@@ -40,7 +40,7 @@ const act = (over = {}) => ({
   title: "The Night Owls",
   start: "2099-06-15T18:00:00Z",
   end: "2099-06-15T20:00:00Z",
-  location: "The Grocer",
+  location: "The Back Room",
   ...over,
 });
 const render = (event, cfg = config(), options) => {

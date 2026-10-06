@@ -1,7 +1,11 @@
 import { formatEventWhen } from "../../util/dates.js";
 import { renderDescription } from "../../util/description.js";
 import { createElement } from "../../views/helpers.js";
-import { buildCardClasses, createCardImage } from "../helpers.js";
+import {
+  buildCardClasses,
+  createCardImage,
+  createPartsSlot,
+} from "../helpers.js";
 
 export function render(event, options) {
   const { orientation, imagePosition, index, timezone, locale } = options;
@@ -19,6 +23,9 @@ export function render(event, options) {
   const title = createElement("div", "already-card__title");
   title.textContent = event.title;
   body.appendChild(title);
+
+  const partsSlot = createPartsSlot(event);
+  if (partsSlot) body.appendChild(partsSlot);
 
   // Description: shared sanitization with the detail view via renderDescription.
   // Trim-gate: avoid emitting an empty `.already-card__description` div for

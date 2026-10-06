@@ -3839,6 +3839,55 @@ ${text}</tr>
     return tag2.key === "tag" ? value : `${tag2.key}: ${value}`;
   }
 
+  // src/composite.js
+  var NO_PARTS = Object.freeze([]);
+  function partsOf(event) {
+    const parts = event?.parts;
+    if (event?.id == null) return NO_PARTS;
+    if (!Array.isArray(parts) || parts.length === 0) return NO_PARTS;
+    return parts.every((p) => p && p.parentId === event.id) ? parts : NO_PARTS;
+  }
+  function ownImages(event) {
+    if (Array.isArray(event.images) && event.images.length > 0) {
+      return event.images;
+    }
+    return event.image ? [event.image] : [];
+  }
+  function compositeImages(event) {
+    const parts = partsOf(event);
+    const own = ownImages(event);
+    if (parts.length === 0) return own;
+    const seen = /* @__PURE__ */ new Set();
+    const out = [];
+    for (const url of [...own, ...parts.flatMap(ownImages)]) {
+      if (seen.has(url)) continue;
+      seen.add(url);
+      out.push(url);
+    }
+    return out;
+  }
+  function compositeLeadImage(event) {
+    const own = event.image || null;
+    if (own || partsOf(event).length === 0) return own;
+    return compositeImages(event)[0] || null;
+  }
+  function compositeTags(event) {
+    const parts = partsOf(event);
+    const own = event.tags || [];
+    if (parts.length === 0) return own;
+    const seen = new Set(own.map(tagLabel));
+    const out = [...own];
+    for (const part of parts) {
+      for (const tag2 of part.tags || []) {
+        const label = tagLabel(tag2);
+        if (seen.has(label)) continue;
+        seen.add(label);
+        out.push(tag2);
+      }
+    }
+    return out;
+  }
+
   // src/ui/rsvp-state.js
   var RSVP_OPEN_CLASS = "already-card--rsvp-open";
 
@@ -3852,6 +3901,17 @@ ${text}</tr>
       }
     }
     return el;
+  }
+  function createTagPills(event, wrapperClass, pillClass) {
+    const tags = compositeTags(event).filter(isCategoryTag);
+    if (tags.length === 0) return null;
+    const wrapper = createElement("div", wrapperClass);
+    for (const tag2 of tags) {
+      const pill = createElement("span", pillClass);
+      pill.textContent = tagLabel(tag2);
+      wrapper.appendChild(pill);
+    }
+    return wrapper;
   }
   function bindEventClick(el, event, viewName, config, { stopPropagation = false } = {}) {
     const rsvpOpen = () => el.classList.contains(RSVP_OPEN_CLASS);
@@ -3921,10 +3981,11 @@ ${text}</tr>
     return cls;
   }
   function createCardImage(event) {
-    if (!event.image) return null;
+    const src = compositeLeadImage(event);
+    if (!src) return null;
     const wrapper = createElement("div", "already-card__image");
     const img = document.createElement("img");
-    img.src = event.image;
+    img.src = src;
     img.alt = event.title;
     img.setAttribute("loading", "lazy");
     img.onerror = () => {
@@ -3941,6 +4002,10 @@ ${text}</tr>
     };
     wrapper.appendChild(img);
     return wrapper;
+  }
+  function createPartsSlot(event) {
+    if (partsOf(event).length === 0) return null;
+    return createElement("div", "already-card__parts");
   }
   function buildBadge(isoString) {
     const dateParts = getEventDateParts(isoString);
@@ -3996,7 +4061,7 @@ ${text}</tr>
       card.appendChild(imageEl);
     }
     const body = createElement("div", "already-card__body");
-    if (!event.image) {
+    if (!imageEl) {
       const badge = buildBadge(event.start);
       badge.classList.add("already-card__badge--inline");
       body.appendChild(badge);
@@ -4016,16 +4081,14 @@ ${text}</tr>
       loc.textContent = `\u{1F4CD} ${event.location}`;
       body.appendChild(loc);
     }
-    const tags = (event.tags || []).filter(isCategoryTag);
-    if (tags.length > 0) {
-      const tagsEl = createElement("div", "already-card__tags");
-      for (const tag2 of tags) {
-        const pill = createElement("span", "already-card__tag");
-        pill.textContent = tagLabel(tag2);
-        tagsEl.appendChild(pill);
-      }
-      body.appendChild(tagsEl);
-    }
+    const partsSlot = createPartsSlot(event);
+    if (partsSlot) body.appendChild(partsSlot);
+    const tagsEl = createTagPills(
+      event,
+      "already-card__tags",
+      "already-card__tag"
+    );
+    if (tagsEl) body.appendChild(tagsEl);
     if (event.description?.trim()) {
       const desc = createElement("div", "already-card__description");
       desc.innerHTML = renderDescription(event.description, options2.config);
@@ -4069,6 +4132,8 @@ ${text}</tr>
       loc.textContent = event.location;
       body.appendChild(loc);
     }
+    const partsSlot = createPartsSlot(event);
+    if (partsSlot) body.appendChild(partsSlot);
     card.appendChild(body);
     return card;
   }
@@ -4096,21 +4161,19 @@ ${text}</tr>
       loc.textContent = `\u{1F4CD} ${event.location}`;
       info.appendChild(loc);
     }
+    const partsSlot = createPartsSlot(event);
+    if (partsSlot) info.appendChild(partsSlot);
     row.appendChild(info);
     const badge = buildBadge(event.start);
     badge.classList.add("already-card__badge--inline");
     row.appendChild(badge);
     body.appendChild(row);
-    const tags = (event.tags || []).filter(isCategoryTag);
-    if (tags.length > 0) {
-      const tagsEl = createElement("div", "already-card__tags");
-      for (const tag2 of tags) {
-        const pill = createElement("span", "already-card__tag");
-        pill.textContent = tagLabel(tag2);
-        tagsEl.appendChild(pill);
-      }
-      body.appendChild(tagsEl);
-    }
+    const tagsEl = createTagPills(
+      event,
+      "already-card__tags",
+      "already-card__tag"
+    );
+    if (tagsEl) body.appendChild(tagsEl);
     card.appendChild(body);
     return card;
   }
@@ -4126,6 +4189,8 @@ ${text}</tr>
     const title = createElement("div", "already-card__title");
     title.textContent = event.title;
     body.appendChild(title);
+    const partsSlot = createPartsSlot(event);
+    if (partsSlot) body.appendChild(partsSlot);
     if (event.description?.trim()) {
       const desc = createElement("div", "already-card__description");
       desc.innerHTML = renderDescription(event.description, options2.config);

@@ -1,6 +1,8 @@
+import { compositeTags } from "../composite.js";
 import { setEventDetail } from "../router.js";
 import { RSVP_OPEN_CLASS } from "../ui/rsvp-state.js";
 import { eventDayKey, isPast } from "../util/dates.js";
+import { isCategoryTag, tagLabel } from "../util/tags.js";
 
 /** Create a DOM element with optional class name and attributes. */
 export function createElement(tag, className, attrs) {
@@ -12,6 +14,24 @@ export function createElement(tag, className, attrs) {
     }
   }
   return el;
+}
+
+/**
+ * Category tag pills for an event as a whole. A composite shows its parts'
+ * tags with its own, so this reads through the composite accessor. Returns
+ * null when there is nothing to show. The one owner of pill markup: the badge
+ * and compact layouts and the detail view all call it.
+ */
+export function createTagPills(event, wrapperClass, pillClass) {
+  const tags = compositeTags(event).filter(isCategoryTag);
+  if (tags.length === 0) return null;
+  const wrapper = createElement("div", wrapperClass);
+  for (const tag of tags) {
+    const pill = createElement("span", pillClass);
+    pill.textContent = tagLabel(tag);
+    wrapper.appendChild(pill);
+  }
+  return wrapper;
 }
 
 /** Bind click and keyboard handlers to navigate to an event's detail view. */

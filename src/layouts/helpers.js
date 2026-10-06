@@ -1,3 +1,4 @@
+import { compositeLeadImage, partsOf } from "../composite.js";
 import { getEventDateParts, MONTH_NAMES_SHORT } from "../util/dates.js";
 import { createElement } from "../views/helpers.js";
 
@@ -39,10 +40,13 @@ export function buildCardClasses(
  * damage — the original symptom this rescue prevents.
  */
 export function createCardImage(event) {
-  if (!event.image) return null;
+  // A composite leads with its parent's own image, or with a part's when the
+  // parent has none.
+  const src = compositeLeadImage(event);
+  if (!src) return null;
   const wrapper = createElement("div", "already-card__image");
   const img = document.createElement("img");
-  img.src = event.image;
+  img.src = src;
   img.alt = event.title;
   img.setAttribute("loading", "lazy");
   img.onerror = () => {
@@ -63,6 +67,16 @@ export function createCardImage(event) {
   };
   wrapper.appendChild(img);
   return wrapper;
+}
+
+/**
+ * The slot a layout places where a composite's parts should appear. The card
+ * decorator fills it. Returns null for an event without parts, so the card of
+ * an ordinary event is exactly what it was.
+ */
+export function createPartsSlot(event) {
+  if (partsOf(event).length === 0) return null;
+  return createElement("div", "already-card__parts");
 }
 
 /**

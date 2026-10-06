@@ -4069,7 +4069,7 @@ ${text}</tr>
         const result = config.onEventClick(event, viewName);
         if (result === false) return;
       }
-      setEventDetail(event.id);
+      setEventDetail(event.id ?? event.parentId);
     }
     el.addEventListener("click", handleClick);
     el.addEventListener("keydown", (e) => {

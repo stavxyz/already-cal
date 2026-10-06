@@ -457,6 +457,54 @@ describe("what onEventClick receives", () => {
   });
 });
 
+describe("a part with no id", () => {
+  it("day: a click on its row opens the parent's detail", async () => {
+    const events = todays().map((e) =>
+      e.id === "act" ? { ...e, id: undefined } : e,
+    );
+    const c = await mount({ ...everyView, defaultView: "day" }, events);
+    c.querySelector(".already-day-event--part").click();
+    await tick();
+    assert.strictEqual(c.querySelector(".already-error"), null);
+    assert.strictEqual(
+      c.querySelector(".already-detail-title")?.textContent,
+      "Burger Night",
+    );
+  });
+
+  it("month: a click on its own chip opens the parent's detail", async () => {
+    // The parent starts yesterday and the part today, so the part has a chip
+    // of its own on a day of the month the view opens on.
+    const midnight = Date.parse(today(0));
+    const iso = (ms) => new Date(ms).toISOString();
+    const events = [
+      createTestEvent({
+        id: "fest",
+        title: "Festival",
+        composite: true,
+        start: iso(midnight - 12 * HOUR),
+        end: iso(midnight + 12 * HOUR),
+      }),
+      createTestEvent({
+        id: undefined,
+        title: "Late Set",
+        start: iso(midnight + HOUR),
+        end: iso(midnight + 2 * HOUR),
+      }),
+    ];
+    const c = await mount({ ...everyView, defaultView: "month" }, events);
+    [...c.querySelectorAll(".already-month-chip")]
+      .find((el) => el.textContent === "Late Set")
+      .click();
+    await tick();
+    assert.strictEqual(c.querySelector(".already-error"), null);
+    assert.strictEqual(
+      c.querySelector(".already-detail-title")?.textContent,
+      "Festival",
+    );
+  });
+});
+
 describe("pagination counts composites", () => {
   it("counts a parent and its part as one event", async () => {
     const c = await mount({ pageSize: 1 });

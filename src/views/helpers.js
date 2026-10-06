@@ -52,7 +52,9 @@ export function bindEventClick(
       const result = config.onEventClick(event, viewName);
       if (result === false) return;
     }
-    setEventDetail(event.id);
+    // A part with no id has no link of its own, so its click opens the
+    // parent's detail, where the part is shown.
+    setEventDetail(event.id ?? event.parentId);
   }
   el.addEventListener("click", handleClick);
   el.addEventListener("keydown", (e) => {

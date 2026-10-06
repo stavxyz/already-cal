@@ -12,8 +12,9 @@ const sameInstant = (a, b) => new Date(a).getTime() === new Date(b).getTime();
 
 /**
  * The list of a composite's parts in the detail view, or null for an event
- * without parts or whose parts have nothing of their own to show. Each part shows what is its own: its time and title, its
- * location when that differs from the parent's, and its entry body.
+ * without parts, or whose parts have nothing of their own to show. Each part
+ * shows what is its own: its time and title, its location when that differs
+ * from the parent's, and its entry body.
  *
  * A second listing has the parent's title, so the title is not repeated, and
  * a time equal to the parent's is not repeated either. When any part starts

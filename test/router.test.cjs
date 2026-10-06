@@ -23,6 +23,11 @@ describe("eventHref", () => {
     );
   });
 
+  it("treats an empty id as missing", () => {
+    assert.strictEqual(eventHref({ id: "", parentId: "p1" }), "#event/p1");
+    assert.strictEqual(eventHref({ id: "" }), null);
+  });
+
   it("prefers the entry's own id over its parent's", () => {
     assert.strictEqual(eventHref({ id: "a", parentId: "p" }), "#event/a");
   });

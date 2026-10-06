@@ -4065,8 +4065,8 @@ ${text}</tr>
     localStorage.setItem(key, "day");
   }
   function eventHref(entry) {
-    const id = entry?.id ?? entry?.parentId;
-    return id == null ? null : `#event/${id}`;
+    const id = entry?.id || entry?.parentId;
+    return id ? `#event/${id}` : null;
   }
   function onHashChange(callback) {
     const handler = () => {
@@ -4089,7 +4089,7 @@ ${text}</tr>
     return el;
   }
   function eventLinkText(entry, config) {
-    return entry?.title || config?.i18n?.openEvent || "Open event";
+    return String(entry?.title ?? "").trim() || config?.i18n?.openEvent || "Open event";
   }
   function createTagPills(event, wrapperClass, pillClass) {
     const tags = compositeTags(event).filter(isCategoryTag);

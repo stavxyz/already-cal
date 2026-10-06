@@ -199,6 +199,12 @@ describe("eventLinkText", () => {
     assert.strictEqual(eventLinkText({ title: "" }, {}), "Open event");
     assert.strictEqual(eventLinkText({}, undefined), "Open event");
   });
+
+  it("treats a whitespace-only title as missing", () => {
+    // A blank title is truthy, and a hidden link filled with spaces has no
+    // accessible name.
+    assert.strictEqual(eventLinkText({ title: "   " }, {}), "Open event");
+  });
 });
 
 describe("applyEventClasses", () => {

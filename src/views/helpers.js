@@ -20,7 +20,9 @@ export function createElement(tag, className, attrs) {
  * cannot drift between cards and rows.
  */
 export function eventLinkText(entry, config) {
-  return entry?.title || config?.i18n?.openEvent || "Open event";
+  return (
+    String(entry?.title ?? "").trim() || config?.i18n?.openEvent || "Open event"
+  );
 }
 
 /**

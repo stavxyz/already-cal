@@ -78,15 +78,15 @@ export function setDayView(dateStr, config) {
 
 /**
  * The href that opens an entry's detail view: the one writer of the event
- * route that parseHash reads. A part with no id of its own links to its
+ * route that parseHash reads. A part with no id of its own (or an empty one) links to its
  * parent, where it is shown. An entry with neither has no route, so this
  * returns null and the caller renders nothing activatable in place of a
  * link to nowhere. The id is written as it is, without encoding, because
  * parseHash reads it as it is.
  */
 export function eventHref(entry) {
-  const id = entry?.id ?? entry?.parentId;
-  return id == null ? null : `#event/${id}`;
+  const id = entry?.id || entry?.parentId;
+  return id ? `#event/${id}` : null;
 }
 
 /** Register a callback for hash change events. Returns an unsubscribe function. */

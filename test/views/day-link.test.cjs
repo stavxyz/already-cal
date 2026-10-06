@@ -121,5 +121,7 @@ describe("a day row opens through its title link", () => {
     const row = c.querySelector(".already-day-event");
     assert.strictEqual(row.querySelector("a"), null);
     assert.ok(!row.classList.contains("already-link-host"));
+    row.click();
+    assert.strictEqual(window.location.hash, "");
   });
 });

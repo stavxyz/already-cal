@@ -213,7 +213,7 @@ The widget tells calendars apart by the optional `_sourceKey` field on each even
 - With neither, the title is plain text.
 - A value that is not a URL (`#already:website:example.com`) is ignored for the title; it still shows as a pill. When there are several `website` directives, the first wins.
 - The fallback can pick any plain link the other extractors did not claim, such as a Google Doc, a Drive file, or a short link. Use the directive when the first link in the description is not the event's page.
-- A pre-set `website` on the event takes priority over both.
+- A pre-set `website` on the event takes priority over both, and counts only when it starts with `http`. A `website` tag already on the event (from an earlier enrichment) counts right after it, before the directive and the description.
 - The directive is still a URL-valued tag, so it also renders as a "Website" link button like any other (see [URL-valued tags](#url-valued-tags)).
 
 ## Deduplication

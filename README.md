@@ -163,6 +163,7 @@ Already.init({
     rsvpDone: "You're on the list: {count} going",
     rsvpInvalid: 'Check your name, email and party size.',
     rsvpStarted: 'This event has already started.',
+    rsvpClosed: 'This event is not taking RSVPs.',
     rsvpFailed: 'Could not save your RSVP. Try again.',
   },
 
@@ -256,8 +257,8 @@ Themes have two independent axes: **layouts** (card structure) and **palettes** 
 | Layout | Description |
 |--------|-------------|
 | `clean` | Image, title, date, location. Minimal and fast to scan. **(default)** |
-| `hero` | Large image, bold uppercase title, description preview, footer with icons |
-| `badge` | Date badge overlay on image, tags, description, action footer (Details link, RSVP button when enabled) |
+| `hero` | Large image, bold uppercase title, description preview, location and date footer |
+| `badge` | Date badge overlay on image, tags, description, action footer (Details link) |
 | `compact` | No image, inline date badge, dense info. Great for text-heavy calendars |
 
 ### Palettes
@@ -457,7 +458,7 @@ For the complete reference including all platforms, URL construction, tag types,
 
 ## RSVP
 
-Events flagged `#already:rsvp` (or every event, with `rsvpAllEvents: true`) get an RSVP button on Badge cards and in the event detail view when you supply `onRsvp`. The widget collects a name, an email and a party size and hands them to your function; it never knows where they go.
+Events flagged `#already:rsvp` (or every event, with `rsvpAllEvents: true`) get an RSVP button when you supply `onRsvp`. Every card layout shows it: beside Badge's Details link when the event has one, otherwise in a row of its own at the bottom of the card. Opening it shows the form across the card's full width, below the Details link when there is one. The event detail view shows it as a button. The widget collects a name, an email and a party size and hands them to your function; it never knows where they go.
 
 ```js
 Already.init({
@@ -467,11 +468,18 @@ Already.init({
 });
 ```
 
-`Already.rsvpViaFetch(url)` posts `{ eventId, name, email, partySize, website }` as JSON and resolves with the response body; the done line shows `partySize` from the response. Write your own `onRsvp(event, fields)` for any other transport: resolve with `{ partySize }` to confirm, reject to show the failure message. `website` is a honeypot field; a real visitor never fills it. Labels come from `i18n` (`rsvp`, `rsvpName`, `rsvpEmail`, `rsvpPartySize`, `rsvpSubmit`, `rsvpCancel`, `rsvpDone`, `rsvpInvalid`, `rsvpStarted`, `rsvpFailed`), and the Badge footer's link to the Google event page is labeled `i18n.details`.
+`Already.rsvpViaFetch(url)` posts `{ eventId, name, email, partySize, website }` as JSON and resolves with the response body; the done line shows `partySize` from the response. Write your own `onRsvp(event, fields)` for any other transport: resolve with `{ partySize }` to confirm, reject to show the failure message. `website` is a honeypot field; a real visitor never fills it. Labels come from `i18n` (`rsvp`, `rsvpName`, `rsvpEmail`, `rsvpPartySize`, `rsvpSubmit`, `rsvpCancel`, `rsvpDone`, `rsvpInvalid`, `rsvpStarted`, `rsvpClosed`, `rsvpFailed`), and the Badge footer's link to the Google event page is labeled `i18n.details`.
 
 Badge's footer link to the Google event page, previously labeled RSVP, is now labeled Details (i18n.details); the RSVP button is separate and appears only when onRsvp is configured.
 
-Rejections from rsvpViaFetch carry code and status; the form shows rsvpStarted for event_started and rsvpFailed for everything else.
+When `onRsvp` rejects, the form reads the error's `code` to pick its message. Rejections from `rsvpViaFetch` carry `code` (the server's `error` string) and `status`; a custom `onRsvp` should reject with an error whose `code` is one of these to get the specific message:
+
+| `code` | Message (`i18n` key) |
+|--------|----------------------|
+| `event_started` | `rsvpStarted` |
+| `invalid_field` | `rsvpInvalid` |
+| `rsvp_unavailable`, `event_not_found` | `rsvpClosed` |
+| any other code, or none | `rsvpFailed` (asks the visitor to try again) |
 
 ## Tag Filtering
 

@@ -16,6 +16,7 @@ before(async () => {
 
 beforeEach(() => {
   window.location.hash = "";
+  document.body.innerHTML = "";
 });
 
 // Card/date grouping is now keyed by the VIEWER's zone (see eventDayKey),
@@ -116,26 +117,6 @@ describe("bindEventClick", () => {
     assert.strictEqual(window.location.hash, "#event/evt-1");
   });
 
-  it("stops propagation when stopPropagation option is true", () => {
-    const parent = document.createElement("div");
-    const child = document.createElement("div");
-    parent.appendChild(child);
-    let parentClicked = false;
-    parent.addEventListener("click", () => {
-      parentClicked = true;
-    });
-    bindEventClick(
-      child,
-      { id: "evt-1" },
-      "month",
-      {},
-      { stopPropagation: true },
-    );
-    child.click();
-    assert.strictEqual(parentClicked, false);
-    assert.strictEqual(window.location.hash, "#event/evt-1");
-  });
-
   it("does not stop propagation by default", () => {
     const parent = document.createElement("div");
     const child = document.createElement("div");
@@ -147,6 +128,116 @@ describe("bindEventClick", () => {
     bindEventClick(child, { id: "evt-2" }, "grid", {});
     child.click();
     assert.strictEqual(parentClicked, true);
+  });
+});
+
+describe("bindEventClick on a link", () => {
+  const link = (href = "#event/evt-1") => {
+    const a = document.createElement("a");
+    a.setAttribute("href", href);
+    a.textContent = "Event";
+    document.body.appendChild(a);
+    return a;
+  };
+  const click = (el, init = {}) => {
+    const e = new window.MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      ...init,
+    });
+    el.dispatchEvent(e);
+    return e;
+  };
+
+  it("navigates to the link's href on a plain click", () => {
+    const el = link();
+    bindEventClick(el, { id: "evt-1" }, "grid", {});
+    const e = click(el);
+    assert.strictEqual(e.defaultPrevented, true);
+    assert.strictEqual(window.location.hash, "#event/evt-1");
+  });
+
+  it("calls onEventClick before navigating", () => {
+    const el = link();
+    const calls = [];
+    bindEventClick(el, { id: "evt-1" }, "grid", {
+      onEventClick: (event, view) => calls.push([event.id, view]),
+    });
+    click(el);
+    assert.deepStrictEqual(calls, [["evt-1", "grid"]]);
+    assert.strictEqual(window.location.hash, "#event/evt-1");
+  });
+
+  it("prevents navigation when onEventClick returns false", () => {
+    const el = link();
+    bindEventClick(el, { id: "evt-1" }, "grid", { onEventClick: () => false });
+    const e = click(el);
+    assert.strictEqual(e.defaultPrevented, true);
+    assert.strictEqual(window.location.hash, "");
+  });
+
+  it("prevents navigation when canNavigate says no, before asking the host", () => {
+    const el = link();
+    let asked = false;
+    bindEventClick(
+      el,
+      { id: "evt-1" },
+      "grid",
+      { onEventClick: () => (asked = true) },
+      { canNavigate: () => false },
+    );
+    const e = click(el);
+    assert.strictEqual(e.defaultPrevented, true);
+    assert.strictEqual(asked, false);
+    assert.strictEqual(window.location.hash, "");
+  });
+
+  it("leaves a modifier click to the browser", () => {
+    const el = link();
+    let asked = false;
+    bindEventClick(el, { id: "evt-1" }, "grid", {
+      onEventClick: () => (asked = true),
+    });
+    for (const init of [
+      { metaKey: true },
+      { ctrlKey: true },
+      { shiftKey: true },
+      { altKey: true },
+      { button: 1 },
+    ]) {
+      const e = click(el, init);
+      assert.strictEqual(e.defaultPrevented, false, JSON.stringify(init));
+    }
+    assert.strictEqual(asked, false);
+    assert.strictEqual(window.location.hash, "");
+  });
+
+  it("sets no role and no tabindex", () => {
+    const el = link();
+    bindEventClick(el, { id: "evt-1" }, "grid", {});
+    assert.strictEqual(el.getAttribute("role"), null);
+    assert.strictEqual(el.getAttribute("tabindex"), null);
+  });
+
+  it("lets the click bubble", () => {
+    const parent = document.createElement("div");
+    const el = link();
+    parent.appendChild(el);
+    document.body.appendChild(parent);
+    let parentClicked = false;
+    parent.addEventListener("click", () => {
+      parentClicked = true;
+    });
+    bindEventClick(el, { id: "evt-1" }, "month", {});
+    click(el);
+    assert.strictEqual(parentClicked, true);
+  });
+
+  it("is a no-op for an entry with no link", () => {
+    assert.doesNotThrow(() =>
+      bindEventClick(null, { title: "No id" }, "grid", {}),
+    );
   });
 });
 

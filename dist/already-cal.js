@@ -4064,8 +4064,9 @@ ${text}</tr>
     const key = storageKey(config);
     localStorage.setItem(key, "day");
   }
-  function setEventDetail(eventId) {
-    window.location.hash = `event/${eventId}`;
+  function eventHref(entry) {
+    const id = entry?.id ?? entry?.parentId;
+    return id == null ? null : `#event/${id}`;
   }
   function onHashChange(callback) {
     const handler = () => {
@@ -4101,24 +4102,42 @@ ${text}</tr>
     }
     return wrapper;
   }
-  function bindEventClick(el, event, viewName, config, { stopPropagation = false } = {}) {
-    const rsvpOpen = () => el.classList.contains(RSVP_OPEN_CLASS);
-    function handleClick(e) {
-      if (rsvpOpen()) return;
-      if (stopPropagation) e.stopPropagation();
+  function bindEventClick(el, event, viewName, config, { canNavigate } = {}) {
+    if (el === null) return;
+    if (!el.hasAttribute("href")) {
+      bindButtonLikeElement(el, event, viewName, config);
+      return;
+    }
+    el.addEventListener("click", (e) => {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+        return;
+      }
+      e.preventDefault();
+      if (canNavigate && !canNavigate()) return;
       if (config.onEventClick) {
         const result = config.onEventClick(event, viewName);
         if (result === false) return;
       }
-      setEventDetail(event.id ?? event.parentId);
+      window.location.hash = el.getAttribute("href");
+    });
+  }
+  function bindButtonLikeElement(el, event, viewName, config) {
+    const rsvpOpen = () => el.classList.contains(RSVP_OPEN_CLASS);
+    function handleClick() {
+      if (rsvpOpen()) return;
+      if (config.onEventClick) {
+        const result = config.onEventClick(event, viewName);
+        if (result === false) return;
+      }
+      const href = eventHref(event);
+      if (href !== null) window.location.hash = href;
     }
     el.addEventListener("click", handleClick);
     el.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         if (rsvpOpen()) return;
         e.preventDefault();
-        if (stopPropagation) e.stopPropagation();
-        handleClick(e);
+        handleClick();
       }
     });
     el.setAttribute("tabindex", "0");

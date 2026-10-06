@@ -89,11 +89,6 @@ export function eventHref(entry) {
   return id == null ? null : `#event/${id}`;
 }
 
-/** Navigate to an event's detail view by setting the URL hash. */
-export function setEventDetail(eventId) {
-  window.location.hash = `event/${eventId}`;
-}
-
 /** Register a callback for hash change events. Returns an unsubscribe function. */
 export function onHashChange(callback) {
   const handler = () => {

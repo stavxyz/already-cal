@@ -1,5 +1,5 @@
 import { compositeTags } from "../composite.js";
-import { setEventDetail } from "../router.js";
+import { eventHref } from "../router.js";
 import { RSVP_OPEN_CLASS } from "../ui/rsvp-state.js";
 import { eventDayKey, isPast } from "../util/dates.js";
 import { isCategoryTag, tagLabel } from "../util/tags.js";
@@ -34,35 +34,68 @@ export function createTagPills(event, wrapperClass, pillClass) {
   return wrapper;
 }
 
-/** Bind click and keyboard handlers to navigate to an event's detail view. */
+/**
+ * Bind the activation of an event's link. On a plain activation (the primary
+ * button with no modifier key, which is also what Enter on a focused link
+ * produces) it asks the caller's `canNavigate` first (a card with its RSVP
+ * form open says no), then `config.onEventClick`, whose `false` return stops
+ * navigation, and then navigates by copying the link's own href into the
+ * hash. That is the navigation the browser would have performed, done by
+ * hand because the test environment does not navigate on anchor activation.
+ * A middle or modifier click is left to the browser, which opens a new tab
+ * (browsers send those as auxclick, so the button check is a guard). An
+ * entry with no route (router.eventHref) has no link, and a null `el` is a
+ * no-op.
+ */
 export function bindEventClick(
   el,
   event,
   viewName,
   config,
-  { stopPropagation = false } = {},
+  { canNavigate } = {},
 ) {
-  // A card with an open RSVP form stays put: navigating would discard what
-  // the visitor typed.
-  const rsvpOpen = () => el.classList.contains(RSVP_OPEN_CLASS);
-  function handleClick(e) {
-    if (rsvpOpen()) return;
-    if (stopPropagation) e.stopPropagation();
+  if (el === null) return;
+  if (!el.hasAttribute("href")) {
+    bindButtonLikeElement(el, event, viewName, config);
+    return;
+  }
+  el.addEventListener("click", (e) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+      return;
+    }
+    e.preventDefault();
+    if (canNavigate && !canNavigate()) return;
     if (config.onEventClick) {
       const result = config.onEventClick(event, viewName);
       if (result === false) return;
     }
-    // A part with no id has no link of its own, so its click opens the
-    // parent's detail, where the part is shown.
-    setEventDetail(event.id ?? event.parentId);
+    window.location.hash = el.getAttribute("href");
+  });
+}
+
+/**
+ * TRANSITIONAL: the button behaviour cards, rows, chips, and blocks had
+ * before they became links. It stays only until every site passes a link,
+ * so each commit on the way keeps the widget working, and is deleted with
+ * the last site. Nothing new may call it.
+ */
+function bindButtonLikeElement(el, event, viewName, config) {
+  const rsvpOpen = () => el.classList.contains(RSVP_OPEN_CLASS);
+  function handleClick() {
+    if (rsvpOpen()) return;
+    if (config.onEventClick) {
+      const result = config.onEventClick(event, viewName);
+      if (result === false) return;
+    }
+    const href = eventHref(event);
+    if (href !== null) window.location.hash = href;
   }
   el.addEventListener("click", handleClick);
   el.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") {
       if (rsvpOpen()) return;
       e.preventDefault();
-      if (stopPropagation) e.stopPropagation();
-      handleClick(e);
+      handleClick();
     }
   });
   el.setAttribute("tabindex", "0");

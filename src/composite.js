@@ -1,4 +1,5 @@
 import { DATE_ONLY_RE, dayKeyInZone, startOrder } from "./util/dates.js";
+import { tagLabel } from "./util/tags.js";
 
 /**
  * Composite events: an entry flagged `composite` is displayed as one event
@@ -212,4 +213,79 @@ export function composeEvents(events, options = {}) {
   }
 
   return { events: topLevel, lookup: (id) => index.get(id) ?? null };
+}
+
+function titleKey(title) {
+  return String(title ?? "")
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, "");
+}
+
+/**
+ * Whether a part is a second listing of its parent: the same occasion entered
+ * twice, recognised by a title that is the same once case, punctuation,
+ * accents, and emoji are set aside. It only decides how the part is labelled.
+ * Membership never depends on it. Stateless, so it answers the same for a
+ * copy of a part as for the original.
+ */
+export function isSecondListing(part, parent) {
+  const key = titleKey(part?.title);
+  return key !== "" && key === titleKey(parent?.title);
+}
+
+function ownImages(event) {
+  if (Array.isArray(event.images) && event.images.length > 0) {
+    return event.images;
+  }
+  return event.image ? [event.image] : [];
+}
+
+/**
+ * The images a composite shows as one thing: the parent's own, then each
+ * part's, without exact duplicates. An event's own `images` field is never
+ * rewritten. Code that renders an event as a whole reads through these
+ * accessors, and only the detail view's per-entry body reads the raw fields.
+ */
+export function compositeImages(event) {
+  const parts = partsOf(event);
+  const own = ownImages(event);
+  if (parts.length === 0) return own;
+  const seen = new Set();
+  const out = [];
+  for (const url of [...own, ...parts.flatMap(ownImages)]) {
+    if (seen.has(url)) continue;
+    seen.add(url);
+    out.push(url);
+  }
+  return out;
+}
+
+/**
+ * The image a composite leads with: the parent's own `image` when it has
+ * one, otherwise the first of the combined images. An event without parts
+ * leads with its own `image` or with nothing, exactly as before composites.
+ */
+export function compositeLeadImage(event) {
+  const own = event.image || null;
+  if (own || partsOf(event).length === 0) return own;
+  return compositeImages(event)[0] || null;
+}
+
+/** A composite's tags: the parent's own, then its parts' tags with new labels. */
+export function compositeTags(event) {
+  const parts = partsOf(event);
+  const own = event.tags || [];
+  if (parts.length === 0) return own;
+  const seen = new Set(own.map(tagLabel));
+  const out = [...own];
+  for (const part of parts) {
+    for (const tag of part.tags || []) {
+      const label = tagLabel(tag);
+      if (seen.has(label)) continue;
+      seen.add(label);
+      out.push(tag);
+    }
+  }
+  return out;
 }

@@ -42,4 +42,27 @@ function captureConsoleError(fn) {
   return errors;
 }
 
-module.exports = { createTestEvent, captureConsoleError };
+/**
+ * A composed parent as composition builds it: a parent event with `parts`,
+ * each part carrying `parentId`. Each entry of `partOverridesList` overrides
+ * one part's fields.
+ */
+function createComposite(parentOverrides = {}, partOverridesList = [{}]) {
+  const parent = createTestEvent({
+    id: "parent",
+    title: "Parent",
+    composite: true,
+    ...parentOverrides,
+  });
+  const parts = partOverridesList.map((overrides, i) => ({
+    ...createTestEvent({
+      id: `part-${i + 1}`,
+      title: `Part ${i + 1}`,
+      ...overrides,
+    }),
+    parentId: parent.id,
+  }));
+  return { ...parent, parts };
+}
+
+module.exports = { createTestEvent, createComposite, captureConsoleError };

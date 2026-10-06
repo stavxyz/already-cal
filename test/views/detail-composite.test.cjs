@@ -340,10 +340,12 @@ describe("detail view of a composite", () => {
   });
 
   it("marks no part when the link names an unknown part", () => {
-    const c = render(night([act({ id: undefined })]), config(), {
+    const c = render(night([act(), act({ title: "Second" })]), config(), {
       focusPartId: "nope",
     });
+    assert.strictEqual(items(c).length, 2);
     assert.strictEqual(c.querySelector(".already-detail-part--target"), null);
+    assert.strictEqual(c.querySelector("[aria-current]"), null);
   });
 
   it("marks no part when called without options", () => {

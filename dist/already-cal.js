@@ -5666,6 +5666,111 @@ ${text}</tr>
     container.appendChild(day);
   }
 
+  // src/views/detail-entry.js
+  var titleCase = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  function renderEntryBody(container, event, config) {
+    if (event.description?.trim()) {
+      const desc = createElement("div", "already-detail-description");
+      desc.innerHTML = renderDescription(event.description, config);
+      container.appendChild(desc);
+    }
+    if (event.attachments && event.attachments.length > 0) {
+      const attachDiv = createElement("div", "already-detail-attachments");
+      for (const att of event.attachments) {
+        const a = createElement("a", "already-detail-attachment", {
+          href: att.url,
+          target: "_blank",
+          rel: "noopener"
+        });
+        a.textContent = att.label;
+        attachDiv.appendChild(a);
+      }
+      container.appendChild(attachDiv);
+    }
+    const urlTags = (event.tags || []).filter(isLinkTag);
+    const allLinks = [
+      ...event.links || [],
+      ...urlTags.map((t) => ({ label: titleCase(t.key), url: t.value }))
+    ];
+    if (allLinks.length > 0) {
+      const linksDiv = createElement("div", "already-detail-links");
+      for (const link2 of allLinks) {
+        const a = createElement("a", "already-detail-link", {
+          href: link2.url,
+          target: "_blank",
+          rel: "noopener"
+        });
+        a.textContent = link2.label;
+        linksDiv.appendChild(a);
+      }
+      container.appendChild(linksDiv);
+    }
+    const rsvpRow = createElement("div", "already-detail-rsvp");
+    if (appendRsvpControl(rsvpRow, event, config)) container.appendChild(rsvpRow);
+  }
+
+  // src/views/detail-parts.js
+  var sameInstant = (a, b) => new Date(a).getTime() === new Date(b).getTime();
+  function renderDetailParts(event, { timezone, locale, config, focusPartId } = {}) {
+    const parts = partsOf(event);
+    if (parts.length === 0) return null;
+    const i18n = config?.i18n || {};
+    const list2 = createElement("div", "already-detail-parts", {
+      role: "group",
+      "aria-label": i18n.compositeParts || "Schedule"
+    });
+    const dayOf = (part) => eventDayKey(part.start);
+    const parentDay = eventDayKey(event.start);
+    const needsDays = parts.some((part) => dayOf(part) !== parentDay);
+    let lastDay = null;
+    for (const part of parts) {
+      const day = dayOf(part);
+      if (needsDays && day !== lastDay) {
+        const heading2 = createElement("div", "already-detail-parts-day", {
+          role: "heading",
+          "aria-level": "3"
+        });
+        heading2.textContent = formatDate(part.start, viewerTimeZone(), locale);
+        list2.appendChild(heading2);
+        lastDay = day;
+      }
+      const item = createElement("div", "already-detail-part");
+      item.dataset.eventId = part.id;
+      if (part.id === focusPartId) {
+        item.classList.add("already-detail-part--target");
+      }
+      const showTitle = !isSecondListing(part, event);
+      const showTime = !(sameInstant(part.start, event.start) && sameInstant(part.end, event.end));
+      if (showTime || showTitle) {
+        const head = createElement("div", "already-detail-part-head");
+        if (showTime) {
+          const when = createElement("span", "already-detail-part-time");
+          when.textContent = formatScheduleTime(part, {
+            sourceZoneFallback: timezone,
+            locale,
+            allDayLabel: i18n.allDay || "All Day"
+          });
+          head.appendChild(when);
+        }
+        if (showTime && showTitle) head.append(" ");
+        if (showTitle) {
+          const title = createElement("span", "already-detail-part-title");
+          title.textContent = part.title;
+          head.appendChild(title);
+        }
+        item.appendChild(head);
+      }
+      if (part.location && part.location !== event.location) {
+        const loc = createElement("div", "already-detail-part-location");
+        loc.textContent = part.location;
+        item.appendChild(loc);
+      }
+      renderEntryBody(item, part, config);
+      list2.appendChild(item);
+    }
+    return list2;
+  }
+
   // src/views/lightbox.js
   var currentClose = null;
   function openLightbox(images, startIndex, altText) {
@@ -5845,13 +5950,13 @@ ${text}</tr>
     });
     return gallery;
   }
-  function renderDetailView(container, event, timezone, onBack, config) {
+  function renderDetailView(container, event, timezone, onBack, config, options2 = {}) {
     config = config || {};
     const locale = config.locale;
     const i18n = config.i18n || {};
     const backLabel = i18n.back || "\u2190 Back";
     const locationTemplate = config.locationLinkTemplate || "https://maps.google.com/?q={location}";
-    const images = event.images && event.images.length > 0 ? event.images : event.image ? [event.image] : [];
+    const images = compositeImages(event);
     const hasImages = images.length > 0;
     const detail = createElement("div", "already-detail");
     const actions = createElement("div", "already-detail-actions");
@@ -5908,60 +6013,26 @@ ${text}</tr>
       meta.appendChild(locDiv);
     }
     content.appendChild(meta);
-    const scalarAndTextTags = (event.tags || []).filter(isCategoryTag);
-    if (scalarAndTextTags.length > 0) {
-      const tagsDiv = createElement("div", "already-detail-tags");
-      for (const tag2 of scalarAndTextTags) {
-        const span = createElement("span", "already-detail-tag");
-        span.textContent = tagLabel(tag2);
-        tagsDiv.appendChild(span);
-      }
-      content.appendChild(tagsDiv);
-    }
-    if (event.description?.trim()) {
-      const desc = createElement("div", "already-detail-description");
-      desc.innerHTML = renderDescription(event.description, config);
-      content.appendChild(desc);
-    }
-    if (event.attachments && event.attachments.length > 0) {
-      const attachDiv = createElement("div", "already-detail-attachments");
-      for (const att of event.attachments) {
-        const a = createElement("a", "already-detail-attachment", {
-          href: att.url,
-          target: "_blank",
-          rel: "noopener"
-        });
-        a.textContent = att.label;
-        attachDiv.appendChild(a);
-      }
-      content.appendChild(attachDiv);
-    }
-    const urlTags = (event.tags || []).filter(isLinkTag);
-    const titleCase = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-    const allLinks = [
-      ...event.links || [],
-      ...urlTags.map((t) => ({ label: titleCase(t.key), url: t.value }))
-    ];
-    if (allLinks.length > 0) {
-      const linksDiv = createElement("div", "already-detail-links");
-      for (const link2 of allLinks) {
-        const a = createElement("a", "already-detail-link", {
-          href: link2.url,
-          target: "_blank",
-          rel: "noopener"
-        });
-        a.textContent = link2.label;
-        linksDiv.appendChild(a);
-      }
-      content.appendChild(linksDiv);
-    }
-    const rsvpRow = createElement("div", "already-detail-rsvp");
-    if (appendRsvpControl(rsvpRow, event, config)) content.appendChild(rsvpRow);
+    const tagsEl = createTagPills(
+      event,
+      "already-detail-tags",
+      "already-detail-tag"
+    );
+    if (tagsEl) content.appendChild(tagsEl);
+    renderEntryBody(content, event, config);
+    const partsEl = renderDetailParts(event, {
+      timezone,
+      locale,
+      config,
+      focusPartId: options2.focusPartId
+    });
+    if (partsEl) content.appendChild(partsEl);
     body.appendChild(content);
     detail.appendChild(body);
     container.innerHTML = "";
     container.appendChild(detail);
     backBtn.focus();
+    detail.querySelector(".already-detail-part--target")?.scrollIntoView?.({ block: "nearest" });
   }
 
   // src/views/grid.js

@@ -1,10 +1,10 @@
-import { appendRsvpControl } from "../ui/rsvp-form.js";
+import { compositeImages } from "../composite.js";
 import { createShareButton } from "../ui/share-button.js";
 import { formatEventWhen } from "../util/dates.js";
-import { renderDescription } from "../util/description.js";
 import { buildShareUrl } from "../util/share-url.js";
-import { isCategoryTag, isLinkTag, tagLabel } from "../util/tags.js";
-import { createElement } from "./helpers.js";
+import { renderEntryBody } from "./detail-entry.js";
+import { renderDetailParts } from "./detail-parts.js";
+import { createElement, createTagPills } from "./helpers.js";
 import { openLightbox } from "./lightbox.js";
 
 function renderGallery(images, altText) {
@@ -86,8 +86,19 @@ function renderGallery(images, altText) {
   return gallery;
 }
 
-/** Render the two-column event detail view with gallery, metadata, and action buttons. */
-export function renderDetailView(container, event, timezone, onBack, config) {
+/**
+ * Render the two-column event detail view with gallery, metadata, and action
+ * buttons. A composite is the parent followed by its parts. `options.focusPartId`
+ * names the part a link pointed at, which is marked and brought into view.
+ */
+export function renderDetailView(
+  container,
+  event,
+  timezone,
+  onBack,
+  config,
+  options = {},
+) {
   config = config || {};
   const locale = config.locale;
   const i18n = config.i18n || {};
@@ -95,12 +106,8 @@ export function renderDetailView(container, event, timezone, onBack, config) {
   const locationTemplate =
     config.locationLinkTemplate || "https://maps.google.com/?q={location}";
 
-  const images =
-    event.images && event.images.length > 0
-      ? event.images
-      : event.image
-        ? [event.image]
-        : [];
+  // A composite's gallery is its parent's images followed by its parts'.
+  const images = compositeImages(event);
   const hasImages = images.length > 0;
 
   const detail = createElement("div", "already-detail");
@@ -173,71 +180,23 @@ export function renderDetailView(container, event, timezone, onBack, config) {
   }
   content.appendChild(meta);
 
-  // Render tags (scalar tags and key-value text tags)
-  const scalarAndTextTags = (event.tags || []).filter(isCategoryTag);
+  const tagsEl = createTagPills(
+    event,
+    "already-detail-tags",
+    "already-detail-tag",
+  );
+  if (tagsEl) content.appendChild(tagsEl);
 
-  if (scalarAndTextTags.length > 0) {
-    const tagsDiv = createElement("div", "already-detail-tags");
-    for (const tag of scalarAndTextTags) {
-      const span = createElement("span", "already-detail-tag");
-      span.textContent = tagLabel(tag);
-      tagsDiv.appendChild(span);
-    }
-    content.appendChild(tagsDiv);
-  }
+  // What belongs to this one entry: description, attachments, links, RSVP.
+  renderEntryBody(content, event, config);
 
-  // Trim-gate symmetric with badge.js + hero.js: avoid emitting an empty
-  // .already-detail-description div for whitespace-only descriptions
-  // (e.g. "   " or "\n\n"), which would otherwise produce a visible empty
-  // block after the renderDescription `<br>` substitution path. Keeps
-  // the cross-layout description-rendering contract uniform — same
-  // class of inconsistency #190 was opened to close.
-  if (event.description?.trim()) {
-    const desc = createElement("div", "already-detail-description");
-    desc.innerHTML = renderDescription(event.description, config);
-    content.appendChild(desc);
-  }
-
-  if (event.attachments && event.attachments.length > 0) {
-    const attachDiv = createElement("div", "already-detail-attachments");
-    for (const att of event.attachments) {
-      const a = createElement("a", "already-detail-attachment", {
-        href: att.url,
-        target: "_blank",
-        rel: "noopener",
-      });
-      a.textContent = att.label;
-      attachDiv.appendChild(a);
-    }
-    content.appendChild(attachDiv);
-  }
-
-  // Collect key-value URL tags to render alongside links
-  const urlTags = (event.tags || []).filter(isLinkTag);
-  const titleCase = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-  const allLinks = [
-    ...(event.links || []),
-    ...urlTags.map((t) => ({ label: titleCase(t.key), url: t.value })),
-  ];
-
-  if (allLinks.length > 0) {
-    const linksDiv = createElement("div", "already-detail-links");
-    for (const link of allLinks) {
-      const a = createElement("a", "already-detail-link", {
-        href: link.url,
-        target: "_blank",
-        rel: "noopener",
-      });
-      a.textContent = link.label;
-      linksDiv.appendChild(a);
-    }
-    content.appendChild(linksDiv);
-  }
-
-  // Same mount path as the cards (decorateRsvp); the detail view only
-  // supplies its own row, and keeps it only when a button was mounted.
-  const rsvpRow = createElement("div", "already-detail-rsvp");
-  if (appendRsvpControl(rsvpRow, event, config)) content.appendChild(rsvpRow);
+  const partsEl = renderDetailParts(event, {
+    timezone,
+    locale,
+    config,
+    focusPartId: options.focusPartId,
+  });
+  if (partsEl) content.appendChild(partsEl);
 
   body.appendChild(content);
   detail.appendChild(body);
@@ -247,4 +206,9 @@ export function renderDetailView(container, event, timezone, onBack, config) {
 
   // Focus the back button for accessibility
   backBtn.focus();
+
+  // A link to a part opens its composite here. Bring that part into view.
+  detail
+    .querySelector(".already-detail-part--target")
+    ?.scrollIntoView?.({ block: "nearest" });
 }

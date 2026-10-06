@@ -374,6 +374,49 @@ describe("sources", () => {
   });
 });
 
+describe("flags are read by truthiness", () => {
+  const X = (extra = {}) =>
+    ev("x", "2099-06-15T23:00:00Z", "2099-06-16T00:00:00Z", extra);
+
+  it("takes the entry inside the hours of a parent flagged with 1", () => {
+    const { events } = compose([
+      ev("p", "2099-06-15T22:00:00Z", "2099-06-16T02:00:00Z", { composite: 1 }),
+      X(),
+    ]);
+    assert.deepStrictEqual(ids(events), ["p"]);
+    assert.deepStrictEqual(partIds(events[0]), ["x"]);
+  });
+
+  it("keeps an entry flagged standalone with 1 at the top level", () => {
+    const { events } = compose([
+      parent("p", "2099-06-15T22:00:00Z", "2099-06-16T02:00:00Z"),
+      X({ standalone: 1 }),
+    ]);
+    assert.deepStrictEqual(ids(events), ["p", "x"]);
+    assert.deepStrictEqual(partIds(events[0]), []);
+  });
+
+  it("gives a parent an entry from another source flagged part-of with 1", () => {
+    const { events } = compose([
+      parent("p", "2099-06-15T22:00:00Z", "2099-06-16T02:00:00Z", {
+        _sourceKey: "0",
+      }),
+      X({ _sourceKey: "1", partOf: 1 }),
+    ]);
+    assert.deepStrictEqual(ids(events), ["p"]);
+    assert.deepStrictEqual(partIds(events[0]), ["x"]);
+  });
+
+  it("never makes an entry flagged composite with 1 a part", () => {
+    const { events } = compose([
+      parent("p", "2099-06-15T22:00:00Z", "2099-06-16T02:00:00Z"),
+      X({ composite: 1 }),
+    ]);
+    assert.deepStrictEqual(ids(events), ["p", "x"]);
+    assert.deepStrictEqual(partIds(events[0]), []);
+  });
+});
+
 describe("lookup", () => {
   it("resolves a top-level id, a part id, and an unknown id", () => {
     const { lookup } = compose([

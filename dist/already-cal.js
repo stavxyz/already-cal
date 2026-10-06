@@ -349,7 +349,7 @@ var Already = (() => {
   function groupParts(visible, { timeZone } = {}) {
     const parents = [];
     for (const [index, entry] of visible.entries()) {
-      if (entry.composite !== true || entry.id == null) continue;
+      if (!entry.composite || entry.id == null) continue;
       const win = windowOf(entry);
       if (!win) continue;
       parents.push({
@@ -364,13 +364,13 @@ var Already = (() => {
     if (parents.length === 0) return visible;
     const partIndexes = /* @__PURE__ */ new Set();
     for (const [index, entry] of visible.entries()) {
-      if (entry.composite === true || entry.standalone === true) continue;
+      if (entry.composite || entry.standalone) continue;
       const position2 = positionOf(entry);
       const source = sourceOf(entry);
       let best = null;
       for (const parent of parents) {
         const own = parent.source === source;
-        if (!own && entry.partOf !== true) continue;
+        if (!own && !entry.partOf) continue;
         if (!startsInside(entry, position2, parent.win, timeZone)) continue;
         const candidate = { parent, own };
         if (best === null || isCloser(candidate, best)) best = candidate;

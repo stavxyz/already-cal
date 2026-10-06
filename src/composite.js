@@ -118,7 +118,7 @@ export function groupParts(visible, { timeZone } = {}) {
   const parents = [];
   for (const [index, entry] of visible.entries()) {
     // Parts point at their parent by id, so a parent needs one.
-    if (entry.composite !== true || entry.id == null) continue;
+    if (!entry.composite || entry.id == null) continue;
     const win = windowOf(entry);
     if (!win) continue;
     parents.push({
@@ -135,13 +135,13 @@ export function groupParts(visible, { timeZone } = {}) {
   const partIndexes = new Set();
   for (const [index, entry] of visible.entries()) {
     // A flagged entry is never a part, and a standalone entry has opted out.
-    if (entry.composite === true || entry.standalone === true) continue;
+    if (entry.composite || entry.standalone) continue;
     const position = positionOf(entry);
     const source = sourceOf(entry);
     let best = null;
     for (const parent of parents) {
       const own = parent.source === source;
-      if (!own && entry.partOf !== true) continue;
+      if (!own && !entry.partOf) continue;
       if (!startsInside(entry, position, parent.win, timeZone)) continue;
       const candidate = { parent, own };
       if (best === null || isCloser(candidate, best)) best = candidate;

@@ -1444,7 +1444,9 @@
 
   .already-month-chip {
     background: #333;
-    color: #fff;
+    /* The link-state rule above reads this variable, so a plain `color`
+       here would lose to it. */
+    --already-primary-text: #fff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -1567,6 +1569,9 @@
   right: 0.625rem;
   font-size: 1.125rem;
   line-height: 1;
+  /* The chevron paints above the stretched event link; without this a
+     click on it would hit the card, whose only handler closes the popover. */
+  pointer-events: none;
   color: var(--already-text-secondary);
   transition: transform 0.15s ease;
 }
@@ -1767,13 +1772,36 @@ button.already-card__action {
 /* The host of an event link (a card, a day row) is the box the link
    stretches over, so it is the positioned ancestor of the link's pseudo
    element. Hosts are marked by ui/event-link.js, not by their own class, so
-   a new host needs no rule here. */
+   a new host needs no rule here. The host is also its own stacking context,
+   so the z-index that lifts a control above the link resolves inside the
+   host and never above a host-page overlay. */
 .already-link-host {
   position: relative;
+  isolation: isolate;
 }
 
 .already-event-link {
   color: inherit;
+  text-decoration: none;
+}
+
+/* Every event title, chip, and block is an anchor, and a host page styles
+   anchors (`.page a { color; text-decoration }`, `a:visited`). Enumerating
+   the link states puts these rules above a descendant rule's specificity,
+   so the widget's own colours hold without a host doing anything. */
+.already .already-event-link:is(:link, :visited, :hover, :active) {
+  color: inherit;
+  text-decoration: none;
+}
+
+.already
+  :is(.already-month-chip, .already-week-event):is(
+    :link,
+    :visited,
+    :hover,
+    :active
+  ) {
+  color: var(--already-primary-text);
   text-decoration: none;
 }
 

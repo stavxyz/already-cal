@@ -274,3 +274,47 @@ describe("the stretched link leaves a description's own links reachable", () => 
     assert.ok(block.includes("z-index: 1;"));
   });
 });
+
+describe("the stylesheet holds its own in a host page", () => {
+  const css = fs.readFileSync(
+    path.join(__dirname, "../../src/styles/base.css"),
+    "utf8",
+  );
+  const blockFor = (selector) => {
+    const start = css.indexOf(`${selector} {`);
+    assert.notStrictEqual(start, -1, `no rule for ${selector}`);
+    return css.slice(start, css.indexOf("}", start));
+  };
+
+  it("keeps the event link's colour against a host's descendant anchor rule", () => {
+    // `.page a { color }` has one class and one type; this rule enumerates the
+    // link states to sit above it.
+    const block = blockFor(
+      ".already .already-event-link:is(:link, :visited, :hover, :active)",
+    );
+    assert.ok(block.includes("color: inherit;"));
+    assert.ok(block.includes("text-decoration: none;"));
+  });
+
+  it("keeps a chip's and a block's colour the same way", () => {
+    const block = blockFor(
+      ".already\n  :is(.already-month-chip, .already-week-event):is(\n    :link,\n    :visited,\n    :hover,\n    :active\n  )",
+    );
+    assert.ok(block.includes("color: var(--already-primary-text);"));
+    assert.ok(block.includes("text-decoration: none;"));
+  });
+
+  it("makes every link host its own stacking context", () => {
+    // Without it, a lifted control's z-index resolves against the page and
+    // paints through a host overlay that sets no z-index of its own.
+    assert.ok(blockFor(".already-link-host").includes("isolation: isolate;"));
+  });
+
+  it("lets a click on the popover's chevron fall through to the event link", () => {
+    assert.ok(
+      blockFor(".already-event-popover__card::after").includes(
+        "pointer-events: none;",
+      ),
+    );
+  });
+});

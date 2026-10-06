@@ -1169,7 +1169,7 @@
   }
   .already-month-chip {
     background: #333;
-    color: #fff;
+    --already-primary-text: #fff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -1264,6 +1264,7 @@
   right: 0.625rem;
   font-size: 1.125rem;
   line-height: 1;
+  pointer-events: none;
   color: var(--already-text-secondary);
   transition: transform 0.15s ease;
 }
@@ -1430,9 +1431,18 @@ button.already-card__action {
 }
 .already-link-host {
   position: relative;
+  isolation: isolate;
 }
 .already-event-link {
   color: inherit;
+  text-decoration: none;
+}
+.already .already-event-link:is(:link, :visited, :hover, :active) {
+  color: inherit;
+  text-decoration: none;
+}
+.already :is(.already-month-chip, .already-week-event):is(:link, :visited, :hover, :active) {
+  color: var(--already-primary-text);
   text-decoration: none;
 }
 .already-event-link::after {

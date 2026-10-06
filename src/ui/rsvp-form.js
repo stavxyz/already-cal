@@ -118,12 +118,10 @@ function createRsvpForm(event, config, { onClose, onDone }) {
     error.hidden = false;
   }
 
-  // The card around this form navigates on click, Space and Enter
-  // (bindEventClick). Nothing typed or clicked inside the form may reach it.
+  // The form sits beside the card's event link, never inside it, so what is
+  // typed or clicked here reaches no navigation handler and may bubble.
   let pending = false;
-  form.addEventListener("click", (e) => e.stopPropagation());
   form.addEventListener("keydown", (e) => {
-    e.stopPropagation();
     if (e.key !== "Escape") return;
     // Mirrors the disabled Cancel button: a pending submit can't be aborted.
     if (pending) return;
@@ -200,6 +198,19 @@ export function appendRsvpControl(container, event, config) {
     { type: "button" },
   );
   button.textContent = i18n.rsvp || "RSVP";
+  // Every card's button reads "RSVP"; the name says which event, so a screen
+  // reader user hears the difference. The visible text stays inside the name.
+  if (event.title) {
+    // A function replacer, so a title containing `$&` or `$'` is inserted
+    // as it is instead of being read as a replacement pattern.
+    button.setAttribute(
+      "aria-label",
+      (i18n.rsvpFor || "RSVP for {title}").replace(
+        "{title}",
+        () => event.title,
+      ),
+    );
+  }
   // The card is looked up per call: decorateRsvp mounts into a row before
   // attaching it to the card. Width is measured on open because the host's
   // column, not the window, decides how much room the card has.
@@ -211,8 +222,7 @@ export function appendRsvpControl(container, event, config) {
     card.classList.toggle(RSVP_OPEN_CLASS, open);
     card.classList.toggle("already-card--rsvp-cramped", cramped);
   };
-  button.addEventListener("click", (e) => {
-    e.stopPropagation();
+  button.addEventListener("click", () => {
     const { form, focus } = createRsvpForm(event, config, {
       onClose: () => {
         form.replaceWith(button);
@@ -225,7 +235,6 @@ export function appendRsvpControl(container, event, config) {
     setOpen(true);
     focus();
   });
-  button.addEventListener("keydown", (e) => e.stopPropagation());
   container.appendChild(button);
   return button;
 }

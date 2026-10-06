@@ -4766,9 +4766,7 @@ ${text}</tr>
       error.hidden = false;
     }
     let pending = false;
-    form.addEventListener("click", (e) => e.stopPropagation());
     form.addEventListener("keydown", (e) => {
-      e.stopPropagation();
       if (e.key !== "Escape") return;
       if (pending) return;
       onClose();
@@ -4821,6 +4819,15 @@ ${text}</tr>
       { type: "button" }
     );
     button.textContent = i18n.rsvp || "RSVP";
+    if (event.title) {
+      button.setAttribute(
+        "aria-label",
+        (i18n.rsvpFor || "RSVP for {title}").replace(
+          "{title}",
+          () => event.title
+        )
+      );
+    }
     const setOpen = (open) => {
       const card = container.closest(".already-card");
       if (!card) return;
@@ -4829,8 +4836,7 @@ ${text}</tr>
       card.classList.toggle(RSVP_OPEN_CLASS, open);
       card.classList.toggle("already-card--rsvp-cramped", cramped);
     };
-    button.addEventListener("click", (e) => {
-      e.stopPropagation();
+    button.addEventListener("click", () => {
       const { form, focus } = createRsvpForm(event, config, {
         onClose: () => {
           form.replaceWith(button);
@@ -4843,7 +4849,6 @@ ${text}</tr>
       setOpen(true);
       focus();
     });
-    button.addEventListener("keydown", (e) => e.stopPropagation());
     container.appendChild(button);
     return button;
   }
@@ -6651,6 +6656,7 @@ ${text}</tr>
     loadMore: "Load more",
     showEarlier: "Show earlier",
     rsvp: "RSVP",
+    rsvpFor: "RSVP for {title}",
     details: "Details",
     openEvent: "Open event",
     rsvpName: "Name",

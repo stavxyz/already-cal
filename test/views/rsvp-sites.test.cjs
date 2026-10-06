@@ -260,6 +260,21 @@ describe("a card with an open RSVP form", () => {
     assert.strictEqual(window.location.hash, "#event/e-open");
   });
 
+  it("navigates nowhere on a click of the RSVP button or inside the open form", () => {
+    const card = gridCard(
+      "clean",
+      createTestEvent({ id: "e-form", rsvp: true }),
+    );
+    card.querySelector(".already-rsvp__open").click();
+    assert.strictEqual(window.location.hash, "");
+    const name = card.querySelector('input[name="name"]');
+    name.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    name.dispatchEvent(
+      new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+    assert.strictEqual(window.location.hash, "");
+  });
+
   it("leaves Badge's Details link working as a link", () => {
     const card = gridCard("badge", flagged());
     card.querySelector(".already-rsvp__open").click();

@@ -116,6 +116,7 @@ const I18N_DEFAULTS = {
   loadMore: "Load more",
   showEarlier: "Show earlier",
   rsvp: "RSVP",
+  rsvpFor: "RSVP for {title}",
   details: "Details",
   openEvent: "Open event",
   rsvpName: "Name",

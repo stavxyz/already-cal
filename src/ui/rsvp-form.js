@@ -201,12 +201,13 @@ export function appendRsvpControl(container, event, config) {
   button.textContent = visible;
   // Every card's button reads "RSVP"; the name says which event, so a screen
   // reader user hears the difference.
-  if (event.title) {
+  const title = String(event.title ?? "").trim();
+  if (title) {
     // A function replacer, so a title containing `$&` or `$'` is inserted
     // as it is instead of being read as a replacement pattern.
-    const named = (i18n.rsvpFor || "RSVP for {title}").replace(
+    const named = (i18n.rsvpFor || "RSVP for {title}").replaceAll(
       "{title}",
-      () => event.title,
+      () => title,
     );
     // The name must contain the visible text, or a voice-control user who
     // says what the button shows activates nothing (WCAG 2.5.3). A host that
@@ -215,7 +216,7 @@ export function appendRsvpControl(container, event, config) {
     const containsVisible = named.toLowerCase().includes(visible.toLowerCase());
     button.setAttribute(
       "aria-label",
-      containsVisible ? named : `${visible}: ${event.title}`,
+      containsVisible ? named : `${visible}: ${title}`,
     );
   }
   // The card is looked up per call: decorateRsvp mounts into a row before

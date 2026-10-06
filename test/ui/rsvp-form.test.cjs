@@ -158,9 +158,11 @@ describe("appendRsvpControl", () => {
     const untitled = document.createElement("div");
     document.body.appendChild(untitled);
     assert.strictEqual(
-      appendRsvpControl(untitled, flagged({ title: "" }), cfg()).hasAttribute(
-        "aria-label",
-      ),
+      appendRsvpControl(
+        untitled,
+        flagged({ title: "   " }),
+        cfg(),
+      ).hasAttribute("aria-label"),
       false,
     );
   });
@@ -199,6 +201,17 @@ describe("appendRsvpControl", () => {
     assert.strictEqual(
       btn.getAttribute("aria-label"),
       "RSVP for Fish $& Chips",
+    );
+    const other = document.createElement("div");
+    document.body.appendChild(other);
+    const twice = appendRsvpControl(
+      other,
+      flagged({ title: "Noche" }),
+      cfg({ i18n: { ...i18n, rsvpFor: "{title}: RSVP for {title}" } }),
+    );
+    assert.strictEqual(
+      twice.getAttribute("aria-label"),
+      "Noche: RSVP for Noche",
     );
   });
 

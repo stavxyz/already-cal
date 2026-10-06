@@ -4832,15 +4832,16 @@ ${text}</tr>
     );
     const visible = i18n.rsvp || "RSVP";
     button.textContent = visible;
-    if (event.title) {
-      const named = (i18n.rsvpFor || "RSVP for {title}").replace(
+    const title = String(event.title ?? "").trim();
+    if (title) {
+      const named = (i18n.rsvpFor || "RSVP for {title}").replaceAll(
         "{title}",
-        () => event.title
+        () => title
       );
       const containsVisible = named.toLowerCase().includes(visible.toLowerCase());
       button.setAttribute(
         "aria-label",
-        containsVisible ? named : `${visible}: ${event.title}`
+        containsVisible ? named : `${visible}: ${title}`
       );
     }
     const setOpen = (open) => {

@@ -132,6 +132,12 @@ describe("bindEventClick on a link", () => {
     bindEventClick(el, { id: "evt-1" }, "grid", {
       onEventClick: () => (asked = true),
     });
+    // An unprevented click queues jsdom's own navigation, which could land during a later test.
+    const decisions = [];
+    el.addEventListener("click", (e) => {
+      decisions.push(e.defaultPrevented);
+      e.preventDefault();
+    });
     for (const init of [
       { metaKey: true },
       { ctrlKey: true },
@@ -139,9 +145,9 @@ describe("bindEventClick on a link", () => {
       { altKey: true },
       { button: 1 },
     ]) {
-      const e = click(el, init);
-      assert.strictEqual(e.defaultPrevented, false, JSON.stringify(init));
+      click(el, init);
     }
+    assert.deepStrictEqual(decisions, [false, false, false, false, false]);
     assert.strictEqual(asked, false);
     assert.strictEqual(window.location.hash, "");
   });

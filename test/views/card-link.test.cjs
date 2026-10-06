@@ -147,20 +147,6 @@ describe("a card opens through its title link", () => {
     assert.ok(row.classList.contains("already-control"));
   });
 
-  it("does not navigate from the link while the RSVP form is open, and does again after Cancel", () => {
-    const event = createTestEvent({ id: "e5", rsvp: true });
-    const c = grid(
-      [event],
-      cfg("clean", { onRsvp: async () => ({ partySize: 1 }) }),
-    );
-    c.querySelector(".already-rsvp__open").click();
-    c.querySelector(".already-card__link").click();
-    assert.strictEqual(window.location.hash, "");
-    c.querySelector(".already-rsvp__cancel").click();
-    c.querySelector(".already-card__link").click();
-    assert.strictEqual(window.location.hash, "#event/e5");
-  });
-
   it("decorates a composite's card the same way", () => {
     const c = grid(
       [

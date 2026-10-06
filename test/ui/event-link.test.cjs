@@ -58,7 +58,7 @@ describe("linkTitle", () => {
     const host = document.createElement("div");
     host.innerHTML = '<div class="card__meta">10:00</div>';
     const link = linkTitle(host, "#event/e1", opts);
-    assert.strictEqual(host.lastChild, link);
+    assert.strictEqual(host.firstChild, link);
     assert.strictEqual(link.getAttribute("href"), "#event/e1");
     const hidden = link.querySelector("span.already-sr-only");
     assert.ok(hidden);
@@ -74,7 +74,7 @@ describe("linkTitle", () => {
     const link = linkTitle(host, "#event/e1", opts);
     const title = host.querySelector(".card__title");
     assert.strictEqual(title.querySelector("a"), null);
-    assert.strictEqual(host.lastChild, link);
+    assert.strictEqual(host.firstChild, link);
     assert.ok(link.querySelector("span.already-sr-only"));
     assert.strictEqual(link.textContent, opts.fallbackText);
   });
@@ -87,7 +87,7 @@ describe("linkTitle", () => {
     const own = host.querySelector("a.card__title");
     assert.strictEqual(own.getAttribute("href"), "https://x.example/");
     assert.strictEqual(own.querySelector("a"), null);
-    assert.strictEqual(host.lastChild, link);
+    assert.strictEqual(host.firstChild, link);
     assert.ok(link.querySelector(".already-sr-only"));
   });
 
@@ -99,7 +99,24 @@ describe("linkTitle", () => {
     const title = host.querySelector(".card__title");
     assert.strictEqual(title.querySelector("a"), null);
     assert.ok(title.querySelector("button"));
-    assert.strictEqual(host.lastChild, link);
+    assert.strictEqual(host.firstChild, link);
+  });
+
+  it("treats an input, a tabindex, or a role inside the title as a control too", () => {
+    for (const inner of [
+      '<input type="checkbox">',
+      '<span tabindex="0">Pick</span>',
+      '<span role="button">Pick</span>',
+    ]) {
+      const host = hostWithTitle(`Burger Night ${inner}`);
+      const link = linkTitle(host, "#event/e1", opts);
+      assert.strictEqual(
+        host.querySelector(".card__title a"),
+        null,
+        `${inner}: the title is left alone`,
+      );
+      assert.strictEqual(host.firstChild, link, `${inner}: hidden link first`);
+    }
   });
 
   it("does nothing for an entry with no route", () => {

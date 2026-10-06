@@ -4649,11 +4649,12 @@ ${text}</tr>
 
   // src/ui/event-link.js
   var LINK_HOST_CLASS = "already-link-host";
+  var CONTROL_SELECTOR = 'a, button, input, select, textarea, [tabindex], [role="button"], [role="link"]';
   function linkTitle(host, href, { titleSelector, linkClass, fallbackText }) {
     if (href == null) return null;
     const link2 = createElement("a", `already-event-link ${linkClass}`, { href });
     const title = host.querySelector(titleSelector);
-    const holdsControl = title !== null && (title.matches("a, button") || title.querySelector("a, button") !== null);
+    const holdsControl = title !== null && (title.matches(CONTROL_SELECTOR) || title.querySelector(CONTROL_SELECTOR) !== null);
     const holdsText = title !== null && title.textContent.trim() !== "";
     if (holdsText && !holdsControl) {
       while (title.firstChild) link2.appendChild(title.firstChild);
@@ -4662,7 +4663,7 @@ ${text}</tr>
       const text = createElement("span", "already-sr-only");
       text.textContent = fallbackText;
       link2.appendChild(text);
-      host.appendChild(link2);
+      host.prepend(link2);
     }
     host.classList.add(LINK_HOST_CLASS);
     return link2;

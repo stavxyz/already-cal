@@ -79,6 +79,7 @@ Theme properties are applied as CSS custom properties on the `.already` element.
 | `border` | `--already-border` | `'rgba(0, 0, 0, 0.06)'` | Base border color; the two below fall back to it |
 | `borderControl` | `--already-border-control` | inherits `border` | Chrome: view tabs, nav bars, buttons, dropdowns, card tags |
 | `borderGrid` | `--already-border-grid` | inherits `border` | Internal lines: weekday header, week columns, event and card separators |
+| `error` | `--already-error` | `'#c0392b'` (fallback) | Error card accent |
 | `fontFamily` | `--already-font-family` | `'system-ui, sans-serif'` | Font stack |
 | `fontWeightNormal` | `--already-font-weight-normal` | `'400'` | Normal font weight |
 | `fontWeightBold` | `--already-font-weight-bold` | `'700'` | Bold font weight |
@@ -100,6 +101,25 @@ You can also override these directly in CSS:
   --already-radius: 12px;
 }
 ```
+
+## RSVP
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `rsvpAllEvents` | `boolean` | `false` | Every event takes RSVPs. When `false`, only events flagged `#already:rsvp` do |
+| `onRsvp` | `function \| null` | `null` | `async (event, { name, email, partySize, website }) => ({ partySize })`. The RSVP button appears only when this is set |
+
+`Already.rsvpViaFetch(url)` returns an `onRsvp` function that posts `{ eventId, name, email, partySize, website }` as JSON to `url` and resolves with the response body:
+
+```js
+Already.init({
+  el: '#cal',
+  rsvpAllEvents: true,
+  onRsvp: Already.rsvpViaFetch('https://your-server.example/rsvp'),
+});
+```
+
+Resolve a custom `onRsvp` with `{ partySize }` to confirm, or reject to show a failure message. For the error codes and the message each one selects, see the [RSVP section of the README](../README.md#rsvp). The labels are the `rsvp*` keys in the [i18n table](#i18n-keys).
 
 ## Locale & Internationalization
 
@@ -129,6 +149,24 @@ You can also override these directly in CSS:
 | `clearFilter` | `'Clear'` | Tag filter clear button |
 | `loadMore` | `'Load more'` | Pagination button (grid/list) |
 | `showEarlier` | `'Show earlier'` | Pagination button (grid/list) |
+| `rsvp` | `'RSVP'` | RSVP button on a card and in the detail view |
+| `details` | `'Details'` | Badge footer link to the Google event page |
+| `rsvpName` | `'Name'` | RSVP form name field |
+| `rsvpEmail` | `'Email'` | RSVP form email field |
+| `rsvpPartySize` | `'How many are coming?'` | RSVP form party size field |
+| `rsvpSubmit` | `'RSVP'` | RSVP form submit button |
+| `rsvpCancel` | `'Cancel'` | RSVP form cancel button |
+| `rsvpDone` | `"You're on the list: {count} going"` | RSVP confirmation (`{count}` is the confirmed party size) |
+| `rsvpInvalid` | `'Check your name, email and party size.'` | RSVP error for the `invalid_field` code |
+| `rsvpStarted` | `'This event has already started.'` | RSVP error for the `event_started` code |
+| `rsvpClosed` | `'This event is not taking RSVPs.'` | RSVP error for the `rsvp_unavailable` and `event_not_found` codes |
+| `rsvpFailed` | `'Could not save your RSVP. Try again.'` | RSVP error for any other failure |
+| `subscribeApple` | `'Apple Calendar'` | Subscribe menu item |
+| `subscribeGoogle` | `'Google Calendar'` | Subscribe menu item |
+| `subscribeOutlook` | `'Outlook'` | Subscribe menu item |
+| `subscribeCopy` | `'Copy iCal link'` | Subscribe menu item that copies the iCal link |
+| `share` | `'Share'` | Share buttons |
+| `copied` | `'📋 Copied!'` | Share button after the link is copied |
 
 ## Responsive Options
 

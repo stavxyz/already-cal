@@ -153,7 +153,7 @@ Some occasions are described by more than one calendar entry: a weekly dinner an
 
 - Marks an entry as a **parent**. Every entry in the view that starts inside the parent's hours is shown as one of its **parts**
 - An entry starts inside the hours when its start is at or after the parent's start and before the parent's end. A parent with no end takes no parts
-- An all-day parent takes the entries whose date falls on its dates. An all-day entry joins an all-day parent only, never a timed one
+- An all-day parent takes the entries whose date falls on its dates. An all-day entry joins an all-day parent only, never a timed one. An all-day parent's end date is exclusive, the way Google Calendar reports it, so a one-day parent ends on the next date
 - The composite's place in a list, its featured state, and the moment it counts as past are the parent's. Its parts are shown with it for as long as it is shown
 - The parent keeps its card. The card lists up to three parts, each with its start time, then a "+N more" line. A part on a day other than the parent's shows its date as well
 - A part has no card of its own in the grid and list views. In the month and week views a part that starts on its parent's first day has no chip of its own, and in the day view it is a row under the parent. A part that starts on any other day appears on its own on that day

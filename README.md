@@ -446,6 +446,8 @@ Directives let you control already-cal behavior directly from event descriptions
 #already:cost:$25                  → key-value tag badge "cost: $25"
 #already:featured                  → pins event to top, adds star badge
 #already:composite                 → shows the entries inside this one's hours as its parts
+#already:standalone                → keeps this entry out of every composite
+#already:part-of                   → lets a composite on another calendar take this entry
 #already:hidden                    → hides from views (still accessible via direct link)
 #already:image-shuffle             → a stable image per occurrence, chosen from the list by a hash of the occurrence id
 #already:rsvp                      → the event takes RSVPs when the host configured onRsvp

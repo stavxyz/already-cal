@@ -1,3 +1,4 @@
+import { composeEvents, compositeLeadImage } from "./composite.js";
 import { CONTENT_DEFAULTS } from "./content-defaults.js";
 import { loadData } from "./data.js";
 import { register } from "./registry.js";
@@ -102,6 +103,8 @@ const I18N_DEFAULTS = {
   noEventsThisDay: "No events this day.",
   back: "\u2190 Back",
   moreEvents: "+{count} more",
+  moreParts: "+{count} more",
+  compositeParts: "Schedule",
   subscribe: "Subscribe",
   subscribeApple: "Apple Calendar",
   subscribeGoogle: "Google Calendar",
@@ -295,7 +298,12 @@ export function init(userConfig) {
   );
 
   let destroyed = false;
-  let data = null;
+  // Render-time state: the calendar's metadata and the composed result (see
+  // composite.js). The flat event list is deliberately not kept, so nothing
+  // that runs at render time can read it and bring a hidden entry or a
+  // composite's part back to the top level.
+  let calendar = null;
+  let composition = null;
   let showPast = config.showPastEvents;
   const currentDate = new Date();
   let lastView = null;
@@ -338,7 +346,7 @@ export function init(userConfig) {
     // share/meta surfaces" note) so the client-side card matches the one the
     // worker renders server-side; naming it after the viewer would invite a
     // future refactor to swap in viewerTimeZone() and silently break that.
-    const calendarTz = data?.calendar?.timezone || "UTC";
+    const calendarTz = calendar?.timezone || "UTC";
     // resolveTimeZone keeps a malformed _sourceTimeZone from throwing a
     // RangeError here, which would block entry into the detail view entirely.
     const sourceTz = resolveTimeZone(event._sourceTimeZone, calendarTz);
@@ -357,7 +365,10 @@ export function init(userConfig) {
 
     setMetaTag("og:title", event.title);
     setMetaTag("og:description", descParts.join(" \u00b7 "));
-    if (event.image) setMetaTag("og:image", event.image);
+    // A composite leads with its parent's image, or a part's when the parent
+    // has none.
+    const image = compositeLeadImage(event);
+    if (image) setMetaTag("og:image", image);
     setMetaTag("og:url", window.location.href);
   }
 
@@ -374,14 +385,14 @@ export function init(userConfig) {
   }
 
   function getFilteredEvents() {
-    if (!data) return [];
-    if (showPast) return data.events;
-    return data.events.filter((e) => !isPast(e.end || e.start));
+    if (!composition) return [];
+    if (showPast) return composition.events;
+    return composition.events.filter((e) => !isPast(e.end || e.start));
   }
 
   function hasPastEvents() {
-    if (!data) return false;
-    return data.events.some((e) => isPast(e.end || e.start));
+    if (!composition) return false;
+    return composition.events.some((e) => isPast(e.end || e.start));
   }
 
   function makePaginationCallbacks(viewState) {
@@ -440,23 +451,19 @@ export function init(userConfig) {
       ?.toggleAttribute("hidden", viewState.view === "detail");
     lastViewState = viewState;
     const allEvents = getFilteredEvents();
-    const timezone = data?.calendar?.timezone || "UTC";
+    const timezone = calendar?.timezone || "UTC";
 
-    // Hidden filtering — visible events used for tag pills
-    const visibleEvents = allEvents.filter((e) => !e.hidden);
-
-    // Tag filter UI (render pills from all non-hidden events, not filtered by tags)
+    // Tag filter UI. The pills come from every top-level event, before the
+    // tag filter itself. Composition has already set hidden entries aside.
     if (viewState.view !== "detail") {
-      tagFilter.render(tagFilterContainer, visibleEvents);
+      tagFilter.render(tagFilterContainer, allEvents);
     } else {
       tagFilterContainer.innerHTML = "";
     }
 
     // Apply tag filter
     const tagFilterFn = tagFilter.getFilter();
-    const events = tagFilterFn
-      ? visibleEvents.filter(tagFilterFn)
-      : visibleEvents;
+    const events = tagFilterFn ? allEvents.filter(tagFilterFn) : allEvents;
 
     // OG meta management
     if (viewState.view !== "detail") {
@@ -558,10 +565,15 @@ export function init(userConfig) {
         break;
       }
       case "detail": {
-        const event = data?.events?.find((e) => e.id === viewState.eventId);
-        if (event) {
+        // The id may name a top-level event, a composite's part, or a hidden
+        // entry. All three resolve through the one lookup.
+        const found = composition?.lookup(viewState.eventId) ?? null;
+        if (found) {
+          const { event, part } = found;
           if (config.onEventClick) {
-            const result = config.onEventClick(event, "detail");
+            // The callback gets the object for the entry the link names: the
+            // part for a part's link, the composed parent otherwise.
+            const result = config.onEventClick(part ?? event, "detail");
             if (result === false) return;
           }
           setEventMeta(event);
@@ -574,6 +586,7 @@ export function init(userConfig) {
               setView(lastView || config.defaultView, config);
             },
             config,
+            { focusPartId: part?.id },
           );
         } else {
           renderError(
@@ -626,11 +639,15 @@ export function init(userConfig) {
     renderLoading(viewContainer, config);
 
     try {
-      data = await loadData(config);
+      const data = await loadData(config);
       if (destroyed) return;
       if (config.onDataLoad) {
         config.onDataLoad(data);
       }
+      calendar = data.calendar;
+      composition = composeEvents(data.events, {
+        timeZone: data.calendar?.timezone,
+      });
     } catch (err) {
       if (destroyed) return;
       console.error("already-cal:", err);
@@ -642,7 +659,7 @@ export function init(userConfig) {
     }
 
     // Render header with calendar name/description + subscribe button
-    renderHeader(headerContainer, data.calendar, config);
+    renderHeader(headerContainer, calendar, config);
 
     const initial = getInitialView(config.defaultView, config.views, config);
 
@@ -818,7 +835,7 @@ export function init(userConfig) {
       }
     }
 
-    if (needsRerender && data && lastViewState) {
+    if (needsRerender && composition && lastViewState) {
       paginationState = { futureCount: 0, pastCount: 0 };
       renderView(lastViewState);
     }

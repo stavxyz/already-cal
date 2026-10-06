@@ -34,6 +34,444 @@ var Already = (() => {
     setConfig: () => setConfig
   });
 
+  // src/util/dates.js
+  var DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+  function zoneFor(isoString, timezone) {
+    return DATE_ONLY_RE.test(isoString) ? "UTC" : timezone;
+  }
+  function viewerTimeZone() {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    } catch {
+      return "UTC";
+    }
+  }
+  function resolveTimeZone(timeZone, fallback) {
+    for (const candidate of [timeZone, fallback]) {
+      if (!candidate) continue;
+      try {
+        new Intl.DateTimeFormat(void 0, { timeZone: candidate });
+        return candidate;
+      } catch {
+      }
+    }
+    return "UTC";
+  }
+  function zoneAbbrev(isoString, timeZone, locale) {
+    const parts = new Intl.DateTimeFormat(locale || "en-US", {
+      timeZone,
+      hour: "numeric",
+      timeZoneName: "short"
+    }).formatToParts(new Date(isoString));
+    const part = parts.find((p) => p.type === "timeZoneName");
+    return part ? part.value : "";
+  }
+  function wallClockDiffers(isoString, zoneA, zoneB, locale) {
+    const opts = { hour: "numeric", minute: "2-digit" };
+    const date = new Date(isoString);
+    const a = new Intl.DateTimeFormat(locale || "en-US", {
+      ...opts,
+      timeZone: zoneA
+    }).format(date);
+    const b = new Intl.DateTimeFormat(locale || "en-US", {
+      ...opts,
+      timeZone: zoneB
+    }).format(date);
+    return a !== b;
+  }
+  function parseEventDate(value) {
+    return DATE_ONLY_RE.test(value) ? /* @__PURE__ */ new Date(`${value}T00:00:00`) : new Date(value);
+  }
+  function formatDate(isoString, timezone, locale) {
+    locale = locale || "en-US";
+    return new Intl.DateTimeFormat(locale, {
+      timeZone: zoneFor(isoString, resolveTimeZone(timezone)),
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric"
+    }).format(new Date(isoString));
+  }
+  function formatDateShort(isoString, timezone, locale) {
+    locale = locale || "en-US";
+    return new Intl.DateTimeFormat(locale, {
+      timeZone: zoneFor(isoString, resolveTimeZone(timezone)),
+      month: "short",
+      day: "numeric"
+    }).format(new Date(isoString));
+  }
+  function formatDateRange(start, end, opts = {}) {
+    const {
+      allDay = false,
+      timeZone,
+      locale = "en-US",
+      withTime = true,
+      dateStyle = "short"
+    } = opts;
+    if (!start) return "";
+    const zone = zoneFor(start, timeZone);
+    const showTime = withTime && !allDay;
+    const dateOpts = dateStyle === "time" ? {} : dateStyle === "full" ? { weekday: "long", month: "long", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" };
+    const timeOpts = showTime || dateStyle === "time" ? { hour: "numeric", minute: "2-digit" } : {};
+    const fmt = new Intl.DateTimeFormat(locale || "en-US", {
+      timeZone: zone,
+      ...dateOpts,
+      ...timeOpts
+    });
+    const startDate = new Date(start);
+    if (Number.isNaN(startDate.getTime())) return "";
+    let endDate = end ? new Date(end) : null;
+    if (endDate && allDay) endDate = new Date(endDate.getTime() - 864e5);
+    const raw = !endDate || Number.isNaN(endDate.getTime()) || endDate <= startDate ? fmt.format(startDate) : fmt.formatRange(startDate, endDate);
+    return raw.replace(/\s+/g, " ");
+  }
+  function formatEventWhen(event, opts = {}) {
+    const { sourceZoneFallback, locale = "en-US", dateStyle = "short" } = opts;
+    const start = event.start;
+    const end = event.end;
+    if (!start) return "";
+    if (event.allDay || DATE_ONLY_RE.test(start)) {
+      return formatDateRange(start, end, { allDay: true, locale, dateStyle });
+    }
+    const viewer = viewerTimeZone();
+    const source = resolveTimeZone(event._sourceTimeZone, sourceZoneFallback);
+    const primary = formatDateRange(start, end, {
+      timeZone: viewer,
+      locale,
+      dateStyle
+    });
+    if (source === viewer || !wallClockDiffers(start, source, viewer, locale)) {
+      return primary;
+    }
+    const sourceTime = formatDateRange(start, void 0, {
+      timeZone: source,
+      locale,
+      dateStyle: "time"
+    });
+    const abbrev = zoneAbbrev(start, source, locale);
+    return `${primary} \xB7 ${sourceTime}${abbrev ? ` ${abbrev}` : ""}`;
+  }
+  function getDaysInMonth(year, month) {
+    return new Date(year, month + 1, 0).getDate();
+  }
+  function getFirstDayOfMonth(year, month, weekStartDay) {
+    weekStartDay = weekStartDay || 0;
+    const raw = new Date(year, month, 1).getDay();
+    return (raw - weekStartDay + 7) % 7;
+  }
+  function isSameDay(d1, d2) {
+    return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+  }
+  function isToday(date) {
+    return isSameDay(date, /* @__PURE__ */ new Date());
+  }
+  function isPast(isoString) {
+    return parseEventDate(isoString) < /* @__PURE__ */ new Date();
+  }
+  function getMonthName(year, month, locale) {
+    locale = locale || "en-US";
+    return new Intl.DateTimeFormat(locale, {
+      month: "long",
+      year: "numeric"
+    }).format(new Date(year, month));
+  }
+  function getDatePartsInTz(isoString, timezone) {
+    const d = new Date(isoString);
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: zoneFor(isoString, timezone),
+      year: "numeric",
+      month: "numeric",
+      day: "numeric"
+    });
+    const parts = {};
+    for (const { type, value } of fmt.formatToParts(d)) {
+      if (type === "year") parts.year = parseInt(value, 10);
+      if (type === "month") parts.month = parseInt(value, 10) - 1;
+      if (type === "day") parts.day = parseInt(value, 10);
+    }
+    return parts;
+  }
+  function getEventDateParts(isoString) {
+    return getDatePartsInTz(isoString, viewerTimeZone());
+  }
+  function dayKey(isoString, zone) {
+    if (!isoString || Number.isNaN(new Date(isoString).getTime())) return "";
+    const p = getDatePartsInTz(isoString, zone);
+    const two = (n) => String(n).padStart(2, "0");
+    return `${p.year}-${two(p.month + 1)}-${two(p.day)}`;
+  }
+  function dayKeyInZone(isoString, timeZone, fallback) {
+    return dayKey(isoString, resolveTimeZone(timeZone, fallback));
+  }
+  function eventDayKey(isoString) {
+    return dayKey(isoString, viewerTimeZone());
+  }
+  function startOrder(entry) {
+    return parseEventDate(entry.start).getTime();
+  }
+  function formatScheduleTime(event, opts = {}) {
+    const { sourceZoneFallback, locale, allDayLabel = "All Day" } = opts;
+    if (event.allDay) return allDayLabel;
+    const startDay = eventDayKey(event.start);
+    const oneDay = startDay !== "" && startDay === eventDayKey(event.end);
+    return formatEventWhen(
+      { ...event, end: oneDay ? event.end : void 0 },
+      { sourceZoneFallback, locale, dateStyle: "time" }
+    );
+  }
+  var MONTH_NAMES_SHORT = [
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAY",
+    "JUN",
+    "JUL",
+    "AUG",
+    "SEP",
+    "OCT",
+    "NOV",
+    "DEC"
+  ];
+  function toDateKey(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  function parseDateKey(key) {
+    const [year, month, day] = String(key).split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+  function getWeekDates(date, weekStartDay) {
+    weekStartDay = weekStartDay || 0;
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = (day - weekStartDay + 7) % 7;
+    const start = new Date(d);
+    start.setDate(d.getDate() - diff);
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const current = new Date(start);
+      current.setDate(start.getDate() + i);
+      dates.push(current);
+    }
+    return dates;
+  }
+  function getDayNames(locale, weekStartDay) {
+    locale = locale || "en-US";
+    weekStartDay = weekStartDay || 0;
+    const names = [];
+    const base = new Date(2026, 0, 4);
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + (weekStartDay + i) % 7);
+      names.push(new Intl.DateTimeFormat(locale, { weekday: "short" }).format(d));
+    }
+    return names;
+  }
+
+  // src/util/tags.js
+  function hasKey(tag2) {
+    return tag2 != null && typeof tag2 === "object" && typeof tag2.key === "string" && tag2.key !== "";
+  }
+  function isLinkTag(tag2) {
+    return hasKey(tag2) && tag2.key !== "tag" && typeof tag2.value === "string" && tag2.value.startsWith("http");
+  }
+  function isCategoryTag(tag2) {
+    if (typeof tag2 === "string") return tag2.trim() !== "";
+    if (!hasKey(tag2) || isLinkTag(tag2)) return false;
+    if (typeof tag2.value === "string") return tag2.value.trim() !== "";
+    return Number.isFinite(tag2.value);
+  }
+  function tagLabel(tag2) {
+    if (typeof tag2 === "string") return tag2;
+    if (tag2 == null) return "";
+    const value = String(tag2.value ?? "");
+    return tag2.key === "tag" ? value : `${tag2.key}: ${value}`;
+  }
+
+  // src/composite.js
+  var NO_PARTS = Object.freeze([]);
+  function isDateOnly(value) {
+    return typeof value === "string" && DATE_ONLY_RE.test(value);
+  }
+  var FLOATING_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/;
+  var isFloating = (value) => typeof value === "string" && FLOATING_RE.test(value);
+  function zoneFreeTime(value) {
+    return new Date(isFloating(value) ? `${value}Z` : value).getTime();
+  }
+  var sourceOf = (entry) => entry._sourceKey ?? null;
+  var startInstant = (entry) => zoneFreeTime(entry.start);
+  function windowOf(parent) {
+    if (isDateOnly(parent.start)) {
+      if (!isDateOnly(parent.end) || parent.end <= parent.start) return null;
+      return {
+        allDay: true,
+        from: parent.start,
+        to: parent.end,
+        length: zoneFreeTime(parent.end) - zoneFreeTime(parent.start)
+      };
+    }
+    const from = zoneFreeTime(parent.start);
+    const to = zoneFreeTime(parent.end);
+    if (Number.isNaN(from) || Number.isNaN(to) || to <= from) return null;
+    return { allDay: false, from, to, length: to - from };
+  }
+  function positionOf(entry) {
+    if (isDateOnly(entry.start)) return { date: entry.start, at: Number.NaN };
+    return { date: null, at: zoneFreeTime(entry.start) };
+  }
+  function dateInOwnZone(entry, calendarZone) {
+    if (isFloating(entry.start)) return entry.start.slice(0, 10);
+    return dayKeyInZone(entry.start, entry._sourceTimeZone, calendarZone);
+  }
+  function startsInside(entry, position2, win, calendarZone) {
+    if (position2.date !== null) {
+      return win.allDay && position2.date >= win.from && position2.date < win.to;
+    }
+    if (Number.isNaN(position2.at)) return false;
+    if (!win.allDay) return position2.at >= win.from && position2.at < win.to;
+    position2.ownDate ??= dateInOwnZone(entry, calendarZone);
+    return position2.ownDate >= win.from && position2.ownDate < win.to;
+  }
+  function isCloser(a, b) {
+    if (a.own !== b.own) return a.own;
+    if (a.parent.win.length !== b.parent.win.length) {
+      return a.parent.win.length < b.parent.win.length;
+    }
+    if (a.parent.start !== b.parent.start) return a.parent.start > b.parent.start;
+    return a.parent.index < b.parent.index;
+  }
+  function selectVisible(events) {
+    return events.filter((e) => !e.hidden);
+  }
+  function groupParts(visible, { timeZone } = {}) {
+    const parents = [];
+    for (const [index, entry] of visible.entries()) {
+      if (entry.composite !== true || entry.id == null) continue;
+      const win = windowOf(entry);
+      if (!win) continue;
+      parents.push({
+        entry,
+        index,
+        win,
+        start: startInstant(entry),
+        source: sourceOf(entry),
+        taken: []
+      });
+    }
+    if (parents.length === 0) return visible;
+    const partIndexes = /* @__PURE__ */ new Set();
+    for (const [index, entry] of visible.entries()) {
+      if (entry.composite === true || entry.standalone === true) continue;
+      const position2 = positionOf(entry);
+      const source = sourceOf(entry);
+      let best = null;
+      for (const parent of parents) {
+        const own = parent.source === source;
+        if (!own && entry.partOf !== true) continue;
+        if (!startsInside(entry, position2, parent.win, timeZone)) continue;
+        const candidate = { parent, own };
+        if (best === null || isCloser(candidate, best)) best = candidate;
+      }
+      if (!best) continue;
+      best.parent.taken.push({ entry, index });
+      partIndexes.add(index);
+    }
+    const composed = /* @__PURE__ */ new Map();
+    for (const parent of parents) {
+      if (parent.taken.length === 0) continue;
+      parent.taken.sort(
+        (a, b) => startOrder(a.entry) - startOrder(b.entry) || a.index - b.index
+      );
+      composed.set(parent.index, {
+        ...parent.entry,
+        parts: parent.taken.map((t) => ({
+          ...t.entry,
+          parentId: parent.entry.id
+        }))
+      });
+    }
+    const topLevel = [];
+    for (const [index, entry] of visible.entries()) {
+      if (partIndexes.has(index)) continue;
+      topLevel.push(composed.get(index) ?? entry);
+    }
+    return topLevel;
+  }
+  function partsOf(event) {
+    const parts = event?.parts;
+    if (event?.id == null) return NO_PARTS;
+    if (!Array.isArray(parts) || parts.length === 0) return NO_PARTS;
+    return parts.every((p) => p && p.parentId === event.id) ? parts : NO_PARTS;
+  }
+  function composeEvents(events, options2 = {}) {
+    const all = Array.isArray(events) ? events : [];
+    const topLevel = groupParts(selectVisible(all), options2);
+    const index = /* @__PURE__ */ new Map();
+    const remember = (id, value) => {
+      if (id != null && !index.has(id)) index.set(id, value);
+    };
+    for (const event of topLevel) {
+      remember(event.id, { event, part: null });
+      for (const part of partsOf(event)) {
+        remember(part.id, { event, part });
+      }
+    }
+    for (const entry of all) {
+      if (entry.hidden) remember(entry.id, { event: entry, part: null });
+    }
+    return { events: topLevel, lookup: (id) => index.get(id) ?? null };
+  }
+  function titleKey(title) {
+    return String(title ?? "").normalize("NFKD").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+  }
+  function isSecondListing(part, parent) {
+    const key = titleKey(part?.title);
+    return key !== "" && key === titleKey(parent?.title);
+  }
+  function ownImages(event) {
+    if (Array.isArray(event.images) && event.images.length > 0) {
+      return event.images;
+    }
+    return event.image ? [event.image] : [];
+  }
+  function compositeImages(event) {
+    const parts = partsOf(event);
+    const own = ownImages(event);
+    if (parts.length === 0) return own;
+    const seen = /* @__PURE__ */ new Set();
+    const out = [];
+    for (const url of [...own, ...parts.flatMap(ownImages)]) {
+      if (seen.has(url)) continue;
+      seen.add(url);
+      out.push(url);
+    }
+    return out;
+  }
+  function compositeLeadImage(event) {
+    const own = event.image || null;
+    if (own || partsOf(event).length === 0) return own;
+    return compositeImages(event)[0] || null;
+  }
+  function compositeTags(event) {
+    const parts = partsOf(event);
+    const own = event.tags || [];
+    if (parts.length === 0) return own;
+    const seen = new Set(own.map(tagLabel));
+    const out = [...own];
+    for (const part of parts) {
+      for (const tag2 of part.tags || []) {
+        const label = tagLabel(tag2);
+        if (seen.has(label)) continue;
+        seen.add(label);
+        out.push(tag2);
+      }
+    }
+    return out;
+  }
+
   // src/util/html-entities.js
   function decodeAmp(text) {
     return text.replace(/&amp;/g, "&");
@@ -3588,316 +4026,6 @@ ${text}</tr>
     return () => window.removeEventListener("hashchange", handler);
   }
 
-  // src/util/dates.js
-  var DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
-  function zoneFor(isoString, timezone) {
-    return DATE_ONLY_RE.test(isoString) ? "UTC" : timezone;
-  }
-  function viewerTimeZone() {
-    try {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-    } catch {
-      return "UTC";
-    }
-  }
-  function resolveTimeZone(timeZone, fallback) {
-    for (const candidate of [timeZone, fallback]) {
-      if (!candidate) continue;
-      try {
-        new Intl.DateTimeFormat(void 0, { timeZone: candidate });
-        return candidate;
-      } catch {
-      }
-    }
-    return "UTC";
-  }
-  function zoneAbbrev(isoString, timeZone, locale) {
-    const parts = new Intl.DateTimeFormat(locale || "en-US", {
-      timeZone,
-      hour: "numeric",
-      timeZoneName: "short"
-    }).formatToParts(new Date(isoString));
-    const part = parts.find((p) => p.type === "timeZoneName");
-    return part ? part.value : "";
-  }
-  function wallClockDiffers(isoString, zoneA, zoneB, locale) {
-    const opts = { hour: "numeric", minute: "2-digit" };
-    const date = new Date(isoString);
-    const a = new Intl.DateTimeFormat(locale || "en-US", {
-      ...opts,
-      timeZone: zoneA
-    }).format(date);
-    const b = new Intl.DateTimeFormat(locale || "en-US", {
-      ...opts,
-      timeZone: zoneB
-    }).format(date);
-    return a !== b;
-  }
-  function parseEventDate(value) {
-    return DATE_ONLY_RE.test(value) ? /* @__PURE__ */ new Date(`${value}T00:00:00`) : new Date(value);
-  }
-  function formatDate(isoString, timezone, locale) {
-    locale = locale || "en-US";
-    return new Intl.DateTimeFormat(locale, {
-      timeZone: zoneFor(isoString, resolveTimeZone(timezone)),
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric"
-    }).format(new Date(isoString));
-  }
-  function formatDateShort(isoString, timezone, locale) {
-    locale = locale || "en-US";
-    return new Intl.DateTimeFormat(locale, {
-      timeZone: zoneFor(isoString, resolveTimeZone(timezone)),
-      month: "short",
-      day: "numeric"
-    }).format(new Date(isoString));
-  }
-  function formatDateRange(start, end, opts = {}) {
-    const {
-      allDay = false,
-      timeZone,
-      locale = "en-US",
-      withTime = true,
-      dateStyle = "short"
-    } = opts;
-    if (!start) return "";
-    const zone = zoneFor(start, timeZone);
-    const showTime = withTime && !allDay;
-    const dateOpts = dateStyle === "time" ? {} : dateStyle === "full" ? { weekday: "long", month: "long", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" };
-    const timeOpts = showTime || dateStyle === "time" ? { hour: "numeric", minute: "2-digit" } : {};
-    const fmt = new Intl.DateTimeFormat(locale || "en-US", {
-      timeZone: zone,
-      ...dateOpts,
-      ...timeOpts
-    });
-    const startDate = new Date(start);
-    if (Number.isNaN(startDate.getTime())) return "";
-    let endDate = end ? new Date(end) : null;
-    if (endDate && allDay) endDate = new Date(endDate.getTime() - 864e5);
-    const raw = !endDate || Number.isNaN(endDate.getTime()) || endDate <= startDate ? fmt.format(startDate) : fmt.formatRange(startDate, endDate);
-    return raw.replace(/\s+/g, " ");
-  }
-  function formatEventWhen(event, opts = {}) {
-    const { sourceZoneFallback, locale = "en-US", dateStyle = "short" } = opts;
-    const start = event.start;
-    const end = event.end;
-    if (!start) return "";
-    if (event.allDay || DATE_ONLY_RE.test(start)) {
-      return formatDateRange(start, end, { allDay: true, locale, dateStyle });
-    }
-    const viewer = viewerTimeZone();
-    const source = resolveTimeZone(event._sourceTimeZone, sourceZoneFallback);
-    const primary = formatDateRange(start, end, {
-      timeZone: viewer,
-      locale,
-      dateStyle
-    });
-    if (source === viewer || !wallClockDiffers(start, source, viewer, locale)) {
-      return primary;
-    }
-    const sourceTime = formatDateRange(start, void 0, {
-      timeZone: source,
-      locale,
-      dateStyle: "time"
-    });
-    const abbrev = zoneAbbrev(start, source, locale);
-    return `${primary} \xB7 ${sourceTime}${abbrev ? ` ${abbrev}` : ""}`;
-  }
-  function getDaysInMonth(year, month) {
-    return new Date(year, month + 1, 0).getDate();
-  }
-  function getFirstDayOfMonth(year, month, weekStartDay) {
-    weekStartDay = weekStartDay || 0;
-    const raw = new Date(year, month, 1).getDay();
-    return (raw - weekStartDay + 7) % 7;
-  }
-  function isSameDay(d1, d2) {
-    return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
-  }
-  function isToday(date) {
-    return isSameDay(date, /* @__PURE__ */ new Date());
-  }
-  function isPast(isoString) {
-    return parseEventDate(isoString) < /* @__PURE__ */ new Date();
-  }
-  function getMonthName(year, month, locale) {
-    locale = locale || "en-US";
-    return new Intl.DateTimeFormat(locale, {
-      month: "long",
-      year: "numeric"
-    }).format(new Date(year, month));
-  }
-  function getDatePartsInTz(isoString, timezone) {
-    const d = new Date(isoString);
-    const fmt = new Intl.DateTimeFormat("en-US", {
-      timeZone: zoneFor(isoString, timezone),
-      year: "numeric",
-      month: "numeric",
-      day: "numeric"
-    });
-    const parts = {};
-    for (const { type, value } of fmt.formatToParts(d)) {
-      if (type === "year") parts.year = parseInt(value, 10);
-      if (type === "month") parts.month = parseInt(value, 10) - 1;
-      if (type === "day") parts.day = parseInt(value, 10);
-    }
-    return parts;
-  }
-  function getEventDateParts(isoString) {
-    return getDatePartsInTz(isoString, viewerTimeZone());
-  }
-  function dayKey(isoString, zone) {
-    if (!isoString || Number.isNaN(new Date(isoString).getTime())) return "";
-    const p = getDatePartsInTz(isoString, zone);
-    const two = (n) => String(n).padStart(2, "0");
-    return `${p.year}-${two(p.month + 1)}-${two(p.day)}`;
-  }
-  function eventDayKey(isoString) {
-    return dayKey(isoString, viewerTimeZone());
-  }
-  function startOrder(entry) {
-    return parseEventDate(entry.start).getTime();
-  }
-  function formatScheduleTime(event, opts = {}) {
-    const { sourceZoneFallback, locale, allDayLabel = "All Day" } = opts;
-    if (event.allDay) return allDayLabel;
-    const startDay = eventDayKey(event.start);
-    const oneDay = startDay !== "" && startDay === eventDayKey(event.end);
-    return formatEventWhen(
-      { ...event, end: oneDay ? event.end : void 0 },
-      { sourceZoneFallback, locale, dateStyle: "time" }
-    );
-  }
-  var MONTH_NAMES_SHORT = [
-    "JAN",
-    "FEB",
-    "MAR",
-    "APR",
-    "MAY",
-    "JUN",
-    "JUL",
-    "AUG",
-    "SEP",
-    "OCT",
-    "NOV",
-    "DEC"
-  ];
-  function toDateKey(date) {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  }
-  function parseDateKey(key) {
-    const [year, month, day] = String(key).split("-").map(Number);
-    return new Date(year, month - 1, day);
-  }
-  function getWeekDates(date, weekStartDay) {
-    weekStartDay = weekStartDay || 0;
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = (day - weekStartDay + 7) % 7;
-    const start = new Date(d);
-    start.setDate(d.getDate() - diff);
-    const dates = [];
-    for (let i = 0; i < 7; i++) {
-      const current = new Date(start);
-      current.setDate(start.getDate() + i);
-      dates.push(current);
-    }
-    return dates;
-  }
-  function getDayNames(locale, weekStartDay) {
-    locale = locale || "en-US";
-    weekStartDay = weekStartDay || 0;
-    const names = [];
-    const base = new Date(2026, 0, 4);
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(base);
-      d.setDate(base.getDate() + (weekStartDay + i) % 7);
-      names.push(new Intl.DateTimeFormat(locale, { weekday: "short" }).format(d));
-    }
-    return names;
-  }
-
-  // src/util/tags.js
-  function hasKey(tag2) {
-    return tag2 != null && typeof tag2 === "object" && typeof tag2.key === "string" && tag2.key !== "";
-  }
-  function isLinkTag(tag2) {
-    return hasKey(tag2) && tag2.key !== "tag" && typeof tag2.value === "string" && tag2.value.startsWith("http");
-  }
-  function isCategoryTag(tag2) {
-    if (typeof tag2 === "string") return tag2.trim() !== "";
-    if (!hasKey(tag2) || isLinkTag(tag2)) return false;
-    if (typeof tag2.value === "string") return tag2.value.trim() !== "";
-    return Number.isFinite(tag2.value);
-  }
-  function tagLabel(tag2) {
-    if (typeof tag2 === "string") return tag2;
-    if (tag2 == null) return "";
-    const value = String(tag2.value ?? "");
-    return tag2.key === "tag" ? value : `${tag2.key}: ${value}`;
-  }
-
-  // src/composite.js
-  var NO_PARTS = Object.freeze([]);
-  function partsOf(event) {
-    const parts = event?.parts;
-    if (event?.id == null) return NO_PARTS;
-    if (!Array.isArray(parts) || parts.length === 0) return NO_PARTS;
-    return parts.every((p) => p && p.parentId === event.id) ? parts : NO_PARTS;
-  }
-  function titleKey(title) {
-    return String(title ?? "").normalize("NFKD").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
-  }
-  function isSecondListing(part, parent) {
-    const key = titleKey(part?.title);
-    return key !== "" && key === titleKey(parent?.title);
-  }
-  function ownImages(event) {
-    if (Array.isArray(event.images) && event.images.length > 0) {
-      return event.images;
-    }
-    return event.image ? [event.image] : [];
-  }
-  function compositeImages(event) {
-    const parts = partsOf(event);
-    const own = ownImages(event);
-    if (parts.length === 0) return own;
-    const seen = /* @__PURE__ */ new Set();
-    const out = [];
-    for (const url of [...own, ...parts.flatMap(ownImages)]) {
-      if (seen.has(url)) continue;
-      seen.add(url);
-      out.push(url);
-    }
-    return out;
-  }
-  function compositeLeadImage(event) {
-    const own = event.image || null;
-    if (own || partsOf(event).length === 0) return own;
-    return compositeImages(event)[0] || null;
-  }
-  function compositeTags(event) {
-    const parts = partsOf(event);
-    const own = event.tags || [];
-    if (parts.length === 0) return own;
-    const seen = new Set(own.map(tagLabel));
-    const out = [...own];
-    for (const part of parts) {
-      for (const tag2 of part.tags || []) {
-        const label = tagLabel(tag2);
-        if (seen.has(label)) continue;
-        seen.add(label);
-        out.push(tag2);
-      }
-    }
-    return out;
-  }
-
   // src/ui/rsvp-state.js
   var RSVP_OPEN_CLASS = "already-card--rsvp-open";
 
@@ -6394,6 +6522,8 @@ ${text}</tr>
     noEventsThisDay: "No events this day.",
     back: "\u2190 Back",
     moreEvents: "+{count} more",
+    moreParts: "+{count} more",
+    compositeParts: "Schedule",
     subscribe: "Subscribe",
     subscribeApple: "Apple Calendar",
     subscribeGoogle: "Google Calendar",
@@ -6524,7 +6654,8 @@ ${text}</tr>
       tagFilterContainer
     );
     let destroyed = false;
-    let data = null;
+    let calendar = null;
+    let composition = null;
     let showPast = config.showPastEvents;
     const currentDate = /* @__PURE__ */ new Date();
     let lastView = null;
@@ -6554,7 +6685,7 @@ ${text}</tr>
       metaEl.setAttribute("content", content);
     }
     function setEventMeta(event) {
-      const calendarTz = data?.calendar?.timezone || "UTC";
+      const calendarTz = calendar?.timezone || "UTC";
       const sourceTz = resolveTimeZone(event._sourceTimeZone, calendarTz);
       const dateStr = formatDateRange(event.start, event.end, {
         allDay: event.allDay,
@@ -6568,7 +6699,8 @@ ${text}</tr>
       if (event.location) descParts.push(event.location);
       setMetaTag("og:title", event.title);
       setMetaTag("og:description", descParts.join(" \xB7 "));
-      if (event.image) setMetaTag("og:image", event.image);
+      const image = compositeLeadImage(event);
+      if (image) setMetaTag("og:image", image);
       setMetaTag("og:url", window.location.href);
     }
     function restoreOriginalMeta() {
@@ -6583,13 +6715,13 @@ ${text}</tr>
       }
     }
     function getFilteredEvents() {
-      if (!data) return [];
-      if (showPast) return data.events;
-      return data.events.filter((e) => !isPast(e.end || e.start));
+      if (!composition) return [];
+      if (showPast) return composition.events;
+      return composition.events.filter((e) => !isPast(e.end || e.start));
     }
     function hasPastEvents() {
-      if (!data) return false;
-      return data.events.some((e) => isPast(e.end || e.start));
+      if (!composition) return false;
+      return composition.events.some((e) => isPast(e.end || e.start));
     }
     function makePaginationCallbacks(viewState) {
       return {
@@ -6630,15 +6762,14 @@ ${text}</tr>
       headerContainer.querySelector(".already-header-share")?.toggleAttribute("hidden", viewState.view === "detail");
       lastViewState = viewState;
       const allEvents = getFilteredEvents();
-      const timezone = data?.calendar?.timezone || "UTC";
-      const visibleEvents = allEvents.filter((e) => !e.hidden);
+      const timezone = calendar?.timezone || "UTC";
       if (viewState.view !== "detail") {
-        tagFilter.render(tagFilterContainer, visibleEvents);
+        tagFilter.render(tagFilterContainer, allEvents);
       } else {
         tagFilterContainer.innerHTML = "";
       }
       const tagFilterFn = tagFilter.getFilter();
-      const events = tagFilterFn ? visibleEvents.filter(tagFilterFn) : visibleEvents;
+      const events = tagFilterFn ? allEvents.filter(tagFilterFn) : allEvents;
       if (viewState.view !== "detail") {
         restoreOriginalMeta();
       }
@@ -6726,10 +6857,11 @@ ${text}</tr>
           break;
         }
         case "detail": {
-          const event = data?.events?.find((e) => e.id === viewState.eventId);
-          if (event) {
+          const found = composition?.lookup(viewState.eventId) ?? null;
+          if (found) {
+            const { event, part } = found;
             if (config.onEventClick) {
-              const result = config.onEventClick(event, "detail");
+              const result = config.onEventClick(part ?? event, "detail");
               if (result === false) return;
             }
             setEventMeta(event);
@@ -6741,7 +6873,8 @@ ${text}</tr>
               () => {
                 setView(lastView || config.defaultView, config);
               },
-              config
+              config,
+              { focusPartId: part?.id }
             );
           } else {
             renderError(
@@ -6786,11 +6919,15 @@ ${text}</tr>
       captureOriginalMeta();
       renderLoading(viewContainer, config);
       try {
-        data = await loadData(config);
+        const data = await loadData(config);
         if (destroyed) return;
         if (config.onDataLoad) {
           config.onDataLoad(data);
         }
+        calendar = data.calendar;
+        composition = composeEvents(data.events, {
+          timeZone: data.calendar?.timezone
+        });
       } catch (err) {
         if (destroyed) return;
         console.error("already-cal:", err);
@@ -6800,7 +6937,7 @@ ${text}</tr>
         renderError(viewContainer, err.message, start, config);
         return;
       }
-      renderHeader(headerContainer, data.calendar, config);
+      renderHeader(headerContainer, calendar, config);
       const initial = getInitialView(config.defaultView, config.views, config);
       if (isMobile() && !parseHash()) {
         initial.view = config.mobileDefaultView;
@@ -6901,7 +7038,7 @@ ${text}</tr>
           );
         }
       }
-      if (needsRerender && data && lastViewState) {
+      if (needsRerender && composition && lastViewState) {
         paginationState = { futureCount: 0, pastCount: 0 };
         renderView(lastViewState);
       }

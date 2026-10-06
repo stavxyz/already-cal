@@ -92,7 +92,10 @@ describe("renderWeekView", () => {
     renderWeekView(container, place(events), "UTC", wednesday, {});
     const block = container.querySelector(".already-week-event");
     assert.strictEqual(block.tagName, "A");
-    assert.strictEqual(block.getAttribute("href"), "#event/w-link");
+    assert.strictEqual(
+      block.getAttribute("href"),
+      "http://localhost/#event/w-link",
+    );
     assert.strictEqual(block.getAttribute("role"), null);
     assert.strictEqual(block.getAttribute("tabindex"), null);
   });

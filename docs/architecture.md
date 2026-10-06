@@ -105,7 +105,7 @@ Grid and list views use `getLayout(theme.layout)` from `src/layouts/registry.js`
 - `parseHash()` — reads `#event/{id}`, `#day/{date}`, or view names from the hash. Also checks the URL path for `/event/{id}` (server-side routing support).
 - `getInitialView(defaultView, enabledViews, config)` — determines the first view to show. Priority: `config.initialEvent` > hash/path > localStorage > `config.defaultView`.
 - `setView(view, config)` — updates the hash and saves to localStorage with key `{storageKeyPrefix}-view`.
-- `eventHref(entry)`: the `#event/{id}` link that opens an entry, written once here so every card, row, chip, and block agrees with `parseHash`. A part with no id links to its parent; an entry with neither has no link.
+- `eventHref(entry)`: the page's URL with `#event/{id}`, the link that opens an entry (absolute, so a host `<base href>` cannot redirect a new tab), written once here so every card, row, chip, and block agrees with `parseHash`. A part with no id links to its parent; an entry with neither has no link.
 - `onHashChange(callback)` — registers a hashchange listener. Returns an unsubscribe function for cleanup.
 
 ## Theme System

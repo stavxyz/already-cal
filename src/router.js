@@ -77,8 +77,9 @@ export function setDayView(dateStr, config) {
 }
 
 /**
- * The href that opens an entry's detail view: the one writer of the event
- * route that parseHash reads. A part with no id of its own (or an empty one) links to its
+ * The href that opens an entry's detail view: the page's URL with the
+ * fragment `#event/<id>`, the one writer of the event route that parseHash
+ * reads. A part with no id of its own (or an empty one) links to its
  * parent, where it is shown. An entry with neither has no route, so this
  * returns null and the caller renders nothing activatable in place of a
  * link to nowhere. The id is written as it is, without encoding, because
@@ -86,7 +87,12 @@ export function setDayView(dateStr, config) {
  */
 export function eventHref(entry) {
   const id = entry?.id || entry?.parentId;
-  return id ? `#event/${id}` : null;
+  if (!id) return null;
+  // Absolute, not `#event/<id>`: a relative fragment resolves against the
+  // document's base URL, so on a host page with <base href> a middle click
+  // or a new tab would open the wrong page. The page's own URL with the
+  // fragment is what every browser gesture should open.
+  return new URL(`#event/${id}`, window.location.href).href;
 }
 
 /** Register a callback for hash change events. Returns an unsubscribe function. */

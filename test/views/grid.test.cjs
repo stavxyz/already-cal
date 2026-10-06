@@ -113,7 +113,7 @@ describe("renderGridView", () => {
       card
         .querySelector(".already-card__title > a.already-card__link")
         .getAttribute("href"),
-      `#event/${events[0].id}`,
+      `http://localhost/#event/${events[0].id}`,
     );
   });
 

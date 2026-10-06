@@ -25,19 +25,19 @@ function hostWithTitle(titleHtml) {
 describe("linkTitle", () => {
   it("moves the title's text into a link appended to the title element", () => {
     const host = hostWithTitle("Burger Night");
-    const link = linkTitle(host, "#event/e1", opts);
+    const link = linkTitle(host, "http://localhost/#event/e1", opts);
     const title = host.querySelector(".card__title");
     assert.strictEqual(title.childNodes.length, 1);
     assert.strictEqual(title.firstChild, link);
     assert.strictEqual(link.tagName, "A");
-    assert.strictEqual(link.getAttribute("href"), "#event/e1");
+    assert.strictEqual(link.getAttribute("href"), "http://localhost/#event/e1");
     assert.strictEqual(link.textContent, "Burger Night");
     assert.strictEqual(title.textContent, "Burger Night");
   });
 
   it("gives the link both classes and marks the host", () => {
     const host = hostWithTitle("Burger Night");
-    const link = linkTitle(host, "#event/e1", opts);
+    const link = linkTitle(host, "http://localhost/#event/e1", opts);
     assert.ok(link.classList.contains("already-event-link"));
     assert.ok(link.classList.contains("card__link"));
     assert.ok(host.classList.contains(LINK_HOST_CLASS));
@@ -47,7 +47,7 @@ describe("linkTitle", () => {
     const host = hostWithTitle(
       '<span class="icon">*</span> Burger <em>Night</em>',
     );
-    const link = linkTitle(host, "#event/e1", opts);
+    const link = linkTitle(host, "http://localhost/#event/e1", opts);
     assert.strictEqual(link.childNodes.length, 3);
     assert.strictEqual(link.querySelector(".icon").textContent, "*");
     assert.strictEqual(link.querySelector("em").textContent, "Night");
@@ -57,9 +57,9 @@ describe("linkTitle", () => {
   it("appends a hidden link with the fallback text when there is no title", () => {
     const host = document.createElement("div");
     host.innerHTML = '<div class="card__meta">10:00</div>';
-    const link = linkTitle(host, "#event/e1", opts);
+    const link = linkTitle(host, "http://localhost/#event/e1", opts);
     assert.strictEqual(host.firstChild, link);
-    assert.strictEqual(link.getAttribute("href"), "#event/e1");
+    assert.strictEqual(link.getAttribute("href"), "http://localhost/#event/e1");
     const hidden = link.querySelector("span.already-sr-only");
     assert.ok(hidden);
     assert.strictEqual(hidden.textContent, "Open event");
@@ -71,7 +71,7 @@ describe("linkTitle", () => {
     // Built-in layouts render the title element for a blank title too; a
     // link that holds nothing would have no accessible name.
     const host = hostWithTitle("   ");
-    const link = linkTitle(host, "#event/e1", opts);
+    const link = linkTitle(host, "http://localhost/#event/e1", opts);
     const title = host.querySelector(".card__title");
     assert.strictEqual(title.querySelector("a"), null);
     assert.strictEqual(host.firstChild, link);
@@ -83,7 +83,7 @@ describe("linkTitle", () => {
     const host = document.createElement("div");
     host.innerHTML =
       '<a class="card__title" href="https://x.example/">Burger Night</a>';
-    const link = linkTitle(host, "#event/e1", opts);
+    const link = linkTitle(host, "http://localhost/#event/e1", opts);
     const own = host.querySelector("a.card__title");
     assert.strictEqual(own.getAttribute("href"), "https://x.example/");
     assert.strictEqual(own.querySelector("a"), null);
@@ -95,7 +95,7 @@ describe("linkTitle", () => {
     const host = hostWithTitle(
       'Burger Night <button type="button">Pin</button>',
     );
-    const link = linkTitle(host, "#event/e1", opts);
+    const link = linkTitle(host, "http://localhost/#event/e1", opts);
     const title = host.querySelector(".card__title");
     assert.strictEqual(title.querySelector("a"), null);
     assert.ok(title.querySelector("button"));
@@ -109,7 +109,7 @@ describe("linkTitle", () => {
       '<span role="button">Pick</span>',
     ]) {
       const host = hostWithTitle(`Burger Night ${inner}`);
-      const link = linkTitle(host, "#event/e1", opts);
+      const link = linkTitle(host, "http://localhost/#event/e1", opts);
       assert.strictEqual(
         host.querySelector(".card__title a"),
         null,
@@ -130,9 +130,9 @@ describe("linkTitle", () => {
 
 describe("eventAnchor", () => {
   it("is an anchor with the href when the entry has a route", () => {
-    const el = eventAnchor("#event/e1", "chip chip--featured");
+    const el = eventAnchor("http://localhost/#event/e1", "chip chip--featured");
     assert.strictEqual(el.tagName, "A");
-    assert.strictEqual(el.getAttribute("href"), "#event/e1");
+    assert.strictEqual(el.getAttribute("href"), "http://localhost/#event/e1");
     assert.strictEqual(el.className, "chip chip--featured");
   });
 

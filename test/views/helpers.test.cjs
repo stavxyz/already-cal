@@ -65,7 +65,7 @@ describe("createElement", () => {
 });
 
 describe("bindEventClick on a link", () => {
-  const link = (href = "#event/evt-1") => {
+  const link = (href = "http://localhost/#event/evt-1") => {
     const a = document.createElement("a");
     a.setAttribute("href", href);
     a.textContent = "Event";

@@ -48,10 +48,12 @@ export function createTagPills(event, wrapperClass, pillClass) {
  * button with no modifier key, which is also what Enter on a focused link
  * produces) it asks the caller's `canNavigate` first (a card with its RSVP
  * form open says no), then `config.onEventClick`, whose `false` return stops
- * navigation, and then navigates by copying the link's own href into the
- * hash. That is the navigation the browser would have performed, done by
- * hand because the test environment does not navigate on anchor activation.
- * A middle or modifier click is left to the browser, which opens a new tab
+ * navigation, and then navigates by copying the fragment of the link's own
+ * href into the hash. That is the navigation the browser would have
+ * performed. It is done by hand so that the route changes synchronously and
+ * in the same order in every environment, and because `preventDefault()`,
+ * which a `false` from `onEventClick` needs, would otherwise stop it too. A
+ * middle or modifier click is left to the browser, which opens a new tab
  * (browsers send those as auxclick, so the button check is a guard). An
  * entry with no route (router.eventHref) has no link: `el` is then null, or a
  * plain element with no href, and the call is a no-op.
@@ -74,7 +76,9 @@ export function bindEventClick(
       const result = config.onEventClick(event, viewName);
       if (result === false) return;
     }
-    window.location.hash = el.getAttribute("href");
+    // The link's href is absolute (router.eventHref); only its fragment
+    // moves the widget's own route.
+    window.location.hash = new URL(el.href).hash;
   });
 }
 

@@ -4066,7 +4066,8 @@ ${text}</tr>
   }
   function eventHref(entry) {
     const id = entry?.id || entry?.parentId;
-    return id ? `#event/${id}` : null;
+    if (!id) return null;
+    return new URL(`#event/${id}`, window.location.href).href;
   }
   function onHashChange(callback) {
     const handler = () => {
@@ -4114,7 +4115,7 @@ ${text}</tr>
         const result = config.onEventClick(event, viewName);
         if (result === false) return;
       }
-      window.location.hash = el.getAttribute("href");
+      window.location.hash = new URL(el.href).hash;
     });
   }
   function applyEventClasses(el, event, baseClass) {

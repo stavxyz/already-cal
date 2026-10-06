@@ -1444,8 +1444,8 @@
 
   .already-month-chip {
     background: #333;
-    /* The link-state rule above reads this variable, so a plain `color`
-       here would lose to it. */
+    /* The link-state rule in the Event links section reads this variable,
+       so a plain `color` here would lose to it. */
     --already-primary-text: #fff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;

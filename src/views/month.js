@@ -160,7 +160,7 @@ export function renderMonthView(
       fillEventAnchor(chip, event.title, eventLinkText(event, config));
       // No stopPropagation: the click has to reach the root's interaction
       // listener, which posts the cross-origin engagement signal. The cell
-      // handler below bails on chip clicks by target instead.
+      // handler above bails on chip clicks by target instead.
       bindEventClick(chip, event, "month", config);
       bindEventPopover(chip, event, popoverRoot, config, "month", timezone);
       cell.appendChild(chip);

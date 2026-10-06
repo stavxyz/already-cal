@@ -150,7 +150,7 @@ Resolve a custom `onRsvp` with `{ partySize }` to confirm, or reject to show a f
 | `loadMore` | `'Load more'` | Pagination button (grid/list) |
 | `showEarlier` | `'Show earlier'` | Pagination button (grid/list) |
 | `rsvp` | `'RSVP'` | RSVP button on a card and in the detail view |
-| `rsvpFor` | `'RSVP for {title}'` | Accessible name of a card's RSVP button (`{title}` is replaced); the visible text stays `rsvp`. It must contain the `rsvp` text: when it does not, the name is the `rsvp` text, a colon, and the title |
+| `rsvpFor` | `'RSVP for {title}'` | Accessible name of the RSVP button on a card and in the detail view (`{title}` is replaced); the visible text stays `rsvp`. It must contain the `rsvp` text: when it does not, the name is the `rsvp` text, a colon, and the title |
 | `details` | `'Details'` | Badge footer link to the Google event page |
 | `openEvent` | `'Open event'` | Text of the hidden event link a card or day row gets when its title element is missing, holds no text, or already holds a control, and the event has no title to name it with |
 | `rsvpName` | `'Name'` | RSVP form name field |
@@ -458,7 +458,7 @@ Register custom card layouts via `Already.registerLayout(name, renderFn)`. The r
 
 The view makes the card's title the link that opens the event: after your function returns, the text inside the element with the class `already-card__title` moves into an `<a>`, and the stylesheet stretches that link over the whole card. Render that element and the card opens like a built-in one; without it, or when it holds no text, the view puts a visually hidden link first in the card, named after the event (or `openEvent` when the event has no title). An entry with no id and no parent id has no link at all, so its card does not open. Do not make the title a link or put a control inside it (a button, an input, anything with `tabindex` or a `button` or `link` role): the view then leaves your title alone and adds the hidden link instead, so no control ends up inside a link.
 
-Any control your layout renders itself (a button, a link, a form) needs the class `already-control`, or the stretched link covers it and it cannot be clicked. The widget puts that class on its own controls; the CSS behind it is the widget's and not part of the contract.
+Any control your layout renders itself (a button, a link, a form) needs the class `already-control`, or the stretched link covers it and it cannot be clicked. The widget puts that class on its own controls; the CSS behind it is the widget's and not part of the contract. The element that carries the class sits above the stretched link as a whole, so a click on its own padding opens nothing; put the class on the control, not on a wide row around it, unless the row is the control's home as the RSVP row is.
 
 ```js
 const url = event.links[0]?.url;

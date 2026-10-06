@@ -46,8 +46,9 @@ afterEach(() => {
 });
 
 // The rules that catch what this suite is for: a control inside a control,
-// and controls or links with no name. Layout-dependent rules (region,
-// colour contrast) need a rendering engine jsdom does not have.
+// and controls or links with no name. Colour-contrast rules need a
+// rendering engine jsdom does not have, and `region` is a page-level
+// landmark check that does not apply to a widget fragment.
 const RULES = [
   "nested-interactive",
   "button-name",

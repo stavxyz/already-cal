@@ -361,6 +361,33 @@ export function eventDayKey(isoString) {
   return dayKey(isoString, viewerTimeZone());
 }
 
+/**
+ * The time label of one row in a per-day schedule: a row of the day view, or
+ * a part of a composite in the detail view. One owner, so the two cannot
+ * drift apart.
+ *
+ * An all-day event shows `allDayLabel`. A timed event that ends on the day it
+ * starts shows its range ("3:00 – 5:00 PM"). One that runs into another day
+ * shows only its start: passing that end would make formatRange inject
+ * numeric M/D/YYYY dates to tell the two days apart, which clashes with the
+ * widget's house style and overflows a narrow column. "The same day" is the
+ * viewer's day, by the shared day key.
+ *
+ * @param {object} event `{ start, end, allDay, _sourceTimeZone }`
+ * @param {object} [opts] `{ sourceZoneFallback, locale, allDayLabel }`
+ * @returns {string}
+ */
+export function formatScheduleTime(event, opts = {}) {
+  const { sourceZoneFallback, locale, allDayLabel = "All Day" } = opts;
+  if (event.allDay) return allDayLabel;
+  const startDay = eventDayKey(event.start);
+  const oneDay = startDay !== "" && startDay === eventDayKey(event.end);
+  return formatEventWhen(
+    { ...event, end: oneDay ? event.end : undefined },
+    { sourceZoneFallback, locale, dateStyle: "time" },
+  );
+}
+
 export const MONTH_NAMES_SHORT = [
   "JAN",
   "FEB",

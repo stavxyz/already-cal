@@ -1,9 +1,7 @@
 import {
   eventDayKey,
   formatDate,
-  formatEventWhen,
-  isSameDay,
-  parseEventDate,
+  formatScheduleTime,
   toDateKey,
 } from "../util/dates.js";
 import {
@@ -78,22 +76,12 @@ export function renderDayView(
       applyEventClasses(item, event, "already-day-event");
       bindEventClick(item, event, "day", config);
 
-      // Day view is a per-day schedule: a same-day event shows its time range
-      // ("3:00 – 5:00 PM"); a multi-day event shows just its start time. Passing
-      // the end for a multi-day span would make formatRange inject a numeric
-      // M/D/YYYY date to disambiguate the two days — clashing with the widget's
-      // house style and overflowing the narrow column. The event is filed under
-      // its start day, so the start time is the useful label here.
-      const sameDay =
-        event.end &&
-        isSameDay(parseEventDate(event.start), parseEventDate(event.end));
       const timeEl = createElement("div", "already-day-event-time");
-      timeEl.textContent = event.allDay
-        ? allDayLabel
-        : formatEventWhen(
-            { ...event, end: sameDay ? event.end : undefined },
-            { sourceZoneFallback: timezone, locale, dateStyle: "time" },
-          );
+      timeEl.textContent = formatScheduleTime(event, {
+        sourceZoneFallback: timezone,
+        locale,
+        allDayLabel,
+      });
       item.appendChild(timeEl);
 
       const info = createElement("div", "already-day-event-info");

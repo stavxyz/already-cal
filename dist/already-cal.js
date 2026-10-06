@@ -3757,6 +3757,16 @@ ${text}</tr>
   function eventDayKey(isoString) {
     return dayKey(isoString, viewerTimeZone());
   }
+  function formatScheduleTime(event, opts = {}) {
+    const { sourceZoneFallback, locale, allDayLabel = "All Day" } = opts;
+    if (event.allDay) return allDayLabel;
+    const startDay = eventDayKey(event.start);
+    const oneDay = startDay !== "" && startDay === eventDayKey(event.end);
+    return formatEventWhen(
+      { ...event, end: oneDay ? event.end : void 0 },
+      { sourceZoneFallback, locale, dateStyle: "time" }
+    );
+  }
   var MONTH_NAMES_SHORT = [
     "JAN",
     "FEB",
@@ -5301,12 +5311,12 @@ ${text}</tr>
         const item = createElement("div");
         applyEventClasses(item, event, "already-day-event");
         bindEventClick(item, event, "day", config);
-        const sameDay = event.end && isSameDay(parseEventDate(event.start), parseEventDate(event.end));
         const timeEl = createElement("div", "already-day-event-time");
-        timeEl.textContent = event.allDay ? allDayLabel : formatEventWhen(
-          { ...event, end: sameDay ? event.end : void 0 },
-          { sourceZoneFallback: timezone, locale, dateStyle: "time" }
-        );
+        timeEl.textContent = formatScheduleTime(event, {
+          sourceZoneFallback: timezone,
+          locale,
+          allDayLabel
+        });
         item.appendChild(timeEl);
         const info = createElement("div", "already-day-event-info");
         const titleEl = createElement("div", "already-day-event-title");

@@ -86,22 +86,7 @@ const cfg = (layout, over = {}) => ({
   _theme: { layout, orientation: "vertical", imagePosition: "left" },
   ...over,
 });
-const events = () => [
-  createTestEvent({
-    id: "plain",
-    title: "Autumn Market",
-    start: "2099-06-15T15:00:00Z",
-    end: "2099-06-15T17:00:00Z",
-    htmlLink: "https://cal.example/plain",
-  }),
-  createTestEvent({
-    id: "with-rsvp",
-    title: "Supper Club",
-    rsvp: true,
-    start: "2099-06-15T19:00:00Z",
-    end: "2099-06-15T21:00:00Z",
-    htmlLink: "https://cal.example/supper",
-  }),
+const burgerNight = ({ bothRsvp = false } = {}) =>
   createComposite(
     {
       id: "night",
@@ -122,9 +107,27 @@ const events = () => [
         title: "Second Set",
         start: "2099-06-16T19:30:00Z",
         end: "2099-06-16T20:30:00Z",
+        rsvp: bothRsvp,
       },
     ],
-  ),
+  );
+const events = () => [
+  createTestEvent({
+    id: "plain",
+    title: "Autumn Market",
+    start: "2099-06-15T15:00:00Z",
+    end: "2099-06-15T17:00:00Z",
+    htmlLink: "https://cal.example/plain",
+  }),
+  createTestEvent({
+    id: "with-rsvp",
+    title: "Supper Club",
+    rsvp: true,
+    start: "2099-06-15T19:00:00Z",
+    end: "2099-06-15T21:00:00Z",
+    htmlLink: "https://cal.example/supper",
+  }),
+  burgerNight(),
 ];
 const mount = () => {
   const c = document.createElement("div");
@@ -198,5 +201,25 @@ describe("accessibility of the calendar views", () => {
       focusPartId: "act-1",
     });
     await expectClean(c, "detail", "button.already-rsvp__open");
+  });
+
+  it("names two RSVP buttons on one page after their own events", () => {
+    // axe cannot see this: the visible text "RSVP" already satisfies
+    // button-name, so two buttons that read the same would pass.
+    const c = mount();
+    renderDetailView(
+      c,
+      burgerNight({ bothRsvp: true }),
+      "UTC",
+      () => {},
+      cfg("clean"),
+      {},
+    );
+    assert.deepStrictEqual(
+      [...c.querySelectorAll("button.already-rsvp__open")].map((b) =>
+        b.getAttribute("aria-label"),
+      ),
+      ["RSVP for First Set", "RSVP for Second Set"],
+    );
   });
 });

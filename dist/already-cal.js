@@ -5867,7 +5867,6 @@ ${text}</tr>
       const item = createElement("div");
       applyEventClasses(item, entry, "already-day-event");
       if (isPart) item.classList.add("already-day-event--part");
-      bindEventClick(item, entry, "day", config);
       const timeEl = createElement("div", "already-day-event-time");
       timeEl.textContent = formatScheduleTime(entry, {
         sourceZoneFallback: timezone,
@@ -5885,6 +5884,12 @@ ${text}</tr>
         info.appendChild(loc);
       }
       item.appendChild(info);
+      const link2 = linkTitle(item, eventHref(entry), {
+        titleSelector: ".already-day-event-title",
+        linkClass: "already-day-event__link",
+        fallbackText: eventLinkText(entry, config)
+      });
+      bindEventClick(link2, entry, "day", config);
       return item;
     }
     if (dayEvents.length === 0) {

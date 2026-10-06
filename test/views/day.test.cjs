@@ -160,7 +160,7 @@ describe("renderDayView", () => {
       createTestEvent({ id: "day-click", start: "2026-04-15T10:00:00Z" }),
     ];
     renderDayView(container, place(events), "UTC", targetDate, {});
-    container.querySelector(".already-day-event").click();
+    container.querySelector(".already-day-event__link").click();
     assert.strictEqual(window.location.hash, "#event/day-click");
   });
 });

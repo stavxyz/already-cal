@@ -1,8 +1,11 @@
+import { eventHref } from "../router.js";
+import { linkTitle } from "../ui/event-link.js";
 import { formatDate, formatScheduleTime, toDateKey } from "../util/dates.js";
 import {
   applyEventClasses,
   bindEventClick,
   createElement,
+  eventLinkText,
   sortFeatured,
 } from "./helpers.js";
 
@@ -63,7 +66,6 @@ export function renderDayView(
     const item = createElement("div");
     applyEventClasses(item, entry, "already-day-event");
     if (isPart) item.classList.add("already-day-event--part");
-    bindEventClick(item, entry, "day", config);
 
     const timeEl = createElement("div", "already-day-event-time");
     timeEl.textContent = formatScheduleTime(entry, {
@@ -83,6 +85,16 @@ export function renderDayView(
       info.appendChild(loc);
     }
     item.appendChild(info);
+
+    // The title is the link, stretched over the row by the stylesheet, so
+    // the row is clickable everywhere without being a button. A part with
+    // no id links to its parent (router.eventHref).
+    const link = linkTitle(item, eventHref(entry), {
+      titleSelector: ".already-day-event-title",
+      linkClass: "already-day-event__link",
+      fallbackText: eventLinkText(entry, config),
+    });
+    bindEventClick(link, entry, "day", config);
     return item;
   }
 

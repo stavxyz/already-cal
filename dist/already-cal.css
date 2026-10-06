@@ -525,6 +525,7 @@
   align-items: flex-start;
   gap: 1rem;
   padding: 0.75rem 1rem;
+  --already-link-ring-offset: -2px;
   border-bottom: 1px solid var(--already-border-grid);
   cursor: pointer;
   transition: background 0.15s;
@@ -534,10 +535,6 @@
 }
 .already-day-event:hover {
   background: var(--already-highlight);
-}
-.already-day-event:focus-visible {
-  outline: 2px solid var(--already-primary);
-  outline-offset: -2px;
 }
 .already-day-event-time {
   flex-shrink: 0;

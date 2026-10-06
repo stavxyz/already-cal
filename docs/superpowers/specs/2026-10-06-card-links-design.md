@@ -92,6 +92,10 @@ The chip (`src/views/month.js`) and the block (`src/views/week.js`) are created 
 
 `appendRsvpControl` (`src/ui/rsvp-form.js`) sets `aria-label` on the open button from a new i18n string `rsvpFor`, default `"RSVP for {title}"`, with `{title}` replaced by the event's title. The visible text stays `i18n.rsvp` ("RSVP"), which the name contains, as WCAG 2.5.3 asks. The detail view's control gets the same label for consistency.
 
+The widget enforces "the name contains the visible text" instead of assuming it. A host that translated `rsvp` before `rsvpFor` existed gets the default `rsvpFor` on upgrade, and its name ("RSVP for Noche") would not contain its visible text ("Reservar"); a voice-control user who says what the button shows would activate nothing. So when the resolved name does not contain the visible text, compared without regard to case, the name is `<visible text>: <title>` ("Reservar: Noche"), which holds in every configuration and needs no translation.
+
+> **Design note (2026-10-06):** Found by the controller while Task 7 was in review: the first version set the name from `rsvpFor` alone, and its own test paired an English button with a Spanish name. The fallback is built from the two strings the widget already has, so it adds no i18n key.
+
 One more change in `rsvp-form.js` follows from D3. The form's click and keydown `stopPropagation` calls and the open button's keydown `stopPropagation` exist because the card around them navigated on click, Space, and Enter. That card handler is gone: activation lives on the title link, which is a sibling of the form, not an ancestor, so a click or key inside the form reaches no navigation handler. The guards and their comments are removed, with a test that typing and clicking inside an open form does not navigate. The `canNavigate` predicate (D3) still keeps a click elsewhere on the card from navigating while the form is open. The Turnstile work queued for this module touches the form's fields and submission, not these lines.
 
 ### D7. An automated accessibility check in the suite

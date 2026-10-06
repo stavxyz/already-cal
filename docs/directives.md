@@ -151,7 +151,7 @@ Some occasions are described by more than one calendar entry: a weekly dinner an
 #already:composite
 ```
 
-- Marks an entry as a **parent**. Every entry in the view that starts inside the parent's hours is shown as one of its **parts**
+- Marks an entry as a **parent**. Every entry from the parent's own calendar that starts inside the parent's hours is shown as one of its **parts** (an entry from another calendar joins only with the part-of flag below, and an entry with the standalone flag never joins)
 - An entry starts inside the hours when its start is at or after the parent's start and before the parent's end. A parent with no end takes no parts
 - An all-day parent takes the entries whose date falls on its dates. An all-day entry joins an all-day parent only, never a timed one. An all-day parent's end date is exclusive, the way Google Calendar reports it, so a one-day parent ends on the next date
 - The composite's place in a list, its featured state, and the moment it counts as past are the parent's. Its parts are shown with it for as long as it is shown

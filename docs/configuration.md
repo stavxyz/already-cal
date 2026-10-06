@@ -227,10 +227,11 @@ sanitization: {
 Called when an event is clicked in any view.
 
 - `event` — the [event object](event-schema.md)
-- For a [composite](event-schema.md#composed-events), `event` is the parent with its `parts`. For a part shown on its own, or for a link that names a part, it is the part with its `parentId`
 - `viewName` — `'month'`, `'week'`, `'day'`, `'grid'`, `'list'`, or `'detail'`
 - **Return `false`** to prevent navigation to the detail view
 - Return anything else (or nothing) to allow default navigation
+
+For a [composite](event-schema.md#composed-events), `event` is the parent with its `parts`. For a part's own row or chip, including a row under its parent in the day view, or for a link that names a part, it is the part with its `parentId`.
 
 ```js
 onEventClick: (event, view) => {

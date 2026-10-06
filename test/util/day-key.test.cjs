@@ -5,10 +5,10 @@ process.env.TZ = "America/Chicago";
 const { describe, it, before, after } = require("node:test");
 const assert = require("node:assert");
 
-let dayKeyInZone, eventDayKey, toDateKey;
+let dayKeyInZone, eventDayKey, startOrder, toDateKey;
 
 before(async () => {
-  ({ dayKeyInZone, eventDayKey, toDateKey } = await import(
+  ({ dayKeyInZone, eventDayKey, startOrder, toDateKey } = await import(
     "../../src/util/dates.js"
   ));
 });
@@ -74,5 +74,32 @@ describe("eventDayKey", () => {
   it("returns an empty key for a missing or malformed value", () => {
     assert.strictEqual(eventDayKey(""), "");
     assert.strictEqual(eventDayKey("not a date"), "");
+  });
+});
+
+describe("startOrder", () => {
+  it("orders a timed entry at its instant", () => {
+    assert.strictEqual(
+      startOrder({ start: "2026-04-16T03:30:00Z" }),
+      Date.parse("2026-04-16T03:30:00Z"),
+    );
+  });
+
+  it("orders an all-day entry at the viewer's local midnight of its date", () => {
+    // Local midnight, not UTC midnight: in Chicago the two are five hours
+    // apart, and an evening event of the day before falls between them.
+    assert.strictEqual(
+      startOrder({ start: "2026-04-15" }),
+      new Date(2026, 3, 15).getTime(),
+    );
+    assert.ok(
+      startOrder({ start: "2026-04-15T03:30:00Z" }) <
+        startOrder({ start: "2026-04-15" }),
+    );
+  });
+
+  it("has no order for a missing or malformed start", () => {
+    assert.ok(Number.isNaN(startOrder({ start: "nope" })));
+    assert.ok(Number.isNaN(startOrder({})));
   });
 });

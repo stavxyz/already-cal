@@ -362,6 +362,20 @@ export function eventDayKey(isoString) {
 }
 
 /**
+ * The number display code sorts entries by: the ordering counterpart of
+ * eventDayKey. A timed entry sorts at its instant. An all-day entry sorts at
+ * the viewer's local midnight of its date, the start of the day it is filed
+ * under (see parseEventDate), so a list in this order never shows a later
+ * day before an earlier one. A missing or malformed start has no order (NaN).
+ *
+ * Viewer-dependent, so it is for display only: nothing that decides which
+ * entries belong together may use it.
+ */
+export function startOrder(entry) {
+  return parseEventDate(entry.start).getTime();
+}
+
+/**
  * The time label of one row in a per-day schedule: a row of the day view, or
  * a part of a composite in the detail view. One owner, so the two cannot
  * drift apart.

@@ -1365,6 +1365,7 @@ button.already-card__action {
 }
 .already-card__footer--rsvp {
   flex-wrap: wrap;
+  cursor: default;
 }
 .already-card__footer--rsvp > .already-rsvp {
   flex: 1 0 100%;
@@ -1440,10 +1441,16 @@ button.already-card__action {
 .already .already-event-link:is(:link, :visited, :hover, :active) {
   color: inherit;
   text-decoration: none;
+  background: none;
+  border-bottom: 0;
+  box-shadow: none;
 }
 .already :is(.already-month-chip, .already-week-event):is(:link, :visited, :hover, :active) {
   color: var(--already-primary-text);
   text-decoration: none;
+  background-image: none;
+  border-bottom: 0;
+  box-shadow: none;
 }
 .already-event-link::after {
   content: "";
@@ -1469,8 +1476,10 @@ button.already-card__action {
 }
 .already-control,
 .already-link-host .already-card__description a {
-  position: relative;
   z-index: 1;
+}
+:where(.already-control, .already-link-host .already-card__description a) {
+  position: relative;
 }
 .already-sr-only {
   position: absolute;

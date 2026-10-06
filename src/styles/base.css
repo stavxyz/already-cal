@@ -1682,6 +1682,9 @@ button.already-card__action {
 }
 .already-card__footer--rsvp {
   flex-wrap: wrap;
+  /* The row sits above the stretched link, so a click on its empty area
+     opens nothing; the card's pointer cursor would promise otherwise. */
+  cursor: default;
 }
 /* The open form takes a line of its own below any sibling action, at the
    card's full content width. */
@@ -1788,10 +1791,15 @@ button.already-card__action {
 /* Every event title, chip, and block is an anchor, and a host page styles
    anchors (`.page a { color; text-decoration }`, `a:visited`). Enumerating
    the link states puts these rules above a descendant rule's specificity,
-   so the widget's own colours hold without a host doing anything. */
+   so the widget's own colours hold without a host doing anything. Hosts
+   also underline links with a bottom border, a box shadow, or a background
+   gradient, so those are reset too. */
 .already .already-event-link:is(:link, :visited, :hover, :active) {
   color: inherit;
   text-decoration: none;
+  background: none;
+  border-bottom: 0;
+  box-shadow: none;
 }
 
 .already
@@ -1803,6 +1811,9 @@ button.already-card__action {
   ) {
   color: var(--already-primary-text);
   text-decoration: none;
+  background-image: none;
+  border-bottom: 0;
+  box-shadow: none;
 }
 
 .already-event-link::after {
@@ -1846,8 +1857,14 @@ button.already-card__action {
    content and cannot carry the class, so the selector lifts them too. */
 .already-control,
 .already-link-host .already-card__description a {
-  position: relative;
   z-index: 1;
+}
+
+/* Zero specificity on purpose: a custom layout's own rule may position its
+   control absolutely, and this must not win over that whichever stylesheet
+   the host loads last. */
+:where(.already-control, .already-link-host .already-card__description a) {
+  position: relative;
 }
 
 /* Text for screen readers only. Used for the event link a layout without a

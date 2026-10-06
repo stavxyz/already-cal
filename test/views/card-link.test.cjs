@@ -30,6 +30,21 @@ const grid = (events, config) => {
   return c;
 };
 
+// jsdom has no layout, so these presence checks on the stylesheet stand in
+// for the browser probes. The text is flattened (runs of whitespace become
+// one space, none inside parentheses) so a reformat does not fail them:
+// write each selector on one line with single spaces.
+const css = fs.readFileSync(
+  path.join(__dirname, "../../src/styles/base.css"),
+  "utf8",
+);
+const flat = css.replace(/\s+/g, " ").replace(/\( /g, "(").replace(/ \)/g, ")");
+const blockFor = (selector) => {
+  const start = flat.indexOf(`${selector} {`);
+  assert.notStrictEqual(start, -1, `no rule for ${selector}`);
+  return flat.slice(start, flat.indexOf("}", start));
+};
+
 describe("a card opens through its title link", () => {
   for (const name of NAMES) {
     it(`${name}: the title holds the link, the card is no button`, () => {
@@ -270,31 +285,18 @@ describe("the stretched link leaves a description's own links reachable", () => 
   });
 
   it("lifts a description anchor above the stretch with the same rule as a control", () => {
-    const css = fs.readFileSync(
-      path.join(__dirname, "../../src/styles/base.css"),
-      "utf8",
+    const block = blockFor(
+      ".already-control, .already-link-host .already-card__description a",
     );
-    const selector =
-      ".already-control,\n.already-link-host .already-card__description a {";
-    const start = css.indexOf(selector);
-    assert.notStrictEqual(start, -1, "no shared rule lifts description links");
-    const block = css.slice(start, css.indexOf("}", start));
-    assert.ok(block.includes("position: relative;"));
     assert.ok(block.includes("z-index: 1;"));
+    const position = blockFor(
+      ":where(.already-control, .already-link-host .already-card__description a)",
+    );
+    assert.ok(position.includes("position: relative;"));
   });
 });
 
 describe("the stylesheet holds its own in a host page", () => {
-  const css = fs.readFileSync(
-    path.join(__dirname, "../../src/styles/base.css"),
-    "utf8",
-  );
-  const blockFor = (selector) => {
-    const start = css.indexOf(`${selector} {`);
-    assert.notStrictEqual(start, -1, `no rule for ${selector}`);
-    return css.slice(start, css.indexOf("}", start));
-  };
-
   it("keeps the event link's colour against a host's descendant anchor rule", () => {
     // `.page a { color }` has one class and one type; this rule enumerates the
     // link states to sit above it.
@@ -307,7 +309,7 @@ describe("the stylesheet holds its own in a host page", () => {
 
   it("keeps a chip's and a block's colour the same way", () => {
     const block = blockFor(
-      ".already\n  :is(.already-month-chip, .already-week-event):is(\n    :link,\n    :visited,\n    :hover,\n    :active\n  )",
+      ".already :is(.already-month-chip, .already-week-event):is(:link, :visited, :hover, :active)",
     );
     assert.ok(block.includes("color: var(--already-primary-text);"));
     assert.ok(block.includes("text-decoration: none;"));
@@ -332,6 +334,50 @@ describe("the stylesheet holds its own in a host page", () => {
       blockFor(".already-event-popover__card::after").includes(
         "pointer-events: none;",
       ),
+    );
+  });
+
+  it("resets the other ways a host underlines a link", () => {
+    const link = blockFor(
+      ".already .already-event-link:is(:link, :visited, :hover, :active)",
+    );
+    for (const decl of [
+      "background: none;",
+      "border-bottom: 0;",
+      "box-shadow: none;",
+    ]) {
+      assert.ok(link.includes(decl), `event link: ${decl}`);
+    }
+    const chips = blockFor(
+      ".already :is(.already-month-chip, .already-week-event):is(:link, :visited, :hover, :active)",
+    );
+    for (const decl of [
+      "background-image: none;",
+      "border-bottom: 0;",
+      "box-shadow: none;",
+    ]) {
+      assert.ok(chips.includes(decl), `chip and block: ${decl}`);
+    }
+  });
+
+  it("lifts a control without deciding how it is positioned", () => {
+    // A custom layout's absolutely positioned control must stay where its
+    // own rule puts it, whichever stylesheet the host loads last.
+    assert.ok(
+      blockFor(
+        ":where(.already-control, .already-link-host .already-card__description a)",
+      ).includes("position: relative;"),
+    );
+    assert.ok(
+      !blockFor(
+        ".already-control, .already-link-host .already-card__description a",
+      ).includes("position:"),
+    );
+  });
+
+  it("shows the default cursor on the RSVP row, which opens nothing", () => {
+    assert.ok(
+      blockFor(".already-card__footer--rsvp").includes("cursor: default;"),
     );
   });
 });

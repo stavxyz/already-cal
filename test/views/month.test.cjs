@@ -108,10 +108,7 @@ describe("renderMonthView", () => {
     renderMonthView(container, place(events), "UTC", april2026, {});
     const chip = container.querySelector(".already-month-chip");
     assert.strictEqual(chip.tagName, "A");
-    assert.strictEqual(
-      chip.getAttribute("href"),
-      "http://localhost/#event/m-link",
-    );
+    assert.strictEqual(chip.getAttribute("href"), "#event/m-link");
     assert.strictEqual(chip.getAttribute("role"), null);
     assert.strictEqual(chip.getAttribute("tabindex"), null);
   });

@@ -65,7 +65,7 @@ describe("createElement", () => {
 });
 
 describe("bindEventClick on a link", () => {
-  const link = (href = "http://localhost/#event/evt-1") => {
+  const link = (href = "#event/evt-1") => {
     const a = document.createElement("a");
     a.setAttribute("href", href);
     a.textContent = "Event";
@@ -89,6 +89,15 @@ describe("bindEventClick on a link", () => {
     const e = click(el);
     assert.strictEqual(e.defaultPrevented, true);
     assert.strictEqual(window.location.hash, "#event/evt-1");
+  });
+
+  it("moves only the fragment of an absolute href into the hash", () => {
+    // eventHref returns the page's absolute URL when the document has a
+    // base element; the route is still only the fragment.
+    const el = link("http://localhost/#event/evt-9");
+    bindEventClick(el, { id: "evt-9" }, "grid", {});
+    click(el);
+    assert.strictEqual(window.location.hash, "#event/evt-9");
   });
 
   it("calls onEventClick before navigating", () => {

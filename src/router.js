@@ -77,25 +77,30 @@ export function setDayView(dateStr, config) {
 }
 
 /**
- * The href that opens an entry's detail view: the page's URL with the
- * fragment `#event/<id>`, the one writer of the event route that parseHash
+ * The href that opens an entry's detail view: the fragment `#event/<id>`,
+ * or the page's URL with that fragment when the document has a base
+ * element. It is the one writer of the event route that parseHash
  * reads. A part with no id of its own (or an empty one) links to its
  * parent, where it is shown. An entry with neither has no route, so this
  * returns null and the caller renders nothing activatable in place of a
  * link to nowhere. The id goes into the fragment as it is; the URL parser
  * percent-encodes the few characters a fragment cannot carry (a space, a
  * quote, angle brackets, non-ASCII), exactly as assigning location.hash
- * did before, and parseHash reads the hash as the browser holds it, so a
+ * does, and parseHash reads the hash as the browser holds it, so a
  * link and a click land on the same route.
  */
 export function eventHref(entry) {
   const id = entry?.id || entry?.parentId;
   if (!id) return null;
-  // Absolute, not `#event/<id>`: a relative fragment resolves against the
-  // document's base URL, so on a host page with <base href> a middle click
-  // or a new tab would open the wrong page. The page's own URL with the
-  // fragment is what every browser gesture should open.
-  return new URL(`#event/${id}`, window.location.href).href;
+  const fragment = `#event/${id}`;
+  // A relative fragment is the right href on almost every page: the browser
+  // resolves it against the page's current URL each time it is used, so it
+  // cannot go stale when a host changes the path or the query. A <base href>
+  // breaks that, because the fragment then resolves against the base and a
+  // middle click or a new tab opens another page. Only there is the href
+  // made absolute, from the page's URL as it is at render time.
+  if (document.querySelector("base[href]") === null) return fragment;
+  return new URL(fragment, window.location.href).href;
 }
 
 /** Register a callback for hash change events. Returns an unsubscribe function. */

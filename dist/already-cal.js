@@ -4067,7 +4067,9 @@ ${text}</tr>
   function eventHref(entry) {
     const id = entry?.id || entry?.parentId;
     if (!id) return null;
-    return new URL(`#event/${id}`, window.location.href).href;
+    const fragment = `#event/${id}`;
+    if (document.querySelector("base[href]") === null) return fragment;
+    return new URL(fragment, window.location.href).href;
   }
   function onHashChange(callback) {
     const handler = () => {

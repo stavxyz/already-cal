@@ -57,10 +57,7 @@ describe("a card opens through its title link", () => {
         ".already-card__title > a.already-event-link.already-card__link",
       );
       assert.ok(link, "link inside the title");
-      assert.strictEqual(
-        link.getAttribute("href"),
-        "http://localhost/#event/e1",
-      );
+      assert.strictEqual(link.getAttribute("href"), "#event/e1");
       assert.strictEqual(link.textContent, "Burger Night");
       assert.strictEqual(card.getAttribute("role"), null);
       assert.strictEqual(card.getAttribute("tabindex"), null);
@@ -86,7 +83,7 @@ describe("a card opens through its title link", () => {
     const c = document.createElement("div");
     renderListView(c, [createTestEvent({ id: "e2" })], "UTC", cfg("hero"));
     const link = c.querySelector(".already-card__title > a.already-card__link");
-    assert.strictEqual(link.getAttribute("href"), "http://localhost/#event/e2");
+    assert.strictEqual(link.getAttribute("href"), "#event/e2");
     assert.strictEqual(
       c.querySelector(".already-card").getAttribute("role"),
       null,
@@ -104,7 +101,7 @@ describe("a card opens through its title link", () => {
     const c = grid([part], cfg("clean"));
     assert.strictEqual(
       c.querySelector(".already-card__link").getAttribute("href"),
-      "http://localhost/#event/p1",
+      "#event/p1",
     );
   });
 
@@ -157,10 +154,7 @@ describe("a card opens through its title link", () => {
       cfg("clean"),
     );
     const link = c.querySelector(".already-card__title > a.already-card__link");
-    assert.strictEqual(
-      link.getAttribute("href"),
-      "http://localhost/#event/night",
-    );
+    assert.strictEqual(link.getAttribute("href"), "#event/night");
     assert.strictEqual(link.textContent, "Burger Night");
   });
 
@@ -189,10 +183,7 @@ describe("a card opens through its title link", () => {
       cfg("bare"),
     );
     const hidden = bare.querySelector("a.already-event-link");
-    assert.strictEqual(
-      hidden.getAttribute("href"),
-      "http://localhost/#event/b1",
-    );
+    assert.strictEqual(hidden.getAttribute("href"), "#event/b1");
     assert.strictEqual(
       hidden.querySelector(".already-sr-only").textContent,
       "Bare",
@@ -207,7 +198,7 @@ describe("a card opens through its title link", () => {
     assert.strictEqual(own.querySelector("a"), null);
     assert.strictEqual(
       linked.querySelector("a.already-event-link").getAttribute("href"),
-      "http://localhost/#event/l1",
+      "#event/l1",
     );
   });
 
@@ -264,7 +255,7 @@ describe("the stretched link leaves a description's own links reachable", () => 
     assert.strictEqual(anchor.getAttribute("href"), "https://example.com/x");
     assert.strictEqual(
       card.querySelector("a.already-card__link").getAttribute("href"),
-      "http://localhost/#event/d1",
+      "#event/d1",
     );
     anchor.click();
     assert.strictEqual(window.location.hash, "");

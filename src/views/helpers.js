@@ -76,8 +76,8 @@ export function bindEventClick(
       const result = config.onEventClick(event, viewName);
       if (result === false) return;
     }
-    // The link's href is absolute (router.eventHref); only its fragment
-    // moves the widget's own route.
+    // The route is the fragment of the link's href, whichever form eventHref
+    // gave it (router.eventHref).
     window.location.hash = new URL(el.href).hash;
   });
 }

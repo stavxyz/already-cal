@@ -44,7 +44,7 @@ describe("a day row opens through its title link", () => {
       ".already-day-event-title > a.already-event-link.already-day-event__link",
     );
     assert.ok(link);
-    assert.strictEqual(link.getAttribute("href"), "http://localhost/#event/d1");
+    assert.strictEqual(link.getAttribute("href"), "#event/d1");
     assert.strictEqual(link.textContent, "Brunch");
     assert.strictEqual(row.getAttribute("role"), null);
     assert.strictEqual(row.getAttribute("tabindex"), null);
@@ -83,7 +83,7 @@ describe("a day row opens through its title link", () => {
     const part = c.querySelector(".already-day-event--part");
     assert.strictEqual(
       part.querySelector("a.already-day-event__link").getAttribute("href"),
-      "http://localhost/#event/act",
+      "#event/act",
     );
     assert.strictEqual(part.getAttribute("role"), null);
   });
@@ -111,7 +111,7 @@ describe("a day row opens through its title link", () => {
       c
         .querySelector(".already-day-event--part a.already-day-event__link")
         .getAttribute("href"),
-      "http://localhost/#event/night",
+      "#event/night",
     );
   });
 

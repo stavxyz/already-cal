@@ -458,7 +458,7 @@ For the complete reference including all platforms, URL construction, tag types,
 
 ## RSVP
 
-Events flagged `#already:rsvp` (or every event, with `rsvpAllEvents: true`) get an RSVP button when you supply `onRsvp`. Every card layout shows it: beside Badge's Details link when the event has one, otherwise in a row of its own at the bottom of the card. Opening it shows the form on its own line, below the Details link when there is one, with its fields at most 24rem wide; when a horizontal card's text column is narrower than 320px as the form opens (a phone, or a narrow column on a wide page), the card hides its image until the form closes so the form gets the card's width. The event detail view shows it as a button. The widget collects a name, an email and a party size and hands them to your function; it never knows where they go.
+Events flagged `#already:rsvp` (or every event, with `rsvpAllEvents: true`) get an RSVP button when you supply `onRsvp`. Every card layout in the grid and list views shows it (on purpose, the month, week and day views do not, including the hover cards in month and week): beside Badge's Details link when the event has one, otherwise in a row of its own at the bottom of the card. Opening it shows the form on its own line, below the Details link when there is one, with its fields at most 24rem wide; when a horizontal card's text column is narrower than 320px as the form opens (a phone, or a narrow column on a wide page), the card hides its image until the form closes so the form gets the card's width. The event detail view shows it as a button. The widget collects a name, an email and a party size and hands them to your function; it never knows where they go.
 
 ```js
 Already.init({
@@ -472,7 +472,7 @@ Already.init({
 
 Badge's footer link to the Google event page, previously labeled RSVP, is now labeled Details (i18n.details); the RSVP button is separate and appears only when onRsvp is configured.
 
-When `onRsvp` rejects, the form reads the error's `code` to pick its message. Rejections from `rsvpViaFetch` carry `code` (the server's `error` string) and `status`; a custom `onRsvp` should reject with an error whose `code` is one of these to get the specific message:
+When `onRsvp` rejects, the form reads the error's `code` to pick its message. Rejections from `rsvpViaFetch` carry `code` and `status`. When the request itself fails, `code` is `network_error` and `status` is 0. When the response is not 2xx, `code` is the body's `error` field if the body is JSON with a string `error`, otherwise `http_<status>` (for example `http_502`), and `status` is the HTTP status. When a 2xx response's body is not JSON or not an object, `code` is `bad_response`. Of these, only a server `error` string from the table below gets a specific message; `network_error`, `http_<status>` and `bad_response` show `rsvpFailed`. A custom `onRsvp` should reject with an error whose `code` is one of these to get the specific message:
 
 | `code` | Message (`i18n` key) |
 |--------|----------------------|

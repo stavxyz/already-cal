@@ -9,6 +9,7 @@ import { extractDirectives, FLAG_FIELDS } from "./util/directives.js";
 import { stableIndex } from "./util/hash.js";
 import { extractImageTokens, normalizeImageUrl } from "./util/images.js";
 import { extractLinkTokens } from "./util/links.js";
+import { URL_PATTERN } from "./util/sanitize.js";
 import { TokenSet } from "./util/tokens.js";
 
 /** Load event data from the configured source (pre-loaded, fetch URL, or Google Calendar API). */
@@ -58,6 +59,19 @@ export async function loadData(config) {
   }
 
   return data;
+}
+
+function isHttpString(value) {
+  return typeof value === "string" && value.startsWith("http");
+}
+
+/** First plain URL in the text, minus trailing punctuation that belongs to the prose. */
+function firstPlainUrl(text) {
+  const match = new RegExp(URL_PATTERN.source, "i").exec(text);
+  if (!match) return null;
+  let url = match[0].replace(/[.,;:!?]+$/, "");
+  if (url.endsWith(")") && !url.includes("(")) url = url.slice(0, -1);
+  return url;
 }
 
 /** Enrich a raw event: extract directives, images, links, attachments, and tags from description. */
@@ -173,6 +187,17 @@ export function enrichEvent(event, config) {
   const descriptionFormat =
     event.descriptionFormat || detectFormat(description);
 
+  // Pre-set wins, then the website directive, then the first plain URL left
+  // in the description after every other extractor has taken its share.
+  const directiveWebsite = tagTokens.find(
+    (t) => t.metadata.key === "website" && isHttpString(t.metadata.value),
+  );
+  const website = isHttpString(event.website)
+    ? event.website
+    : directiveWebsite
+      ? directiveWebsite.metadata.value
+      : firstPlainUrl(description);
+
   const { _imageAttachments, ...rest } = event;
   return {
     ...rest,
@@ -181,6 +206,7 @@ export function enrichEvent(event, config) {
     image,
     images,
     links,
+    website,
     attachments,
     tags,
     ...flags,

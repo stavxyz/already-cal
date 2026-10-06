@@ -303,6 +303,86 @@ describe("enrichEvent — token pipeline deduplication", () => {
   });
 });
 
+describe("enrichEvent website", () => {
+  let isLinkTagFn;
+  before(async () => {
+    ({ isLinkTag: isLinkTagFn } = await import("../src/util/tags.js"));
+  });
+
+  const enrich = (description, extra = {}) =>
+    enrichEvent(createTestEvent({ description, ...extra }), {});
+
+  it("a pre-set website wins over a directive and a description URL", () => {
+    const e = enrich(
+      "See https://desc.example.com/\n#already:website:https://dir.example.com/",
+      { website: "https://preset.example.com/" },
+    );
+    assert.strictEqual(e.website, "https://preset.example.com/");
+  });
+
+  it("the directive wins over an earlier plain URL in the description", () => {
+    const e = enrich(
+      "First https://plain.example.com/page\n#already:website:https://dir.example.com/fest",
+    );
+    assert.strictEqual(e.website, "https://dir.example.com/fest");
+  });
+
+  it("resolves an autolinked directive to the href value", () => {
+    const e = enrich(
+      '#already:website:<a href="https://example.com/fest">https://example.com/fest</a>',
+    );
+    assert.strictEqual(e.website, "https://example.com/fest");
+  });
+
+  it("skips platform links and keeps them as link buttons", () => {
+    const e = enrich(
+      "https://www.instagram.com/acl/ and https://www.aclfestival.com/lineup",
+    );
+    assert.strictEqual(e.website, "https://www.aclfestival.com/lineup");
+    assert.ok(e.links.some((l) => /instagram/i.test(l.url)));
+  });
+
+  it("is null when the only URLs are an image and a PDF", () => {
+    const e = enrich(
+      "Flyer https://example.com/flyer.png and https://example.com/menu.pdf",
+    );
+    assert.strictEqual(e.website, null);
+  });
+
+  it("trims a trailing period", () => {
+    const e = enrich("Details: https://www.aclfestival.com/.");
+    assert.strictEqual(e.website, "https://www.aclfestival.com/");
+  });
+
+  it("trims an unbalanced trailing parenthesis", () => {
+    const e = enrich("(see https://example.com/fest)");
+    assert.strictEqual(e.website, "https://example.com/fest");
+  });
+
+  it("keeps a closing parenthesis that balances an opening one", () => {
+    const e = enrich("https://example.com/a_(b)");
+    assert.strictEqual(e.website, "https://example.com/a_(b)");
+  });
+
+  it("resolves an autolinked plain URL to the href value", () => {
+    const e = enrich(
+      'Visit <a href="https://x.example.com/">https://x.example.com/</a>',
+    );
+    assert.strictEqual(e.website, "https://x.example.com/");
+  });
+
+  it("is null when there is no URL", () => {
+    assert.strictEqual(enrich("Just words.").website, null);
+  });
+
+  it("keeps the website tag in tags as a link tag", () => {
+    const e = enrich("#already:website:https://example.com/fest");
+    const tag = e.tags.find((t) => t.key === "website");
+    assert.ok(tag);
+    assert.strictEqual(isLinkTagFn(tag), true);
+  });
+});
+
 describe("enrichEvent — AFL comments", () => {
   it("strips comment lines before processing directives", () => {
     const event = createTestEvent({
@@ -404,6 +484,7 @@ describe("enrichGoogleEvent", () => {
     images: ["https://example.com/a.jpg", "https://example.com/b.png"],
     links: [],
     htmlLink: "",
+    website: null,
     attachments: [
       { label: "Flyer", url: "https://example.com/c.pdf", type: "pdf" },
     ],

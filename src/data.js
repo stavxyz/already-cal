@@ -65,13 +65,36 @@ function isHttpString(value) {
   return typeof value === "string" && value.startsWith("http");
 }
 
-/** First plain URL in the text, minus trailing punctuation that belongs to the prose. */
+// The lookbehind anchors the run's start; an unanchored `[...]+$` retries
+// every position in a long run of punctuation and is quadratic.
+const TRAILING_PUNCTUATION_RE = /(?<![.,;:!?'*])[.,;:!?'*]+$/;
+const IMG_SRC_PREFIX_RE = /src=["']$/i;
+const HOSTED_URL_RE = /^https?:\/\/[^/\s]/i;
+
+function countChar(text, ch) {
+  let n = 0;
+  for (let i = text.indexOf(ch); i !== -1; i = text.indexOf(ch, i + 1)) n++;
+  return n;
+}
+
+/**
+ * First plain URL in the text, minus trailing punctuation that belongs to the
+ * prose. A URL that is an <img> src is page furniture, not the event's page.
+ */
 function firstPlainUrl(text) {
-  const match = new RegExp(URL_PATTERN.source, "i").exec(text);
-  if (!match) return null;
-  let url = match[0].replace(/[.,;:!?]+$/, "");
-  if (url.endsWith(")") && !url.includes("(")) url = url.slice(0, -1);
-  return url;
+  for (const match of text.matchAll(URL_PATTERN)) {
+    if (
+      IMG_SRC_PREFIX_RE.test(
+        text.slice(Math.max(0, match.index - 5), match.index),
+      )
+    )
+      continue;
+    let url = match[0].replace(TRAILING_PUNCTUATION_RE, "");
+    let extra = countChar(url, ")") - countChar(url, "(");
+    while (extra-- > 0 && url.endsWith(")")) url = url.slice(0, -1);
+    return HOSTED_URL_RE.test(url) ? url : null;
+  }
+  return null;
 }
 
 /** Enrich a raw event: extract directives, images, links, attachments, and tags from description. */
@@ -192,11 +215,18 @@ export function enrichEvent(event, config) {
   const directiveWebsite = tagTokens.find(
     (t) => t.metadata.key === "website" && isHttpString(t.metadata.value),
   );
+  // An event enriched earlier (an older core.js, a cached fetchUrl payload)
+  // arrives with the directive stripped and its tag already in place.
+  const existingWebsiteTag = existingTags.find(
+    (t) => t.key === "website" && isHttpString(t.value),
+  );
   const website = isHttpString(event.website)
     ? event.website
-    : directiveWebsite
-      ? directiveWebsite.metadata.value
-      : firstPlainUrl(description);
+    : existingWebsiteTag
+      ? existingWebsiteTag.value
+      : directiveWebsite
+        ? directiveWebsite.metadata.value
+        : firstPlainUrl(description);
 
   const { _imageAttachments, ...rest } = event;
   return {

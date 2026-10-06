@@ -67,6 +67,7 @@ const INPUTS = {
   "one long whitespace run": (n) => `a${" ".repeat(n - 2)}b`,
   "<br> then a long whitespace run": (n) => `x<br>${" ".repeat(n - 6)}y`,
   "URL path of slashes": (n) => `https://x.com${"/".repeat(n - 14)}a`,
+  "URL of dots then a letter": (n) => `https://a${".".repeat(n - 10)}x`,
   "Eventbrite URL of digits": (n) =>
     `https://eventbrite.com/e/${"1".repeat(n - 26)}a`,
   "distinct PDF URLs": (n) => sequenceTo((i) => `https://a.co/${i}.pdf `, n),

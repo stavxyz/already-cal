@@ -375,6 +375,104 @@ describe("enrichEvent website", () => {
     assert.strictEqual(enrich("Just words.").website, null);
   });
 
+  it("skips a URL that is an img src with no image extension", () => {
+    const e = enrich(
+      '<img src="https://cdn.example/track?id=1"> https://real.example.com/page',
+    );
+    assert.strictEqual(e.website, "https://real.example.com/page");
+    const e2 = enrich("<img src='https://cdn.example/track?id=1'>");
+    assert.strictEqual(e2.website, null);
+  });
+
+  it("trims a trailing quote or asterisks left by markup", () => {
+    assert.strictEqual(
+      enrich("<a href='https://x.example.com/'>go</a>").website,
+      "https://x.example.com/",
+    );
+    assert.strictEqual(
+      enrich("**https://x.example.com/page**").website,
+      "https://x.example.com/page",
+    );
+  });
+
+  for (const ch of [",", ";", ":", "!", "?"]) {
+    it(`trims a trailing ${ch}`, () => {
+      assert.strictEqual(
+        enrich(`Go to https://x.example.com/p${ch}`).website,
+        "https://x.example.com/p",
+      );
+    });
+  }
+
+  it("strips every unbalanced trailing parenthesis", () => {
+    assert.strictEqual(
+      enrich("https://example.com/a_(b))").website,
+      "https://example.com/a_(b)",
+    );
+    assert.strictEqual(
+      enrich("((https://example.com/fest))").website,
+      "https://example.com/fest",
+    );
+  });
+
+  it("is null when the URL has no host", () => {
+    assert.strictEqual(enrich("see https://.").website, null);
+  });
+
+  it("honours a website tag already on the event", () => {
+    const e = enrich("Text https://plain.example.com/", {
+      tags: [{ key: "website", value: "https://pre.example" }],
+    });
+    assert.strictEqual(e.website, "https://pre.example");
+  });
+
+  it("ignores a website directive whose value is not a URL", () => {
+    const e = enrich(
+      "#already:website:example.com\nhttps://plain.example.com/x",
+    );
+    assert.strictEqual(e.website, "https://plain.example.com/x");
+  });
+
+  it("uses the first of two website directives", () => {
+    const e = enrich(
+      "#already:website:https://one.example.com/\n#already:website:https://two.example.com/",
+    );
+    assert.strictEqual(e.website, "https://one.example.com/");
+  });
+
+  it("survives loadData with pre-loaded events", async () => {
+    const { loadData } = await import("../src/data.js");
+    const data = await loadData({
+      data: {
+        events: [
+          createTestEvent({
+            description: "#already:website:https://pre.example.com/",
+          }),
+        ],
+      },
+    });
+    assert.strictEqual(data.events[0].website, "https://pre.example.com/");
+  });
+
+  it("survives loadData with raw Google items", async () => {
+    const { loadData } = await import("../src/data.js");
+    const data = await loadData({
+      data: {
+        items: [
+          {
+            id: "g1",
+            summary: "Fest",
+            description:
+              "Plain https://plain.example.com/\n#already:website:https://dir.example.com/",
+            start: { dateTime: "2099-04-04T16:00:00-05:00" },
+            end: { dateTime: "2099-04-04T19:00:00-05:00" },
+          },
+        ],
+      },
+    });
+    assert.strictEqual(data.events[0].website, "https://dir.example.com/");
+  });
+
   it("keeps the website tag in tags as a link tag", () => {
     const e = enrich("#already:website:https://example.com/fest");
     const tag = e.tags.find((t) => t.key === "website");

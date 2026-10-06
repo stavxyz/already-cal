@@ -79,7 +79,7 @@ Theme properties are applied as CSS custom properties on the `.already` element.
 | `border` | `--already-border` | `'rgba(0, 0, 0, 0.06)'` | Base border color; the two below fall back to it |
 | `borderControl` | `--already-border-control` | inherits `border` | Chrome: view tabs, nav bars, buttons, dropdowns, card tags |
 | `borderGrid` | `--already-border-grid` | inherits `border` | Internal lines: weekday header, week columns, event and card separators |
-| `error` | `--already-error` | `'#c0392b'` (fallback) | Error card accent |
+| `error` | `--already-error` | `'#c0392b'` (fallback) | Accent of the card shown when a layout fails to render |
 | `fontFamily` | `--already-font-family` | `'system-ui, sans-serif'` | Font stack |
 | `fontWeightNormal` | `--already-font-weight-normal` | `'400'` | Normal font weight |
 | `fontWeightBold` | `--already-font-weight-bold` | `'700'` | Bold font weight |
@@ -109,7 +109,7 @@ You can also override these directly in CSS:
 | `rsvpAllEvents` | `boolean` | `false` | Every event takes RSVPs. When `false`, only events flagged `#already:rsvp` do |
 | `onRsvp` | `function \| null` | `null` | `async (event, { name, email, partySize, website }) => ({ partySize })`. The RSVP button appears only when this is set |
 
-`Already.rsvpViaFetch(url)` returns an `onRsvp` function that posts `{ eventId, name, email, partySize, website }` as JSON to `url` and resolves with the response body:
+`Already.rsvpViaFetch(url)` returns an `onRsvp` function that posts `{ eventId, name, email, partySize, website }` as JSON to `url`, resolves with the response body, and rejects with an error carrying `code` and `status` on a network failure, a non-2xx response or a non-object body:
 
 ```js
 Already.init({
@@ -166,7 +166,7 @@ Resolve a custom `onRsvp` with `{ partySize }` to confirm, or reject to show a f
 | `subscribeOutlook` | `'Outlook'` | Subscribe menu item |
 | `subscribeCopy` | `'Copy iCal link'` | Subscribe menu item that copies the iCal link |
 | `share` | `'Share'` | Share buttons |
-| `copied` | `'📋 Copied!'` | Share button after the link is copied |
+| `copied` | `'📋 Copied!'` | Share buttons and the Copy iCal link item after the link is copied |
 
 ## Responsive Options
 

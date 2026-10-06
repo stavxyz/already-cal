@@ -494,6 +494,10 @@ describe("RSVP rejection messages", () => {
     ["rsvp_unavailable", "Closed"],
     ["event_not_found", "Closed"],
     ["http_500", "Failed"],
+    // Object prototype keys: an object-literal lookup would print a function.
+    ["constructor", "Failed"],
+    ["toString", "Failed"],
+    ["__proto__", "Failed"],
   ]) {
     it(`${code} shows ${expected}`, async () => {
       assert.strictEqual(await rejectWith(coded(code)), expected);
@@ -503,6 +507,16 @@ describe("RSVP rejection messages", () => {
   it("a rejection without a code shows the generic message", async () => {
     assert.strictEqual(await rejectWith(new Error("boom")), "Failed");
   });
+
+  for (const [label, value] of [
+    ["null", null],
+    ["undefined", undefined],
+    ["a bare code string", "event_started"],
+  ]) {
+    it(`a rejection with ${label} shows the generic message`, async () => {
+      assert.strictEqual(await rejectWith(value), "Failed");
+    });
+  }
 
   it("uses the default closed text when i18n omits rsvpClosed", async () => {
     const { rsvpClosed: _omit, ...rest } = messages;

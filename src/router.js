@@ -82,8 +82,11 @@ export function setDayView(dateStr, config) {
  * reads. A part with no id of its own (or an empty one) links to its
  * parent, where it is shown. An entry with neither has no route, so this
  * returns null and the caller renders nothing activatable in place of a
- * link to nowhere. The id is written as it is, without encoding, because
- * parseHash reads it as it is.
+ * link to nowhere. The id goes into the fragment as it is; the URL parser
+ * percent-encodes the few characters a fragment cannot carry (a space, a
+ * quote, angle brackets, non-ASCII), exactly as assigning location.hash
+ * did before, and parseHash reads the hash as the browser holds it, so a
+ * link and a click land on the same route.
  */
 export function eventHref(entry) {
   const id = entry?.id || entry?.parentId;

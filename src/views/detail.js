@@ -161,7 +161,8 @@ export function renderDetailView(
     const mark = createElement("span", "already-detail-title-mark", {
       "aria-hidden": "true",
     });
-    mark.textContent = "↗";
+    // The word joiner keeps the arrow from wrapping onto a line of its own.
+    mark.textContent = "\u2060\u2197";
     link.appendChild(mark);
     titleEl.appendChild(link);
   } else {

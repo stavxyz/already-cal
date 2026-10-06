@@ -78,6 +78,8 @@ describe("renderDetailView", () => {
     const mark = link.querySelector(".already-detail-title-mark");
     assert.ok(mark);
     assert.strictEqual(mark.getAttribute("aria-hidden"), "true");
+    assert.ok(mark.textContent.endsWith("\u2197"));
+    assert.strictEqual(mark.textContent.charAt(0), "\u2060");
   });
 
   it("renders a plain title when the event has no website", () => {

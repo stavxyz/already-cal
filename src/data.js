@@ -65,11 +65,9 @@ function isHttpString(value) {
   return typeof value === "string" && value.startsWith("http");
 }
 
-// The lookbehind anchors the run's start; an unanchored `[...]+$` retries
-// every position in a long run of punctuation and is quadratic.
-const TRAILING_PUNCTUATION_RE = /(?<![.,;:!?'*])[.,;:!?'*]+$/;
-const IMG_SRC_PREFIX_RE = /src=["']$/i;
-const HOSTED_URL_RE = /^https?:\/\/[^/\s]/i;
+const TRAILING_PUNCTUATION = ".,;:!?'*";
+const IMG_SRC_PREFIX_RE = /\bsrc\s*=\s*["']?$/i;
+const HOSTED_URL_RE = /^https?:\/\/[^/\s?#:]/i;
 
 function countChar(text, ch) {
   let n = 0;
@@ -78,20 +76,35 @@ function countChar(text, ch) {
 }
 
 /**
- * First plain URL in the text, minus trailing punctuation that belongs to the
- * prose. A URL that is an <img> src is page furniture, not the event's page.
+ * Drops trailing prose punctuation and unbalanced `)`, each of which can
+ * expose the other, in one backward pass. Moving an end index instead of
+ * re-slicing or re-matching keeps a long run of either character linear.
+ */
+function trimProse(url) {
+  let unbalanced = countChar(url, ")") - countChar(url, "(");
+  let end = url.length;
+  while (end > 0) {
+    const ch = url[end - 1];
+    if (TRAILING_PUNCTUATION.includes(ch)) end--;
+    else if (ch === ")" && unbalanced > 0) {
+      end--;
+      unbalanced--;
+    } else break;
+  }
+  return url.slice(0, end);
+}
+
+/**
+ * First plain URL in the text. A URL that is an <img> src is page furniture,
+ * not the event's page. Only the first candidate is considered on purpose: a
+ * description whose first link is junk is one the owner should fix with the
+ * `website` directive, not one we guess a better link for.
  */
 function firstPlainUrl(text) {
   for (const match of text.matchAll(URL_PATTERN)) {
-    if (
-      IMG_SRC_PREFIX_RE.test(
-        text.slice(Math.max(0, match.index - 5), match.index),
-      )
-    )
-      continue;
-    let url = match[0].replace(TRAILING_PUNCTUATION_RE, "");
-    let extra = countChar(url, ")") - countChar(url, "(");
-    while (extra-- > 0 && url.endsWith(")")) url = url.slice(0, -1);
+    const before = text.slice(Math.max(0, match.index - 16), match.index);
+    if (IMG_SRC_PREFIX_RE.test(before)) continue;
+    const url = trimProse(match[0]);
     return HOSTED_URL_RE.test(url) ? url : null;
   }
   return null;

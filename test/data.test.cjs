@@ -415,6 +415,35 @@ describe("enrichEvent website", () => {
     );
   });
 
+  it("trims punctuation exposed by a stripped parenthesis", () => {
+    assert.strictEqual(
+      enrich("(see https://a.com/x.)").website,
+      "https://a.com/x",
+    );
+  });
+
+  it("skips img src URLs in any spelling of the attribute", () => {
+    for (const src of ['SRC="', 'src = "', "src=", "src = '"]) {
+      const e = enrich(
+        `<img ${src}https://cdn.example/t?id=1"> https://real.example.com/p`,
+      );
+      assert.strictEqual(e.website, "https://real.example.com/p", src);
+    }
+  });
+
+  it("rejects URLs whose host is empty", () => {
+    for (const bad of ["https://?x", "https://:80", "https://#x"]) {
+      assert.strictEqual(enrich(`see ${bad}`).website, null, bad);
+    }
+  });
+
+  it("considers only the first candidate URL", () => {
+    assert.strictEqual(
+      enrich("see https://. and https://real.example.com").website,
+      null,
+    );
+  });
+
   it("is null when the URL has no host", () => {
     assert.strictEqual(enrich("see https://.").website, null);
   });

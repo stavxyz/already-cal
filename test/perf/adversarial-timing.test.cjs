@@ -68,6 +68,9 @@ const INPUTS = {
   "<br> then a long whitespace run": (n) => `x<br>${" ".repeat(n - 6)}y`,
   "URL path of slashes": (n) => `https://x.com${"/".repeat(n - 14)}a`,
   "URL of dots then a letter": (n) => `https://a${".".repeat(n - 10)}x`,
+  "URL of dots and commas then a letter": (n) =>
+    `https://a${".,".repeat((n - 10) / 2)}x`,
+  "URL of closing parentheses": (n) => `https://a.com/${")".repeat(n - 14)}`,
   "Eventbrite URL of digits": (n) =>
     `https://eventbrite.com/e/${"1".repeat(n - 26)}a`,
   "distinct PDF URLs": (n) => sequenceTo((i) => `https://a.co/${i}.pdf `, n),

@@ -112,7 +112,7 @@ export function renderWeekView(
       // listener, which posts the cross-origin engagement signal. The column
       // handler below bails on block clicks by target instead.
       bindEventClick(block, event, "week", config);
-      bindEventPopover(block, event, popoverRoot, config, "week");
+      bindEventPopover(block, event, popoverRoot, config, "week", timezone);
       col.appendChild(block);
     }
 

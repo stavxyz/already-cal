@@ -76,8 +76,19 @@ export function closeEventPopover(root) {
  * and stays inside the embed's stacking context. `.already` sets
  * `position: relative` so that root is also the containing block these
  * coordinates are measured against.
+ *
+ * `timezone` is the calendar's zone. The card's time is labelled against it
+ * when the event carries no zone of its own, as on the grid card. Without it
+ * the label falls back to UTC.
  */
-export function openEventPopover(anchorEl, event, root, config, viewName) {
+export function openEventPopover(
+  anchorEl,
+  event,
+  root,
+  config,
+  viewName,
+  timezone,
+) {
   closeEventPopover();
   config = config || {};
   const theme = config._theme || THEME_DEFAULTS;
@@ -89,7 +100,7 @@ export function openEventPopover(anchorEl, event, root, config, viewName) {
     orientation: theme.orientation,
     imagePosition: theme.imagePosition,
     index: 0,
-    timezone: config.timezone,
+    timezone,
     locale: config.locale,
     config,
   });
@@ -197,7 +208,14 @@ function scheduleClose() {
  * and navigates straight to the detail view, collapsing the two-step into one.
  * A second tap on the same anchor is allowed through to do exactly that.
  */
-export function bindEventPopover(anchorEl, event, root, config, viewName) {
+export function bindEventPopover(
+  anchorEl,
+  event,
+  root,
+  config,
+  viewName,
+  timezone,
+) {
   anchorEl.addEventListener("pointerdown", (e) => {
     if (e.pointerType !== "touch") {
       lastPointerWasTouch = false;
@@ -207,14 +225,14 @@ export function bindEventPopover(anchorEl, event, root, config, viewName) {
     clearTimers();
     if (active?.anchorEl === anchorEl) return;
     if (e.cancelable) e.preventDefault();
-    openEventPopover(anchorEl, event, root, config, viewName);
+    openEventPopover(anchorEl, event, root, config, viewName, timezone);
   });
 
   anchorEl.addEventListener("mouseenter", () => {
     if (lastPointerWasTouch) return;
     clearTimers();
     openTimer = setTimeout(() => {
-      openEventPopover(anchorEl, event, root, config, viewName);
+      openEventPopover(anchorEl, event, root, config, viewName, timezone);
     }, OPEN_DELAY_MS);
   });
 

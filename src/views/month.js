@@ -169,7 +169,7 @@ export function renderMonthView(
       // listener, which posts the cross-origin engagement signal. The cell
       // handler below bails on chip clicks by target instead.
       bindEventClick(chip, event, "month", config);
-      bindEventPopover(chip, event, popoverRoot, config, "month");
+      bindEventPopover(chip, event, popoverRoot, config, "month", timezone);
       cell.appendChild(chip);
     }
 

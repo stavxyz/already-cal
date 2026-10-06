@@ -4448,7 +4448,7 @@ ${text}</tr>
     detach();
     el.remove();
   }
-  function openEventPopover(anchorEl, event, root, config, viewName) {
+  function openEventPopover(anchorEl, event, root, config, viewName, timezone) {
     closeEventPopover();
     config = config || {};
     const theme = config._theme || THEME_DEFAULTS;
@@ -4458,7 +4458,7 @@ ${text}</tr>
       orientation: theme.orientation,
       imagePosition: theme.imagePosition,
       index: 0,
-      timezone: config.timezone,
+      timezone,
       locale: config.locale,
       config
     });
@@ -4526,7 +4526,7 @@ ${text}</tr>
     clearTimers();
     closeTimer = setTimeout(() => closeEventPopover(), CLOSE_GRACE_MS);
   }
-  function bindEventPopover(anchorEl, event, root, config, viewName) {
+  function bindEventPopover(anchorEl, event, root, config, viewName, timezone) {
     anchorEl.addEventListener("pointerdown", (e) => {
       if (e.pointerType !== "touch") {
         lastPointerWasTouch = false;
@@ -4536,13 +4536,13 @@ ${text}</tr>
       clearTimers();
       if (active?.anchorEl === anchorEl) return;
       if (e.cancelable) e.preventDefault();
-      openEventPopover(anchorEl, event, root, config, viewName);
+      openEventPopover(anchorEl, event, root, config, viewName, timezone);
     });
     anchorEl.addEventListener("mouseenter", () => {
       if (lastPointerWasTouch) return;
       clearTimers();
       openTimer = setTimeout(() => {
-        openEventPopover(anchorEl, event, root, config, viewName);
+        openEventPopover(anchorEl, event, root, config, viewName, timezone);
       }, OPEN_DELAY_MS);
     });
     anchorEl.addEventListener("mouseleave", () => {
@@ -6047,7 +6047,7 @@ ${text}</tr>
         );
         chip.textContent = event.title;
         bindEventClick(chip, event, "month", config);
-        bindEventPopover(chip, event, popoverRoot, config, "month");
+        bindEventPopover(chip, event, popoverRoot, config, "month", timezone);
         cell.appendChild(chip);
       }
       if (dayEvents.length > maxEventsPerDay) {
@@ -6146,7 +6146,7 @@ ${text}</tr>
         );
         block2.textContent = event.title;
         bindEventClick(block2, event, "week", config);
-        bindEventPopover(block2, event, popoverRoot, config, "week");
+        bindEventPopover(block2, event, popoverRoot, config, "week", timezone);
         col.appendChild(block2);
       }
       col.addEventListener("click", (e) => {

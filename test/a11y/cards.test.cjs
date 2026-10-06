@@ -55,6 +55,7 @@ const RULES = [
   "aria-allowed-attr",
   "aria-roles",
   "aria-valid-attr-value",
+  "duplicate-id-active",
 ];
 
 // `present` is a selector the view must have rendered. axe finds nothing

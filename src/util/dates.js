@@ -287,10 +287,12 @@ export function getMonthName(year, month, locale) {
 }
 
 /** Extract year, month (0-indexed), and day from an ISO string in a given timezone. */
-export function getDatePartsInTz(isoString, timezone, locale) {
-  locale = locale || "en-US";
+export function getDatePartsInTz(isoString, timezone) {
   const d = new Date(isoString);
-  const fmt = new Intl.DateTimeFormat(locale, {
+  // A fixed locale, on purpose. The parts are parsed back into numbers, and
+  // a display locale may write digits in another script or count years in
+  // another calendar, which would parse to NaN or to the wrong year.
+  const fmt = new Intl.DateTimeFormat("en-US", {
     timeZone: zoneFor(isoString, timezone),
     year: "numeric",
     month: "numeric",
@@ -321,10 +323,42 @@ export function getDatePartsInTz(isoString, timezone, locale) {
  * here does not change that.
  *
  * @param {string} isoString event start ("2026-07-15T20:00:00Z" or "2026-07-15")
- * @param {string} [locale="en-US"]
  */
-export function getEventDateParts(isoString, locale) {
-  return getDatePartsInTz(isoString, viewerTimeZone(), locale);
+export function getEventDateParts(isoString) {
+  return getDatePartsInTz(isoString, viewerTimeZone());
+}
+
+/**
+ * The one encoding of a day: `YYYY-MM-DD`, the form toDateKey gives a local
+ * Date and the router puts in `#day/2026-04-04`. `zone` must be one Intl
+ * accepts. A missing or malformed value has the empty key, which matches no
+ * day. It must not throw: one bad `start` would otherwise blank a whole view.
+ */
+function dayKey(isoString, zone) {
+  if (!isoString || Number.isNaN(new Date(isoString).getTime())) return "";
+  const p = getDatePartsInTz(isoString, zone);
+  const two = (n) => String(n).padStart(2, "0");
+  return `${p.year}-${two(p.month + 1)}-${two(p.day)}`;
+}
+
+/**
+ * The calendar day a value falls on in a named zone. An all-day (date-only)
+ * value is absolute and keys to its own date in every zone. A zone Intl
+ * cannot use gives way to `fallback`, and then to UTC (see resolveTimeZone).
+ */
+export function dayKeyInZone(isoString, timeZone, fallback) {
+  return dayKey(isoString, resolveTimeZone(timeZone, fallback));
+}
+
+/**
+ * Day key for EVENT PLACEMENT: the viewer's calendar day of an event value
+ * (all-day values stay absolute). Every display question of the form "is
+ * this the same day" compares these keys, with each other or with toDateKey
+ * of a local Date, so a month cell, a week column, the day view, a date
+ * group, and a composite's folded parts cannot disagree.
+ */
+export function eventDayKey(isoString) {
+  return dayKey(isoString, viewerTimeZone());
 }
 
 export const MONTH_NAMES_SHORT = [

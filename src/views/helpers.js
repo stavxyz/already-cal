@@ -1,6 +1,6 @@
 import { setEventDetail } from "../router.js";
 import { RSVP_OPEN_CLASS } from "../ui/rsvp-state.js";
-import { getEventDateParts, isPast } from "../util/dates.js";
+import { eventDayKey, isPast } from "../util/dates.js";
 
 /** Create a DOM element with optional class name and attributes. */
 export function createElement(tag, className, attrs) {
@@ -83,13 +83,10 @@ export function sortFeatured(events) {
 /**
  * Sort events so featured events come first within each date group. Groups are
  * keyed by the VIEWER's day (all-day values stay absolute) to match the
- * viewer-local time shown on each card — see getEventDateParts.
+ * viewer-local time shown on each card — see eventDayKey.
  */
-export function sortFeaturedByDate(events, locale) {
-  const dateKey = (e) => {
-    const p = getEventDateParts(e.start, locale);
-    return `${p.year}-${p.month}-${p.day}`;
-  };
+export function sortFeaturedByDate(events) {
+  const dateKey = (e) => eventDayKey(e.start);
   // Group by date preserving original order, sort featured first within each group
   const groups = new Map();
   for (const e of events) {

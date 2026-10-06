@@ -42,7 +42,7 @@ export function render(event, options) {
   row.appendChild(info);
 
   // Date badge (inline, right side)
-  const badge = buildBadge(event.start, locale);
+  const badge = buildBadge(event.start);
   badge.classList.add("already-card__badge--inline");
   row.appendChild(badge);
 

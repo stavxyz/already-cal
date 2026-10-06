@@ -1,9 +1,9 @@
 import { setDayView } from "../router.js";
 import { bindEventPopover, closeEventPopover } from "../ui/event-popover.js";
 import {
+  eventDayKey,
   getDayNames,
   getDaysInMonth,
-  getEventDateParts,
   getFirstDayOfMonth,
   getMonthName,
   isToday,
@@ -55,11 +55,10 @@ export function renderMonthView(
 
   // Group events by date in the VIEWER's timezone (all-day values stay
   // absolute) so a chip sits in the same day cell as the viewer-local time the
-  // event renders elsewhere — see getEventDateParts.
+  // event renders elsewhere — see eventDayKey.
   const eventsByDate = {};
   for (const event of events) {
-    const parts = getEventDateParts(event.start, locale);
-    const key = `${parts.year}-${parts.month}-${parts.day}`;
+    const key = eventDayKey(event.start);
     if (!eventsByDate[key]) eventsByDate[key] = [];
     eventsByDate[key].push(event);
   }
@@ -134,7 +133,7 @@ export function renderMonthView(
 
   for (let d = 1; d <= daysInMonth; d++) {
     const cellDate = new Date(year, month, d);
-    const key = `${year}-${month}-${d}`;
+    const key = toDateKey(cellDate);
     const dayEvents = sortFeatured(eventsByDate[key] || []);
     const today = isToday(cellDate);
 

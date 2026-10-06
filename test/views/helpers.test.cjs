@@ -289,7 +289,7 @@ describe("sortFeaturedByDate", () => {
       { id: "c", start: "2026-04-15T14:00:00Z", featured: true },
       { id: "d", start: "2026-04-16T10:00:00Z", featured: false },
     ];
-    const result = sortFeaturedByDate(events, "en-US");
+    const result = sortFeaturedByDate(events);
     assert.strictEqual(result[0].id, "a");
     assert.strictEqual(result[1].id, "c");
     assert.strictEqual(result[2].id, "b");
@@ -301,7 +301,7 @@ describe("sortFeaturedByDate", () => {
       { id: "a", start: "2026-04-14T10:00:00Z", featured: false },
       { id: "b", start: "2026-04-15T10:00:00Z", featured: true },
     ];
-    const result = sortFeaturedByDate(events, "en-US");
+    const result = sortFeaturedByDate(events);
     assert.strictEqual(result[0].id, "a");
     assert.strictEqual(result[1].id, "b");
   });
@@ -313,7 +313,7 @@ describe("sortFeaturedByDate", () => {
       { id: "c", start: "2026-04-15T10:00:00Z", featured: false },
       { id: "d", start: "2026-04-14T16:00:00Z", featured: false },
     ];
-    const result = sortFeaturedByDate(events, "en-US");
+    const result = sortFeaturedByDate(events);
     // Apr 14 events grouped together: featured first, then non-featured in original order
     assert.strictEqual(result[0].id, "b");
     assert.strictEqual(result[1].id, "a");

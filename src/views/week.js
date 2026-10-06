@@ -1,8 +1,8 @@
 import { setDayView } from "../router.js";
 import { bindEventPopover, closeEventPopover } from "../ui/event-popover.js";
 import {
+  eventDayKey,
   formatDateShort,
-  getEventDateParts,
   getWeekDates,
   isToday,
   toDateKey,
@@ -96,16 +96,9 @@ export function renderWeekView(
 
     // Columns are keyed by the VIEWER's day (all-day values stay absolute) so
     // an event's column matches the viewer-local time on its card — see
-    // getEventDateParts.
+    // eventDayKey.
     const dayEvents = sortFeatured(
-      events.filter((e) => {
-        const parts = getEventDateParts(e.start, locale);
-        return (
-          parts.year === date.getFullYear() &&
-          parts.month === date.getMonth() &&
-          parts.day === date.getDate()
-        );
-      }),
+      events.filter((e) => eventDayKey(e.start) === toDateKey(date)),
     );
 
     for (const event of dayEvents) {

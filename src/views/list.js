@@ -19,7 +19,7 @@ export function renderListView(container, events, timezone, config) {
   const orientation = theme.layout === "compact" ? "vertical" : "horizontal";
 
   events = filterHidden(events);
-  events = sortFeaturedByDate(events, locale);
+  events = sortFeaturedByDate(events);
 
   const list = createElement("div", "already-list");
   const renderCard = getLayout(theme.layout);

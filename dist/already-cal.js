@@ -3729,10 +3729,9 @@ ${text}</tr>
       year: "numeric"
     }).format(new Date(year, month));
   }
-  function getDatePartsInTz(isoString, timezone, locale) {
-    locale = locale || "en-US";
+  function getDatePartsInTz(isoString, timezone) {
     const d = new Date(isoString);
-    const fmt = new Intl.DateTimeFormat(locale, {
+    const fmt = new Intl.DateTimeFormat("en-US", {
       timeZone: zoneFor(isoString, timezone),
       year: "numeric",
       month: "numeric",
@@ -3746,8 +3745,17 @@ ${text}</tr>
     }
     return parts;
   }
-  function getEventDateParts(isoString, locale) {
-    return getDatePartsInTz(isoString, viewerTimeZone(), locale);
+  function getEventDateParts(isoString) {
+    return getDatePartsInTz(isoString, viewerTimeZone());
+  }
+  function dayKey(isoString, zone) {
+    if (!isoString || Number.isNaN(new Date(isoString).getTime())) return "";
+    const p = getDatePartsInTz(isoString, zone);
+    const two = (n) => String(n).padStart(2, "0");
+    return `${p.year}-${two(p.month + 1)}-${two(p.day)}`;
+  }
+  function eventDayKey(isoString) {
+    return dayKey(isoString, viewerTimeZone());
   }
   var MONTH_NAMES_SHORT = [
     "JAN",
@@ -3880,11 +3888,8 @@ ${text}</tr>
       (a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0)
     );
   }
-  function sortFeaturedByDate(events, locale) {
-    const dateKey = (e) => {
-      const p = getEventDateParts(e.start, locale);
-      return `${p.year}-${p.month}-${p.day}`;
-    };
+  function sortFeaturedByDate(events) {
+    const dateKey = (e) => eventDayKey(e.start);
     const groups = /* @__PURE__ */ new Map();
     for (const e of events) {
       const key = dateKey(e);
@@ -3927,8 +3932,8 @@ ${text}</tr>
     wrapper.appendChild(img);
     return wrapper;
   }
-  function buildBadge(isoString, locale) {
-    const dateParts = getEventDateParts(isoString, locale);
+  function buildBadge(isoString) {
+    const dateParts = getEventDateParts(isoString);
     const badge = createElement("div", "already-card__badge");
     const day = createElement("div", "already-card__badge-day");
     day.textContent = dateParts.day;
@@ -3976,13 +3981,13 @@ ${text}</tr>
     const imageEl = createCardImage(event);
     if (imageEl) {
       imageEl.classList.add("already-card__image--badged");
-      const badge = buildBadge(event.start, locale);
+      const badge = buildBadge(event.start);
       imageEl.appendChild(badge);
       card.appendChild(imageEl);
     }
     const body = createElement("div", "already-card__body");
     if (!event.image) {
-      const badge = buildBadge(event.start, locale);
+      const badge = buildBadge(event.start);
       badge.classList.add("already-card__badge--inline");
       body.appendChild(badge);
     }
@@ -4082,7 +4087,7 @@ ${text}</tr>
       info.appendChild(loc);
     }
     row.appendChild(info);
-    const badge = buildBadge(event.start, locale);
+    const badge = buildBadge(event.start);
     badge.classList.add("already-card__badge--inline");
     row.appendChild(badge);
     body.appendChild(row);
@@ -5284,7 +5289,7 @@ ${text}</tr>
     nav.appendChild(nextBtn);
     day.appendChild(nav);
     let dayEvents = events.filter(
-      (e) => isSameDay(parseEventDate(e.start), currentDate)
+      (e) => eventDayKey(e.start) === toDateKey(currentDate)
     );
     dayEvents = sortFeatured(dayEvents);
     if (dayEvents.length === 0) {
@@ -5820,7 +5825,7 @@ ${text}</tr>
     const locale = config.locale;
     const theme = config._theme || THEME_DEFAULTS;
     events = filterHidden(events);
-    events = sortFeaturedByDate(events, locale);
+    events = sortFeaturedByDate(events);
     const grid = createElement("div", "already-grid");
     const renderCard = getLayout(theme.layout);
     for (let i = 0; i < events.length; i++) {
@@ -5848,7 +5853,7 @@ ${text}</tr>
     const theme = config._theme || THEME_DEFAULTS;
     const orientation = theme.layout === "compact" ? "vertical" : "horizontal";
     events = filterHidden(events);
-    events = sortFeaturedByDate(events, locale);
+    events = sortFeaturedByDate(events);
     const list2 = createElement("div", "already-list");
     const renderCard = getLayout(theme.layout);
     for (let i = 0; i < events.length; i++) {
@@ -5889,8 +5894,7 @@ ${text}</tr>
     const dayNames = getDayNames(locale, weekStartDay);
     const eventsByDate = {};
     for (const event of events) {
-      const parts = getEventDateParts(event.start, locale);
-      const key = `${parts.year}-${parts.month}-${parts.day}`;
+      const key = eventDayKey(event.start);
       if (!eventsByDate[key]) eventsByDate[key] = [];
       eventsByDate[key].push(event);
     }
@@ -5948,7 +5952,7 @@ ${text}</tr>
     }
     for (let d = 1; d <= daysInMonth; d++) {
       const cellDate = new Date(year, month, d);
-      const key = `${year}-${month}-${d}`;
+      const key = toDateKey(cellDate);
       const dayEvents = sortFeatured(eventsByDate[key] || []);
       const today = isToday(cellDate);
       const cell = createElement("div", null, { role: "gridcell" });
@@ -6058,10 +6062,7 @@ ${text}</tr>
       header.appendChild(dayNumEl);
       col.appendChild(header);
       const dayEvents = sortFeatured(
-        events.filter((e) => {
-          const parts = getEventDateParts(e.start, locale);
-          return parts.year === date.getFullYear() && parts.month === date.getMonth() && parts.day === date.getDate();
-        })
+        events.filter((e) => eventDayKey(e.start) === toDateKey(date))
       );
       for (const event of dayEvents) {
         const block2 = createElement(

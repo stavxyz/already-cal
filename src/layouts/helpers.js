@@ -73,8 +73,8 @@ export function createCardImage(event) {
  * with the viewer-local time printed in the card's meta line — see
  * getEventDateParts.
  */
-export function buildBadge(isoString, locale) {
-  const dateParts = getEventDateParts(isoString, locale);
+export function buildBadge(isoString) {
+  const dateParts = getEventDateParts(isoString);
   const badge = createElement("div", "already-card__badge");
   const day = createElement("div", "already-card__badge-day");
   day.textContent = dateParts.day;

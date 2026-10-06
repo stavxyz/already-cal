@@ -1,8 +1,10 @@
 import {
+  eventDayKey,
   formatDate,
   formatEventWhen,
   isSameDay,
   parseEventDate,
+  toDateKey,
 } from "../util/dates.js";
 import {
   applyEventClasses,
@@ -61,8 +63,8 @@ export function renderDayView(
 
   day.appendChild(nav);
 
-  let dayEvents = events.filter((e) =>
-    isSameDay(parseEventDate(e.start), currentDate),
+  let dayEvents = events.filter(
+    (e) => eventDayKey(e.start) === toDateKey(currentDate),
   );
   dayEvents = sortFeatured(dayEvents);
 

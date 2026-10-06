@@ -57,8 +57,10 @@ export function renderDetailParts(
     }
 
     const item = createElement("div", "already-detail-part");
-    item.dataset.eventId = part.id;
-    if (part.id === focusPartId) {
+    // A part with no id cannot be linked to, so it carries no id hook and is
+    // never the target, even when no part was named.
+    if (part.id != null) item.dataset.eventId = part.id;
+    if (focusPartId != null && part.id === focusPartId) {
       item.classList.add("already-detail-part--target");
     }
 

@@ -283,6 +283,33 @@ describe("detail view of a composite", () => {
     assert.strictEqual(targets[0].dataset.eventId, "part-2");
   });
 
+  it("marks no part without an id when the link named the parent", () => {
+    const c = render(night([act({ id: undefined })]));
+    assert.strictEqual(c.querySelector(".already-detail-part--target"), null);
+    assert.strictEqual(items(c)[0].hasAttribute("data-event-id"), false);
+  });
+
+  it("marks no part when the link names an unknown part", () => {
+    const c = render(night([act({ id: undefined })]), config(), {
+      focusPartId: "nope",
+    });
+    assert.strictEqual(c.querySelector(".already-detail-part--target"), null);
+  });
+
+  it("marks no part when called without options", () => {
+    const c = document.createElement("div");
+    document.body.appendChild(c);
+    renderDetailView(
+      c,
+      night([act(), act({ title: "Second" })]),
+      "UTC",
+      () => {},
+      config(),
+    );
+    assert.strictEqual(items(c).length, 2);
+    assert.strictEqual(c.querySelector(".already-detail-part--target"), null);
+  });
+
   it("does not treat a host's own parts field as a composite", () => {
     const c = render(
       createTestEvent({ id: "host", parts: [{ id: "tier", title: "VIP" }] }),

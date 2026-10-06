@@ -5876,8 +5876,8 @@ ${text}</tr>
         lastDay = day;
       }
       const item = createElement("div", "already-detail-part");
-      item.dataset.eventId = part.id;
-      if (part.id === focusPartId) {
+      if (part.id != null) item.dataset.eventId = part.id;
+      if (focusPartId != null && part.id === focusPartId) {
         item.classList.add("already-detail-part--target");
       }
       const showTitle = !isSecondListing(part, event);

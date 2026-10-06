@@ -64,7 +64,7 @@ Focus: the card has no outline of its own any more. `.already-event-link:focus-v
 
 ### D3. Activation goes through the link
 
-`bindEventClick(el, event, viewName, config, { canNavigate } = {})` replaces the current `{ stopPropagation = false }` option, which no caller passes. It binds to the link (`el`) and no longer sets `role` or `tabindex` on anything. Its click handler does what today's does, except for navigation: it calls `config.onEventClick(event, viewName)`, and when that returns `false`, or when `canNavigate` is given and returns `false`, it calls `preventDefault()`. Otherwise it lets the link navigate: the hash changes, the router opens the detail view as it does for any deep link, and middle-click or a modifier key opens a new tab with the host page at that hash. The keydown handler is removed: Enter activates a link natively, and Space does not, which is the standard behaviour of links.
+`bindEventClick(el, event, viewName, config, { canNavigate } = {})` replaces the current `{ stopPropagation = false }` option, which no caller passes. It binds to the link (`el`), is a no-op when `el` is `null`, and no longer sets `role` or `tabindex` on anything. Its click handler acts only on a plain activation (the primary button with no modifier key, which is also what Enter on a focused link produces); a middle click or a modifier click is left to the browser, which opens a new tab with the host page at the link's hash. On a plain activation it calls `config.onEventClick(event, viewName)`, and when that returns `false`, or when `canNavigate` is given and returns `false`, it calls `preventDefault()` and stops. Otherwise it calls `preventDefault()` and sets `window.location.hash` from the link's own `href`, which is the navigation the browser would have performed, done deterministically: jsdom, which the test suite runs in, does not navigate on anchor activation (probe: an anchor with `href="#event/abc"` clicked under `test/setup-dom.cjs` leaves `location.hash` empty), and the suite's view and widget tests navigate by clicking. The route is still written once: the handler copies the `href` that `eventHref` produced and builds nothing. The keydown handler is removed: Enter activates a link natively, and Space does not, which is the standard behaviour of links.
 
 `canNavigate` is how the one caller that knows about RSVP keeps that knowledge: `decorateEventCard` passes `() => !card.classList.contains(RSVP_OPEN_CLASS)`, so a card with an open form stays put. Rows, chips, and blocks pass nothing. `bindEventClick` itself no longer imports `RSVP_OPEN_CLASS` or knows the card's class name.
 
@@ -103,7 +103,7 @@ Verified before planning, by a probe outside the repository (axe-core 4.14.0 wit
 - Clicking the empty area of a card footer no longer opens the card.
 - Activating the Badge layout's Details link opens the Google event page only.
 - The RSVP button's accessible name includes the event title.
-- `onEventClick` fires as before, for a click or Enter on the link, and `false` still prevents navigation.
+- `onEventClick` fires as before, for a plain click or Enter on the link, and `false` still prevents navigation. It does not fire for a middle click or a modifier click, which the browser handles as "open in a new tab".
 
 ### D9. Docs
 

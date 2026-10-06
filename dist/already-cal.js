@@ -5345,7 +5345,7 @@ ${text}</tr>
     form.appendChild(wrap);
     return input;
   }
-  function createRsvpForm(event, config, onClose) {
+  function createRsvpForm(event, config, { onClose, onDone }) {
     const i18n = config.i18n || {};
     const invalidText = i18n.rsvpInvalid || "Check your name, email and party size.";
     const startedText = i18n.rsvpStarted || "This event has already started.";
@@ -5442,6 +5442,7 @@ ${text}</tr>
         const done = createElement("p", "already-rsvp__done", { role: "status" });
         done.textContent = (i18n.rsvpDone || "You're on the list: {count} going").replaceAll("{count}", String(count));
         form.replaceWith(done);
+        onDone();
       } catch (err) {
         pending = false;
         submit.disabled = false;
@@ -5460,13 +5461,19 @@ ${text}</tr>
       { type: "button" }
     );
     button.textContent = i18n.rsvp || "RSVP";
+    const setOpen = (open) => container.closest(".already-card")?.classList.toggle("already-card--rsvp-open", open);
     button.addEventListener("click", (e) => {
       e.stopPropagation();
-      const { form, focus } = createRsvpForm(event, config, () => {
-        form.replaceWith(button);
-        button.focus();
+      const { form, focus } = createRsvpForm(event, config, {
+        onClose: () => {
+          form.replaceWith(button);
+          setOpen(false);
+          button.focus();
+        },
+        onDone: () => setOpen(false)
       });
       button.replaceWith(form);
+      setOpen(true);
       focus();
     });
     button.addEventListener("keydown", (e) => e.stopPropagation());
@@ -5474,6 +5481,7 @@ ${text}</tr>
     return button;
   }
   function decorateRsvp(card, event, config) {
+    if (card.classList.contains("already-card--error")) return;
     if (!offersRsvp(event, config)) return;
     const actionFooter = [...card.querySelectorAll(".already-card__footer")].find(
       (footer) => footer.querySelector(".already-card__action")

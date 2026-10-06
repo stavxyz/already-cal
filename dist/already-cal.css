@@ -1293,6 +1293,10 @@ button.already-card__action {
   padding: 0.4rem 0.5rem;
   max-width: 100%;
 }
+.already-rsvp__field,
+.already-rsvp__error {
+  max-width: 24rem;
+}
 .already-rsvp__hp {
   position: absolute;
   left: -9999px;
@@ -1345,6 +1349,11 @@ button.already-card__action {
   border-top: none;
   padding-top: 0;
 }
+@media (max-width: 768px) {
+  .already-card--horizontal.already-card--rsvp-open .already-card__image {
+    display: none;
+  }
+}
 .already-detail-rsvp {
   margin-top: 1rem;
 }
@@ -1364,9 +1373,6 @@ button.already-card__action {
 .already-detail-rsvp .already-rsvp__open:focus-visible {
   outline: 2px solid var(--already-text);
   outline-offset: 2px;
-}
-.already-detail-rsvp .already-rsvp {
-  max-width: 24rem;
 }
 
 /* src/layouts/base.css */

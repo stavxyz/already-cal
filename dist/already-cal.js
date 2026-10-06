@@ -6371,6 +6371,7 @@ ${text}</tr>
       const folded = [];
       for (const part of partsOf(event)) {
         const partDay = dayKeyOf(part.start);
+        if (partDay === "") continue;
         if (partDay !== day) elsewhere.push({ part, day: partDay });
         else if (!isSecondListing(part, event)) folded.push(part);
       }

@@ -127,6 +127,17 @@ describe("placeByDay", () => {
     assert.strictEqual(sameDayParts.has("parent"), false);
   });
 
+  it("files a part with no usable start under no day", () => {
+    const parent = twoDay([{ start: "bad", end: "bad" }]);
+    const { byDay, sameDayParts } = place([parent]);
+    assert.strictEqual(byDay.has(""), false);
+    for (const items of byDay.values()) {
+      assert.ok(!ids(items).includes("part-1"));
+    }
+    assert.deepStrictEqual(ids(byDay.get(FRI)), ["parent"]);
+    assert.strictEqual(sameDayParts.size, 0);
+  });
+
   it("puts a part after the earlier events of its day", () => {
     const afternoon = at("afternoon", "2099-06-20T18:00:00Z");
     assert.deepStrictEqual(

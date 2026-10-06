@@ -49,6 +49,8 @@ export function placeByDay(events, dayKeyOf) {
     const folded = [];
     for (const part of partsOf(event)) {
       const partDay = dayKeyOf(part.start);
+      // A part with no usable start is on no day, like an event with none.
+      if (partDay === "") continue;
       if (partDay !== day) elsewhere.push({ part, day: partDay });
       // A second listing adds nothing under its own parent's row.
       else if (!isSecondListing(part, event)) folded.push(part);

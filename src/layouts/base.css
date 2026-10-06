@@ -148,6 +148,28 @@
   color: var(--already-text-secondary);
 }
 
+/* Composite parts: the lines a parent's card lists for its parts */
+.already-card__parts {
+  margin-top: 0.375rem;
+  font-size: var(--already-font-size-sm);
+  color: var(--already-text-secondary);
+}
+
+.already-card__part {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.already-card__part-time {
+  font-weight: 600;
+  color: var(--already-text);
+}
+
+.already-card__parts-more {
+  opacity: 0.8;
+}
+
 /* Date badge (badge overlay, compact inline) */
 .already-card__badge {
   text-align: center;

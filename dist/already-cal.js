@@ -3847,6 +3847,13 @@ ${text}</tr>
     if (!Array.isArray(parts) || parts.length === 0) return NO_PARTS;
     return parts.every((p) => p && p.parentId === event.id) ? parts : NO_PARTS;
   }
+  function titleKey(title) {
+    return String(title ?? "").normalize("NFKD").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+  }
+  function isSecondListing(part, parent) {
+    const key = titleKey(part?.title);
+    return key !== "" && key === titleKey(parent?.title);
+  }
   function ownImages(event) {
     if (Array.isArray(event.images) && event.images.length > 0) {
       return event.images;
@@ -3941,14 +3948,6 @@ ${text}</tr>
     if (isPast(event.end || event.start)) cls += ` ${baseClass}--past`;
     if (event.featured) cls += ` ${baseClass}--featured`;
     el.className = cls;
-  }
-  function decorateCard(card, event, viewName, config) {
-    if (card.classList.contains("already-card--error")) return;
-    if (isPast(event.end || event.start))
-      card.classList.add("already-card--past");
-    if (event.featured) card.classList.add("already-card--featured");
-    card.dataset.eventId = event.id;
-    bindEventClick(card, event, viewName, config);
   }
   function filterHidden(events) {
     return events.filter((e) => !e.hidden);
@@ -4421,6 +4420,270 @@ ${text}</tr>
     return { ...theme, overrideKeys };
   }
 
+  // src/ui/card-parts.js
+  var MAX_PARTS = 3;
+  function partWhen(part, parent, { timezone, locale, i18n }) {
+    const otherDay = eventDayKey(part.start) !== eventDayKey(parent.start);
+    if (part.allDay && !otherDay) return i18n.allDay || "All Day";
+    return formatEventWhen(
+      { ...part, end: void 0 },
+      {
+        sourceZoneFallback: timezone,
+        locale,
+        dateStyle: otherDay ? "short" : "time"
+      }
+    );
+  }
+  function decorateParts(card, event, config, { timezone } = {}) {
+    const slot = card.querySelector(".already-card__parts");
+    const parts = partsOf(event);
+    if (parts.length === 0) {
+      slot?.remove();
+      return;
+    }
+    card.classList.add("already-card--composite");
+    const listed = parts.filter((part) => !isSecondListing(part, event));
+    if (listed.length === 0) {
+      slot?.remove();
+      return;
+    }
+    const i18n = config?.i18n || {};
+    const format = { timezone, locale: config?.locale, i18n };
+    const block2 = slot || createElement("div", "already-card__parts");
+    block2.textContent = "";
+    for (const part of listed.slice(0, MAX_PARTS)) {
+      const line = createElement("div", "already-card__part");
+      const when = createElement("span", "already-card__part-time");
+      when.textContent = partWhen(part, event, format);
+      const title = createElement("span", "already-card__part-title");
+      title.textContent = part.title;
+      line.append(when, " ", title);
+      block2.appendChild(line);
+    }
+    if (listed.length > MAX_PARTS) {
+      const more = createElement("div", "already-card__parts-more");
+      more.textContent = (i18n.moreParts || "+{count} more").replace(
+        "{count}",
+        listed.length - MAX_PARTS
+      );
+      block2.appendChild(more);
+    }
+    if (!slot) {
+      (card.querySelector(".already-card__body") || card).appendChild(block2);
+    }
+  }
+
+  // src/ui/rsvp-form.js
+  var NAME_MAX = 80;
+  var EMAIL_MAX = 254;
+  var PARTY_MAX = 20;
+  var CRAMPED_BODY_PX = 320;
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  function offersRsvp(event, config, now = /* @__PURE__ */ new Date()) {
+    if (!config || typeof config.onRsvp !== "function") return false;
+    if (!(event.rsvp || config.rsvpAllEvents)) return false;
+    if (!event.start) return false;
+    const start = parseEventDate(event.start);
+    if (Number.isNaN(start.getTime())) return false;
+    return start > now;
+  }
+  function field(form, name, labelText, attrs) {
+    const wrap = createElement("label", "already-rsvp__field");
+    const text = createElement("span", "already-rsvp__label");
+    text.textContent = labelText;
+    const input = createElement("input", "already-rsvp__input", {
+      name,
+      ...attrs
+    });
+    wrap.appendChild(text);
+    wrap.appendChild(input);
+    form.appendChild(wrap);
+    return input;
+  }
+  function createRsvpForm(event, config, { onClose, onDone }) {
+    const i18n = config.i18n || {};
+    const invalidText = i18n.rsvpInvalid || "Check your name, email and party size.";
+    const startedText = i18n.rsvpStarted || "This event has already started.";
+    const failedText = i18n.rsvpFailed || "Could not save your RSVP. Try again.";
+    const closedText = i18n.rsvpClosed || "This event is not taking RSVPs.";
+    const rejectionText = /* @__PURE__ */ new Map([
+      ["event_started", startedText],
+      ["invalid_field", invalidText],
+      ["rsvp_unavailable", closedText],
+      ["event_not_found", closedText]
+    ]);
+    const form = createElement("form", "already-rsvp", { novalidate: "" });
+    const name = field(form, "name", i18n.rsvpName || "Name", {
+      type: "text",
+      maxlength: String(NAME_MAX),
+      autocomplete: "name",
+      required: ""
+    });
+    const email = field(form, "email", i18n.rsvpEmail || "Email", {
+      type: "email",
+      maxlength: String(EMAIL_MAX),
+      autocomplete: "email",
+      required: ""
+    });
+    const size = field(
+      form,
+      "partySize",
+      i18n.rsvpPartySize || "How many are coming?",
+      {
+        type: "number",
+        min: "1",
+        max: String(PARTY_MAX),
+        value: "1",
+        inputmode: "numeric"
+      }
+    );
+    const website = createElement("input", "already-rsvp__hp", {
+      type: "text",
+      name: "website",
+      tabindex: "-1",
+      autocomplete: "off",
+      "aria-hidden": "true"
+    });
+    form.appendChild(website);
+    const actions = createElement("div", "already-rsvp__actions");
+    const submit = createElement("button", "already-rsvp__submit", {
+      type: "submit"
+    });
+    submit.textContent = i18n.rsvpSubmit || "RSVP";
+    const cancel = createElement("button", "already-rsvp__cancel", {
+      type: "button"
+    });
+    cancel.textContent = i18n.rsvpCancel || "Cancel";
+    actions.appendChild(submit);
+    actions.appendChild(cancel);
+    form.appendChild(actions);
+    const error = createElement("p", "already-rsvp__error", { role: "alert" });
+    error.hidden = true;
+    form.appendChild(error);
+    function showError(text) {
+      error.textContent = text;
+      error.hidden = false;
+    }
+    let pending = false;
+    form.addEventListener("click", (e) => e.stopPropagation());
+    form.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key !== "Escape") return;
+      if (pending) return;
+      onClose();
+    });
+    cancel.addEventListener("click", onClose);
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fields = {
+        name: name.value.trim(),
+        email: email.value.trim().toLowerCase(),
+        partySize: Number.parseInt(size.value, 10),
+        website: website.value
+      };
+      if (!fields.name || fields.name.length > NAME_MAX)
+        return showError(invalidText);
+      if (!EMAIL_RE.test(fields.email) || fields.email.length > EMAIL_MAX)
+        return showError(invalidText);
+      if (!Number.isInteger(fields.partySize) || fields.partySize < 1 || fields.partySize > PARTY_MAX)
+        return showError(invalidText);
+      error.hidden = true;
+      submit.disabled = true;
+      cancel.disabled = true;
+      pending = true;
+      try {
+        const result = await config.onRsvp(event, fields);
+        const count = result && Number.isInteger(result.partySize) ? result.partySize : fields.partySize;
+        const done = createElement("p", "already-rsvp__done", {
+          role: "status",
+          tabindex: "-1"
+        });
+        done.textContent = (i18n.rsvpDone || "You're on the list: {count} going").replaceAll("{count}", String(count));
+        form.replaceWith(done);
+        onDone();
+        done.focus();
+      } catch (err) {
+        pending = false;
+        submit.disabled = false;
+        cancel.disabled = false;
+        showError(rejectionText.get(err?.code) || failedText);
+      }
+    });
+    return { form, focus: () => name.focus() };
+  }
+  function appendRsvpControl(container, event, config) {
+    if (!offersRsvp(event, config)) return null;
+    const i18n = config.i18n || {};
+    const button = createElement(
+      "button",
+      "already-card__action already-rsvp__open",
+      { type: "button" }
+    );
+    button.textContent = i18n.rsvp || "RSVP";
+    const setOpen = (open) => {
+      const card = container.closest(".already-card");
+      if (!card) return;
+      const body = card.querySelector(".already-card__body");
+      const cramped = open && !!body && body.clientWidth < CRAMPED_BODY_PX;
+      card.classList.toggle(RSVP_OPEN_CLASS, open);
+      card.classList.toggle("already-card--rsvp-cramped", cramped);
+    };
+    button.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const { form, focus } = createRsvpForm(event, config, {
+        onClose: () => {
+          form.replaceWith(button);
+          setOpen(false);
+          button.focus();
+        },
+        onDone: () => setOpen(false)
+      });
+      button.replaceWith(form);
+      setOpen(true);
+      focus();
+    });
+    button.addEventListener("keydown", (e) => e.stopPropagation());
+    container.appendChild(button);
+    return button;
+  }
+  function decorateRsvp(card, event, config) {
+    if (card.classList.contains("already-card--error")) return;
+    if (card.querySelector(
+      ".already-rsvp__open, .already-rsvp, .already-rsvp__done"
+    ))
+      return;
+    if (!offersRsvp(event, config)) return;
+    const actionFooter = [...card.querySelectorAll(".already-card__footer")].find(
+      (footer) => footer.querySelector(".already-card__action")
+    );
+    if (actionFooter) {
+      actionFooter.classList.add("already-card__footer--rsvp");
+      appendRsvpControl(actionFooter, event, config);
+      return;
+    }
+    const row = createElement(
+      "div",
+      "already-card__footer already-card__footer--rsvp already-card__rsvp"
+    );
+    appendRsvpControl(row, event, config);
+    (card.querySelector(".already-card__body") || card).appendChild(row);
+  }
+
+  // src/views/card-decoration.js
+  function applyCardState(card, event, viewName, config) {
+    if (isPast(event.end || event.start))
+      card.classList.add("already-card--past");
+    if (event.featured) card.classList.add("already-card--featured");
+    card.dataset.eventId = event.id;
+    bindEventClick(card, event, viewName, config);
+  }
+  function decorateEventCard(card, event, viewName, config, { timezone, rsvp = true } = {}) {
+    if (card.classList.contains("already-card--error")) return;
+    applyCardState(card, event, viewName, config);
+    decorateParts(card, event, config, { timezone });
+    if (rsvp) decorateRsvp(card, event, config);
+  }
+
   // src/ui/event-popover.js
   var OPEN_DELAY_MS = 150;
   var CLOSE_GRACE_MS = 120;
@@ -4463,7 +4726,10 @@ ${text}</tr>
       config
     });
     card.classList.add("already-event-popover__card");
-    decorateCard(card, event, viewName || "month", config);
+    decorateEventCard(card, event, viewName || "month", config, {
+      timezone,
+      rsvp: false
+    });
     card.addEventListener("click", () => closeEventPopover());
     el.appendChild(card);
     root.appendChild(el);
@@ -5400,202 +5666,6 @@ ${text}</tr>
     container.appendChild(day);
   }
 
-  // src/ui/rsvp-form.js
-  var NAME_MAX = 80;
-  var EMAIL_MAX = 254;
-  var PARTY_MAX = 20;
-  var CRAMPED_BODY_PX = 320;
-  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  function offersRsvp(event, config, now = /* @__PURE__ */ new Date()) {
-    if (!config || typeof config.onRsvp !== "function") return false;
-    if (!(event.rsvp || config.rsvpAllEvents)) return false;
-    if (!event.start) return false;
-    const start = parseEventDate(event.start);
-    if (Number.isNaN(start.getTime())) return false;
-    return start > now;
-  }
-  function field(form, name, labelText, attrs) {
-    const wrap = createElement("label", "already-rsvp__field");
-    const text = createElement("span", "already-rsvp__label");
-    text.textContent = labelText;
-    const input = createElement("input", "already-rsvp__input", {
-      name,
-      ...attrs
-    });
-    wrap.appendChild(text);
-    wrap.appendChild(input);
-    form.appendChild(wrap);
-    return input;
-  }
-  function createRsvpForm(event, config, { onClose, onDone }) {
-    const i18n = config.i18n || {};
-    const invalidText = i18n.rsvpInvalid || "Check your name, email and party size.";
-    const startedText = i18n.rsvpStarted || "This event has already started.";
-    const failedText = i18n.rsvpFailed || "Could not save your RSVP. Try again.";
-    const closedText = i18n.rsvpClosed || "This event is not taking RSVPs.";
-    const rejectionText = /* @__PURE__ */ new Map([
-      ["event_started", startedText],
-      ["invalid_field", invalidText],
-      ["rsvp_unavailable", closedText],
-      ["event_not_found", closedText]
-    ]);
-    const form = createElement("form", "already-rsvp", { novalidate: "" });
-    const name = field(form, "name", i18n.rsvpName || "Name", {
-      type: "text",
-      maxlength: String(NAME_MAX),
-      autocomplete: "name",
-      required: ""
-    });
-    const email = field(form, "email", i18n.rsvpEmail || "Email", {
-      type: "email",
-      maxlength: String(EMAIL_MAX),
-      autocomplete: "email",
-      required: ""
-    });
-    const size = field(
-      form,
-      "partySize",
-      i18n.rsvpPartySize || "How many are coming?",
-      {
-        type: "number",
-        min: "1",
-        max: String(PARTY_MAX),
-        value: "1",
-        inputmode: "numeric"
-      }
-    );
-    const website = createElement("input", "already-rsvp__hp", {
-      type: "text",
-      name: "website",
-      tabindex: "-1",
-      autocomplete: "off",
-      "aria-hidden": "true"
-    });
-    form.appendChild(website);
-    const actions = createElement("div", "already-rsvp__actions");
-    const submit = createElement("button", "already-rsvp__submit", {
-      type: "submit"
-    });
-    submit.textContent = i18n.rsvpSubmit || "RSVP";
-    const cancel = createElement("button", "already-rsvp__cancel", {
-      type: "button"
-    });
-    cancel.textContent = i18n.rsvpCancel || "Cancel";
-    actions.appendChild(submit);
-    actions.appendChild(cancel);
-    form.appendChild(actions);
-    const error = createElement("p", "already-rsvp__error", { role: "alert" });
-    error.hidden = true;
-    form.appendChild(error);
-    function showError(text) {
-      error.textContent = text;
-      error.hidden = false;
-    }
-    let pending = false;
-    form.addEventListener("click", (e) => e.stopPropagation());
-    form.addEventListener("keydown", (e) => {
-      e.stopPropagation();
-      if (e.key !== "Escape") return;
-      if (pending) return;
-      onClose();
-    });
-    cancel.addEventListener("click", onClose);
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const fields = {
-        name: name.value.trim(),
-        email: email.value.trim().toLowerCase(),
-        partySize: Number.parseInt(size.value, 10),
-        website: website.value
-      };
-      if (!fields.name || fields.name.length > NAME_MAX)
-        return showError(invalidText);
-      if (!EMAIL_RE.test(fields.email) || fields.email.length > EMAIL_MAX)
-        return showError(invalidText);
-      if (!Number.isInteger(fields.partySize) || fields.partySize < 1 || fields.partySize > PARTY_MAX)
-        return showError(invalidText);
-      error.hidden = true;
-      submit.disabled = true;
-      cancel.disabled = true;
-      pending = true;
-      try {
-        const result = await config.onRsvp(event, fields);
-        const count = result && Number.isInteger(result.partySize) ? result.partySize : fields.partySize;
-        const done = createElement("p", "already-rsvp__done", {
-          role: "status",
-          tabindex: "-1"
-        });
-        done.textContent = (i18n.rsvpDone || "You're on the list: {count} going").replaceAll("{count}", String(count));
-        form.replaceWith(done);
-        onDone();
-        done.focus();
-      } catch (err) {
-        pending = false;
-        submit.disabled = false;
-        cancel.disabled = false;
-        showError(rejectionText.get(err?.code) || failedText);
-      }
-    });
-    return { form, focus: () => name.focus() };
-  }
-  function appendRsvpControl(container, event, config) {
-    if (!offersRsvp(event, config)) return null;
-    const i18n = config.i18n || {};
-    const button = createElement(
-      "button",
-      "already-card__action already-rsvp__open",
-      { type: "button" }
-    );
-    button.textContent = i18n.rsvp || "RSVP";
-    const setOpen = (open) => {
-      const card = container.closest(".already-card");
-      if (!card) return;
-      const body = card.querySelector(".already-card__body");
-      const cramped = open && !!body && body.clientWidth < CRAMPED_BODY_PX;
-      card.classList.toggle(RSVP_OPEN_CLASS, open);
-      card.classList.toggle("already-card--rsvp-cramped", cramped);
-    };
-    button.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const { form, focus } = createRsvpForm(event, config, {
-        onClose: () => {
-          form.replaceWith(button);
-          setOpen(false);
-          button.focus();
-        },
-        onDone: () => setOpen(false)
-      });
-      button.replaceWith(form);
-      setOpen(true);
-      focus();
-    });
-    button.addEventListener("keydown", (e) => e.stopPropagation());
-    container.appendChild(button);
-    return button;
-  }
-  function decorateRsvp(card, event, config) {
-    if (card.classList.contains("already-card--error")) return;
-    if (card.querySelector(
-      ".already-rsvp__open, .already-rsvp, .already-rsvp__done"
-    ))
-      return;
-    if (!offersRsvp(event, config)) return;
-    const actionFooter = [...card.querySelectorAll(".already-card__footer")].find(
-      (footer) => footer.querySelector(".already-card__action")
-    );
-    if (actionFooter) {
-      actionFooter.classList.add("already-card__footer--rsvp");
-      appendRsvpControl(actionFooter, event, config);
-      return;
-    }
-    const row = createElement(
-      "div",
-      "already-card__footer already-card__footer--rsvp already-card__rsvp"
-    );
-    appendRsvpControl(row, event, config);
-    (card.querySelector(".already-card__body") || card).appendChild(row);
-  }
-
   // src/views/lightbox.js
   var currentClose = null;
   function openLightbox(images, startIndex, altText) {
@@ -5913,8 +5983,7 @@ ${text}</tr>
         locale,
         config
       });
-      decorateCard(card, event, "grid", config);
-      decorateRsvp(card, event, config);
+      decorateEventCard(card, event, "grid", config, { timezone });
       grid.appendChild(card);
     }
     container.innerHTML = "";
@@ -5941,8 +6010,7 @@ ${text}</tr>
         locale,
         config
       });
-      decorateCard(card, event, "list", config);
-      decorateRsvp(card, event, config);
+      decorateEventCard(card, event, "list", config, { timezone });
       list2.appendChild(card);
     }
     container.innerHTML = "";

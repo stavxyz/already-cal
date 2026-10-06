@@ -1,13 +1,8 @@
 import { safeRenderCard } from "../layouts/helpers.js";
 import { getLayout } from "../layouts/registry.js";
 import { THEME_DEFAULTS } from "../theme.js";
-import { decorateRsvp } from "../ui/rsvp-form.js";
-import {
-  createElement,
-  decorateCard,
-  filterHidden,
-  sortFeaturedByDate,
-} from "./helpers.js";
+import { decorateEventCard } from "./card-decoration.js";
+import { createElement, filterHidden, sortFeaturedByDate } from "./helpers.js";
 
 /** Render the card grid view with thumbnails. */
 export function renderGridView(container, events, timezone, config) {
@@ -31,8 +26,7 @@ export function renderGridView(container, events, timezone, config) {
       locale,
       config,
     });
-    decorateCard(card, event, "grid", config);
-    decorateRsvp(card, event, config);
+    decorateEventCard(card, event, "grid", config, { timezone });
     grid.appendChild(card);
   }
 

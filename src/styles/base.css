@@ -1660,13 +1660,11 @@ button.already-card__action {
   border-top: none;
   padding-top: 0;
 }
-/* A phone-width horizontal card leaves its text column too narrow for the
-   form, so the image steps aside while the form is open. 768px matches the
-   mobile breakpoint above and the mobileBreakpoint default. */
-@media (max-width: 768px) {
-  .already-card--horizontal.already-card--rsvp-open .already-card__image {
-    display: none;
-  }
+/* Set by the RSVP control when the card's text column is too narrow for
+   the form (CRAMPED_BODY_PX in rsvp-form.js); the image steps aside so the
+   form gets the card's width, whatever the window size. */
+.already-card--horizontal.already-card--rsvp-cramped .already-card__image {
+  display: none;
 }
 .already-detail-rsvp {
   margin-top: 1rem;

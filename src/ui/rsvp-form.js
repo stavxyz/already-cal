@@ -4,6 +4,9 @@ import { createElement } from "../views/helpers.js";
 const NAME_MAX = 80;
 const EMAIL_MAX = 254;
 const PARTY_MAX = 20;
+// Below this text-column width the form's fields are too narrow to use, so
+// a horizontal card hides its image while the form is open.
+const CRAMPED_BODY_PX = 320;
 // Same rule the server applies: one @ with a dot after it, no whitespace.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -190,12 +193,17 @@ export function appendRsvpControl(container, event, config) {
     { type: "button" },
   );
   button.textContent = i18n.rsvp || "RSVP";
-  // Looked up per call: decorateRsvp mounts into a row before attaching it
-  // to the card.
-  const setOpen = (open) =>
-    container
-      .closest(".already-card")
-      ?.classList.toggle("already-card--rsvp-open", open);
+  // The card is looked up per call: decorateRsvp mounts into a row before
+  // attaching it to the card. Width is measured on open because the host's
+  // column, not the window, decides how much room the card has.
+  const setOpen = (open) => {
+    const card = container.closest(".already-card");
+    if (!card) return;
+    const body = card.querySelector(".already-card__body");
+    const cramped = open && !!body && body.clientWidth < CRAMPED_BODY_PX;
+    card.classList.toggle("already-card--rsvp-open", open);
+    card.classList.toggle("already-card--rsvp-cramped", cramped);
+  };
   button.addEventListener("click", (e) => {
     e.stopPropagation();
     const { form, focus } = createRsvpForm(event, config, {

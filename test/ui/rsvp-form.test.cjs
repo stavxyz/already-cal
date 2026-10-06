@@ -593,3 +593,50 @@ describe("decorateRsvp on an error card", () => {
     assert.strictEqual(card.querySelector(".already-rsvp__open"), null);
   });
 });
+
+describe("cramped card while the form is open", () => {
+  const OPEN = "already-card--rsvp-open";
+  const CRAMPED = "already-card--rsvp-cramped";
+  function mount(bodyWidth, over = {}) {
+    const card = document.createElement("div");
+    card.className = "already-card already-card--horizontal";
+    const body = document.createElement("div");
+    body.className = "already-card__body";
+    Object.defineProperty(body, "clientWidth", { value: bodyWidth });
+    const row = document.createElement("div");
+    body.appendChild(row);
+    card.appendChild(body);
+    document.body.appendChild(card);
+    appendRsvpControl(row, flagged(), cfg(over)).click();
+    return { card, form: row.querySelector("form") };
+  }
+
+  it("a narrow body gets both classes on open", () => {
+    const { card } = mount(150);
+    assert.ok(card.classList.contains(OPEN));
+    assert.ok(card.classList.contains(CRAMPED));
+  });
+  it("a wide body gets only the open class", () => {
+    const { card } = mount(600);
+    assert.ok(card.classList.contains(OPEN));
+    assert.ok(!card.classList.contains(CRAMPED));
+  });
+  it("Cancel removes both", () => {
+    const { card, form } = mount(150);
+    form.querySelector(".already-rsvp__cancel").click();
+    assert.ok(!card.classList.contains(OPEN));
+    assert.ok(!card.classList.contains(CRAMPED));
+  });
+  it("a successful submit removes both", async () => {
+    const { card, form } = mount(150);
+    form.querySelector('input[name="name"]').value = "Larry";
+    form.querySelector('input[name="email"]').value = "larry@example.com";
+    form.dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    await flush();
+    assert.ok(card.querySelector(".already-rsvp__done"));
+    assert.ok(!card.classList.contains(OPEN));
+    assert.ok(!card.classList.contains(CRAMPED));
+  });
+});

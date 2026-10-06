@@ -640,3 +640,53 @@ describe("cramped card while the form is open", () => {
     assert.ok(!card.classList.contains(CRAMPED));
   });
 });
+
+describe("focus follows the form", () => {
+  function open() {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    appendRsvpControl(host, flagged(), cfg()).click();
+    return host;
+  }
+  it("moves into the name input on open", () => {
+    const host = open();
+    assert.strictEqual(
+      document.activeElement,
+      host.querySelector('input[name="name"]'),
+    );
+  });
+  it("returns to the RSVP button after Cancel", () => {
+    const host = open();
+    host.querySelector(".already-rsvp__cancel").click();
+    assert.strictEqual(
+      document.activeElement,
+      host.querySelector(".already-rsvp__open"),
+    );
+  });
+  it("returns to the RSVP button after Escape", () => {
+    const host = open();
+    host
+      .querySelector("form")
+      .dispatchEvent(
+        new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+      );
+    assert.strictEqual(
+      document.activeElement,
+      host.querySelector(".already-rsvp__open"),
+    );
+  });
+  it("lands on the confirmation after a successful submit", async () => {
+    const host = open();
+    const form = host.querySelector("form");
+    form.querySelector('input[name="name"]').value = "Larry";
+    form.querySelector('input[name="email"]').value = "larry@example.com";
+    form.dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    await flush();
+    const done = host.querySelector(".already-rsvp__done");
+    assert.strictEqual(done.getAttribute("role"), "status");
+    assert.strictEqual(done.getAttribute("tabindex"), "-1");
+    assert.strictEqual(document.activeElement, done);
+  });
+});

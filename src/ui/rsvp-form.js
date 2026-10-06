@@ -159,12 +159,18 @@ function createRsvpForm(event, config, { onClose, onDone }) {
         result && Number.isInteger(result.partySize)
           ? result.partySize
           : fields.partySize;
-      const done = createElement("p", "already-rsvp__done", { role: "status" });
+      // tabindex -1: focus lands on the confirmation instead of dropping to
+      // the page when the form it replaces leaves the DOM.
+      const done = createElement("p", "already-rsvp__done", {
+        role: "status",
+        tabindex: "-1",
+      });
       done.textContent = (
         i18n.rsvpDone || "You're on the list: {count} going"
       ).replaceAll("{count}", String(count));
       form.replaceWith(done);
       onDone();
+      done.focus();
     } catch (err) {
       pending = false;
       submit.disabled = false;

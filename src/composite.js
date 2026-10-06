@@ -189,12 +189,14 @@ export function groupParts(visible, { timeZone } = {}) {
 /**
  * A composed parent's parts, or an empty list. Only what composition built
  * counts: a host's data may carry its own field named `parts`, and that is
- * not a composite. An event with no id is never a composite: its parts could
- * not point at it.
+ * not a composite. Only a flagged parent with an id can have parts: an event
+ * missing either carries a host's own field.
  */
 export function partsOf(event) {
   const parts = event?.parts;
-  if (event?.id == null) return NO_PARTS;
+  // Composition builds parts only on a flagged parent with an id, so an
+  // event that lacks either carries a host's own field, not a composite.
+  if (!event?.composite || event.id == null) return NO_PARTS;
   if (!Array.isArray(parts) || parts.length === 0) return NO_PARTS;
   return parts.every((p) => p && p.parentId === event.id) ? parts : NO_PARTS;
 }

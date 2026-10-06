@@ -408,7 +408,7 @@ var Already = (() => {
   }
   function partsOf(event) {
     const parts = event?.parts;
-    if (event?.id == null) return NO_PARTS;
+    if (!event?.composite || event.id == null) return NO_PARTS;
     if (!Array.isArray(parts) || parts.length === 0) return NO_PARTS;
     return parts.every((p) => p && p.parentId === event.id) ? parts : NO_PARTS;
   }

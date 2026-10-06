@@ -200,4 +200,12 @@ describe("a host's own field named parts", () => {
     assert.deepStrictEqual(partsOf(createTestEvent({ parts: "two" })), []);
     assert.deepStrictEqual(partsOf(null), []);
   });
+
+  it("is not a composite when its items point at it but it carries no flag", () => {
+    const event = createTestEvent({
+      id: "x",
+      parts: [{ id: "y", parentId: "x", title: "Mine" }],
+    });
+    assert.deepStrictEqual(partsOf(event), []);
+  });
 });

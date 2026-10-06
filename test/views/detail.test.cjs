@@ -56,6 +56,38 @@ describe("renderDetailView", () => {
     );
   });
 
+  it("links the title to the event website", () => {
+    const container = document.createElement("div");
+    const event = createTestEvent({
+      title: "Austin City Limits",
+      website: "https://www.aclfestival.com/",
+    });
+    renderDetailView(container, event, "UTC", () => {}, {});
+    const heading = container.querySelector("h2");
+    assert.strictEqual(heading.className, "already-detail-title");
+    const link = heading.querySelector("a.already-detail-title-link");
+    assert.ok(link);
+    assert.strictEqual(
+      link.getAttribute("href"),
+      "https://www.aclfestival.com/",
+    );
+    assert.strictEqual(link.getAttribute("target"), "_blank");
+    assert.strictEqual(link.getAttribute("rel"), "noopener");
+    assert.strictEqual(link.firstChild.nodeType, 3);
+    assert.strictEqual(link.firstChild.textContent, "Austin City Limits");
+    const mark = link.querySelector(".already-detail-title-mark");
+    assert.ok(mark);
+    assert.strictEqual(mark.getAttribute("aria-hidden"), "true");
+  });
+
+  it("renders a plain title when the event has no website", () => {
+    const container = document.createElement("div");
+    renderDetailView(container, baseEvent, "UTC", () => {}, {});
+    const heading = container.querySelector(".already-detail-title");
+    assert.strictEqual(heading.querySelector("a"), null);
+    assert.strictEqual(heading.textContent, "Concert in the Park");
+  });
+
   it("renders date", () => {
     const container = document.createElement("div");
     renderDetailView(container, baseEvent, "UTC", () => {}, {});

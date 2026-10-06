@@ -150,7 +150,23 @@ export function renderDetailView(
   const content = createElement("div", "already-detail-content");
 
   const titleEl = createElement("h2", "already-detail-title");
-  titleEl.textContent = event.title;
+  if (event.website) {
+    const link = createElement("a", "already-detail-title-link", {
+      href: event.website,
+      target: "_blank",
+      rel: "noopener",
+    });
+    link.textContent = event.title;
+    // The mark is decorative; the link's accessible name stays the title.
+    const mark = createElement("span", "already-detail-title-mark", {
+      "aria-hidden": "true",
+    });
+    mark.textContent = "↗";
+    link.appendChild(mark);
+    titleEl.appendChild(link);
+  } else {
+    titleEl.textContent = event.title;
+  }
   content.appendChild(titleEl);
 
   const meta = createElement("div", "already-detail-meta");

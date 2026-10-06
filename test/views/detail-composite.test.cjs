@@ -51,6 +51,24 @@ const render = (event, cfg = config(), options) => {
 };
 const items = (c) => [...c.querySelectorAll(".already-detail-part")];
 
+describe("detail view title link of a composite", () => {
+  it("links the title to the parent's website", () => {
+    const c = render(
+      night([act({ website: "https://act.example.com/" })], {
+        website: "https://night.example.com/",
+      }),
+    );
+    const link = c.querySelector(".already-detail-title a");
+    assert.ok(link);
+    assert.strictEqual(link.getAttribute("href"), "https://night.example.com/");
+  });
+
+  it("does not link the title from a part's website alone", () => {
+    const c = render(night([act({ website: "https://act.example.com/" })]));
+    assert.strictEqual(c.querySelector(".already-detail-title a"), null);
+  });
+});
+
 describe("detail view of an ordinary event", () => {
   it("has no parts list", () => {
     const c = render(createTestEvent({ title: "Solo", description: "Text" }));

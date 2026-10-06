@@ -972,6 +972,27 @@
   color: var(--already-text);
 }
 
+.already-detail-title-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: from-font;
+  text-underline-offset: 0.15em;
+  transition: color 0.15s;
+}
+
+.already-detail-title-link:hover,
+.already-detail-title-link:focus-visible {
+  color: var(--already-primary);
+}
+
+.already-detail-title-mark {
+  display: inline-block;
+  font-size: 0.65em;
+  margin-left: 0.3em;
+  opacity: 0.7;
+  text-decoration: none;
+}
+
 .already-detail-meta {
   margin-bottom: 1.25rem;
   display: flex;

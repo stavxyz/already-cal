@@ -378,3 +378,48 @@ describe("semantic border tokens", () => {
     );
   });
 });
+
+describe("the --already-* namespace holds theme tokens only", () => {
+  // Any theme key becomes `--already-<kebab-key>` on the mount element
+  // (applyTheme), so every `--already-*` property the stylesheet declares or
+  // reads is one a host can set, and the README lists them. A property the
+  // stylesheet uses for its own mechanics is named `--_already-*` instead; a
+  // consumer that keeps an allowlist of tokens would otherwise have to learn
+  // each one. This census fails when a property joins the public namespace
+  // without joining the README's list.
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const css = fs.readFileSync(
+    path.join(__dirname, "../dist/already-cal.css"),
+    "utf8",
+  );
+  const readme = fs.readFileSync(path.join(__dirname, "../README.md"), "utf8");
+
+  const inStylesheet = new Set([
+    ...[...css.matchAll(/^\s*(--already-[a-z0-9-]+)\s*:/gm)].map((m) => m[1]),
+    ...[...css.matchAll(/var\(\s*(--already-[a-z0-9-]+)/g)].map((m) => m[1]),
+  ]);
+  const heading = "### CSS Custom Properties";
+  const start = readme.indexOf(heading);
+  const section = readme.slice(
+    start,
+    readme.indexOf("\n### ", start + heading.length),
+  );
+  const listed = new Set(
+    [...section.matchAll(/`([a-z][A-Za-z0-9]*)`/g)].map(
+      (m) =>
+        `--already-${m[1].replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`,
+    ),
+  );
+
+  it("finds the README's list and the stylesheet's properties", () => {
+    assert.notStrictEqual(start, -1, "no CSS Custom Properties section");
+    assert.ok(listed.has("--already-primary"));
+    assert.ok(inStylesheet.has("--already-primary"));
+  });
+
+  it("lists every --already-* property the stylesheet declares or reads", () => {
+    const unlisted = [...inStylesheet].filter((p) => !listed.has(p)).sort();
+    assert.deepStrictEqual(unlisted, []);
+  });
+});

@@ -660,8 +660,11 @@
   gap: 1rem;
   padding: 0.75rem 1rem;
   /* Rows sit flush in a bordered list, where an outside focus ring would be
-     clipped; the shared event-link ring reads this. */
-  --already-link-ring-offset: -2px;
+     clipped; the shared event-link ring reads this. The leading underscore
+     marks a property the stylesheet keeps for its own mechanics: every
+     `--already-*` property is a theme token a host may set (README, CSS
+     Custom Properties), and this is not one. */
+  --_already-link-ring-offset: -2px;
   border-bottom: 1px solid var(--already-border-grid);
   cursor: pointer;
   transition: background 0.15s;
@@ -1444,7 +1447,7 @@
 
   .already-month-chip {
     background: #333;
-    --already-chip-background: #333;
+    --_already-chip-background: #333;
     /* The link-state rule in the Event links section reads these two
        variables, so a plain `background` or `color` here would lose to it
        for a chip that is a link. */
@@ -1813,7 +1816,7 @@ button.already-card__action {
     :active
   ) {
   color: var(--already-primary-text);
-  background-color: var(--already-chip-background, var(--already-primary));
+  background-color: var(--_already-chip-background, var(--already-primary));
   text-decoration: none;
   background-image: none;
   border-bottom: 0;
@@ -1846,16 +1849,16 @@ button.already-card__action {
 }
 
 /* A host that needs the ring inset (a row flush in a bordered list) sets
-   --already-link-ring-offset in its own rules; this block names no host. */
+   --_already-link-ring-offset in its own rules; this block names no host. */
 .already-link-host:has(.already-event-link:focus-visible) {
   outline: 2px solid var(--already-primary);
-  outline-offset: var(--already-link-ring-offset, 2px);
+  outline-offset: var(--_already-link-ring-offset, 2px);
 }
 
 @supports not selector(:has(a)) {
   .already-event-link:focus-visible {
     outline: 2px solid var(--already-primary);
-    outline-offset: var(--already-link-ring-offset, 2px);
+    outline-offset: var(--_already-link-ring-offset, 2px);
   }
 }
 

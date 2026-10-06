@@ -314,6 +314,8 @@ Palettes set these properties, except `error`, which has a built-in fallback of 
 
 `primary`, `primaryText`, `background`, `surface`, `text`, `textSecondary`, `border`, `borderControl`, `borderGrid`, `error`, `fontFamily`, `fontWeightNormal`, `fontWeightBold`, `fontSizeSm`, `fontSizeBase`, `fontSizeLg`, `radius`, `radiusSm`, `shadow`, `shadowHover`, `highlight`, `spacing`
 
+That list is every `--already-*` custom property the stylesheet uses. A property whose name begins `--_already-` belongs to the stylesheet's own mechanics and is not a theme token: it can change or go in any release.
+
 ### Customizing Beyond Built-in Palettes
 
 The four built-in palettes cover common styles, but you can override any CSS custom property directly in the theme config. Any key beyond the fixed theme keys (`layout`, `palette`, `orientation`, `imagePosition`) is converted from camelCase to a CSS custom property (`--already-kebab-case`) and applied to the mount element:

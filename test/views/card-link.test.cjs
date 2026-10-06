@@ -350,6 +350,15 @@ describe("the stylesheet holds its own in a host page", () => {
     assert.ok(block.includes("--already-chip-background: #333;"));
   });
 
+  it("draws the fallback ring at the host's own offset", () => {
+    const start = flat.indexOf("@supports not selector(:has(a))");
+    assert.notStrictEqual(start, -1);
+    const block = flat.slice(start, flat.indexOf("} }", start));
+    assert.ok(
+      block.includes("outline-offset: var(--already-link-ring-offset, 2px);"),
+    );
+  });
+
   it("lifts a control without deciding how it is positioned", () => {
     // A custom layout's absolutely positioned control must stay where its
     // own rule puts it, whichever stylesheet the host loads last.

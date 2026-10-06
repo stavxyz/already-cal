@@ -1855,7 +1855,7 @@ button.already-card__action {
 @supports not selector(:has(a)) {
   .already-event-link:focus-visible {
     outline: 2px solid var(--already-primary);
-    outline-offset: 2px;
+    outline-offset: var(--already-link-ring-offset, 2px);
   }
 }
 

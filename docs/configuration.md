@@ -123,6 +123,8 @@ You can also override these directly in CSS:
 | `noEventsThisDay` | `'No events this day.'` | Day view empty state |
 | `back` | `'← Back'` | Detail view back button |
 | `moreEvents` | `'+{count} more'` | Month view overflow (`{count}` is replaced) |
+| `moreParts` | `'+{count} more'` | Composite card with more than three parts (`{count}` is replaced) |
+| `compositeParts` | `'Schedule'` | Accessible label of a composite's parts list in the detail view |
 | `subscribe` | `'Subscribe'` | Header subscribe button |
 | `clearFilter` | `'Clear'` | Tag filter clear button |
 | `loadMore` | `'Load more'` | Pagination button (grid/list) |
@@ -225,6 +227,7 @@ sanitization: {
 Called when an event is clicked in any view.
 
 - `event` — the [event object](event-schema.md)
+- For a [composite](event-schema.md#composed-events), `event` is the parent with its `parts`. For a part shown on its own, or for a link that names a part, it is the part with its `parentId`
 - `viewName` — `'month'`, `'week'`, `'day'`, `'grid'`, `'list'`, or `'detail'`
 - **Return `false`** to prevent navigation to the detail view
 - Return anything else (or nothing) to allow default navigation
@@ -456,6 +459,20 @@ Already.init({
 | `timezone` | `string` | Calendar/source-zone fallback (`calendar.timezone`), e.g. `"America/Chicago"`. Built-in layouts render viewer-local instead — see the note above. |
 | `locale` | `string` | Locale string (e.g. `"en-US"`) |
 | `config` | `object` | Full config object |
+
+### Composite parts
+
+The view adds a [composite's](directives.md#composite-events) parts to every card after the layout has rendered it, so a custom layout shows them with no change. To choose where they go, render an empty element with the class `already-card__parts`:
+
+```js
+const slot = document.createElement('div');
+slot.className = 'already-card__parts';
+card.appendChild(slot);
+```
+
+The view fills that element, and removes it when the event has no parts. Without one, the parts are appended to the element with the class `already-card__body`, or to the card itself when it has none.
+
+On a composed parent, `event.image` and `event.tags` are the parent's own. A layout that wants the composite's combined images or tags derives them from `event.parts`.
 
 ### Rules
 

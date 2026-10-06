@@ -141,6 +141,57 @@ These are flag directives — they have no value, just the keyword after `#alrea
 
 `#already:image-shuffle` is a third flag directive; see [Shuffle the card image](#shuffle-the-card-image).
 
+## Composite Events
+
+Some occasions are described by more than one calendar entry: a weekly dinner and the band that plays during it, or one festival listed by two organizers. Three flag directives let a view show such entries as one event. Like `featured` and `hidden`, each is a keyword with no value.
+
+### Composite
+
+```
+#already:composite
+```
+
+- Marks an entry as a **parent**. Every entry in the view that starts inside the parent's hours is shown as one of its **parts**
+- An entry starts inside the hours when its start is at or after the parent's start and before the parent's end. A parent with no end takes no parts
+- An all-day parent takes the entries whose date falls on its dates. An all-day entry joins an all-day parent only, never a timed one
+- The composite's place in a list, its featured state, and the moment it counts as past are the parent's. Its parts are shown with it for as long as it is shown
+- The parent keeps its card. The card lists up to three parts with their start times, then a "+N more" line
+- A part has no card of its own in the grid and list views. In the month, week, and day views a part is folded on the day its parent is shown, and appears on its own on any other day
+- The detail view shows the parent, then each part with its own time, description, links, attachments, and RSVP button. A link to a part opens the parent's detail at that part
+- A part whose title matches the parent's, ignoring case, punctuation, accents, and emoji, is treated as a second listing of the same occasion, and its title is not repeated
+- On a recurring event the flag applies to every occurrence
+- A parent never becomes a part. An entry inside two parents joins a parent from its own calendar before one from another calendar, and between two from the same side it joins the one with the shorter window
+- A hidden entry is never a parent and never a part
+- Sets `event.composite = true` on the event object
+
+Without this flag on some entry, nothing changes.
+
+### Part of
+
+```
+#already:part-of
+```
+
+- When a view combines several calendars, a parent takes entries from its own calendar only. Put this flag on an entry from another calendar to let a parent take it
+- It has no effect on an entry that no parent contains
+- Sets `event.partOf = true` on the event object
+
+The widget tells calendars apart by the optional `_sourceKey` field on each event. See the [event schema](event-schema.md). Events with no key count as one calendar.
+
+### Standalone
+
+```
+#already:standalone
+```
+
+- Keeps an entry out of every composite. Use it for an event that starts inside a parent's hours and is not part of it
+- Wins over `part-of` when an entry carries both
+- Sets `event.standalone = true` on the event object
+
+### Reserved forms
+
+`#already:composite:<name>` and `#already:part-of:<name>` are reserved for joining a parent by name. They are removed from the description and have no effect.
+
 ## RSVP
 
 ```

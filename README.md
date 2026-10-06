@@ -445,6 +445,7 @@ Directives let you control already-cal behavior directly from event descriptions
 #already:tag:fundraiser            → filterable tag badge
 #already:cost:$25                  → key-value tag badge "cost: $25"
 #already:featured                  → pins event to top, adds star badge
+#already:composite                 → shows the entries inside this one's hours as its parts
 #already:hidden                    → hides from views (still accessible via direct link)
 #already:image-shuffle             → a stable image per occurrence, chosen from the list by a hash of the occurrence id
 #already:rsvp                      → the event takes RSVPs when the host configured onRsvp
@@ -453,6 +454,8 @@ Directives let you control already-cal behavior directly from event descriptions
 A URL-valued directive pasted into Google Calendar is read from the link the editor turns it into (see [docs/directives.md](docs/directives.md)).
 
 All 18 built-in platforms are supported as directives, plus aliases (`twitter` → X, `meet` → Google Meet, `forms` → Google Forms, `maps` → Google Maps). Directives and URLs are deduplicated — `#already:instagram:foo` and `https://instagram.com/foo` produce one button, not two.
+
+For an occasion made of several calendar entries, such as a weekly dinner and the band that plays during it, see [composite events](docs/directives.md#composite-events).
 
 For the complete reference including all platforms, URL construction, tag types, and deduplication rules, see the **[directives reference](docs/directives.md)**.
 

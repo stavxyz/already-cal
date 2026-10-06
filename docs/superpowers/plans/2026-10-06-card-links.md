@@ -1,3 +1,21 @@
+---
+type: plan
+issue: 93
+validated:
+  sha: 982dbe3ce3296762e36abcfa3485eea9322358b2
+  date: 2026-10-06T17:26:30Z
+  reviewers: [fact-check, solid-hygiene]
+  findings:
+    critical: 0
+    important: 1
+    medium: 6
+    low: 5
+    nitpick: 2
+  net_negative_raised: 0
+  net_negative_addressed: 0
+  net_negative_remaining: 0
+---
+
 # Card Links Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -12,10 +30,10 @@
 
 ## Global Constraints
 
-- **Worktree:** `/Users/stavxyz/src/already-cal/.claude/worktrees/card-links`, branch `feat/card-links`, cut from `origin/main` at `446a174` (v0.13.0). `node_modules` there is a symlink to a sibling worktree's install and is untracked: never `git add .` or `git add -A`; stage files by path.
+- **Worktree:** `/Users/stavxyz/src/already-cal/.claude/worktrees/card-links`, branch `feat/card-links`, cut from `origin/main` at `446a174` (v0.13.0), with its own `npm ci` install (a build through a symlinked `node_modules` embeds the symlink's path in `dist/`, so the install must be local). Never `git add .` or `git add -A`; stage files by path.
 - **Every Bash command** is a plain single command that starts with `cd /Users/stavxyz/src/already-cal/.claude/worktrees/card-links && `. No heredocs, no `$(...)`, no loops, no `eval`. Before any git command, confirm `git rev-parse --show-toplevel` ends with `/worktrees/card-links` and `git branch --show-current` prints `feat/card-links`.
 - **Never run:** `rm`, `git clean`, `git reset`, `git checkout --`, `git restore`, `git stash`, `git commit --amend`, `git rebase`, `git push`, `git add .`, `git add -A`, `op`. To undo an edit, edit it back.
-- **Gate before every commit:** `npm test` passes, `npm run check` is clean (if it reports only formatting or import order, run `npm run format`, confirm with `git status --short` that only this task's files changed, and re-run), and after `npm run build` the only changes under `dist/` are the ones being committed. `dist/` is committed and CI fails when it is stale. `npm run test:perf` once, in Task 10.
+- **Gate before every commit:** `npm test` passes, `npm run check` is clean (if it reports only formatting or import order, run `npm run format`, confirm with `git status --short` that only this task's files changed, and re-run), and after `npm run build` the only changes under `dist/` are the ones being committed. `dist/` is committed and CI fails when it is stale. `npm run test:perf` once, in Task 10. Every commit on the branch leaves the suite green: Task 3 keeps the old button behaviour for an element with no `href` until Tasks 4, 5, and 6 have moved every site onto a link, and Task 6 removes that transitional branch.
 - **Commits:** one logical change per commit, the exact subject each task gives, no body unless given, no attribution trailers or footers of any kind (no `Co-Authored-By`, no `Generated with`). A subject names one change and contains no "and".
 - **Writing rules** for every comment, doc, test name, and commit message this plan adds: no em dash or en dash as punctuation (a dash inside an expected string that quotes formatter output is not punctuation), complete sentences in prose, "and" before the last item of a list, comments that state a constraint or a reason the code cannot show. Existing lines keep their dashes.
 - **This repository is open source and never names the service that consumes it.** Do not write that service's name in code, comments, tests, docs, or commits.
@@ -24,6 +42,8 @@
 - **Tests are written first** and run to a failing state before the source changes. Keep the failing output for the report. A test that pins unchanged behaviour may pass before the change; say so.
 - **Ruling: a plain click navigates by setting the hash from the link's own `href` after `preventDefault()`.** jsdom does not navigate on anchor activation (probe: a clicked `<a href="#event/abc">` under `test/setup-dom.cjs` leaves `location.hash` empty), and the suite navigates by clicking. The browser would have done the same navigation. The route is still built once, in `eventHref`.
 - **Ruling: the visually hidden fallback link hides its text, not itself.** The link stays statically positioned with a `.already-sr-only` span inside, because an absolutely positioned link would become the containing block of its own `::after` and the stretch would cover one pixel.
+- **Ruling: expand, then contract.** `bindEventClick` learns its link contract in Task 3 while still giving an element with no `href` the old button behaviour, so each of Tasks 3 to 6 ends green and the branch stays bisectable; Task 6 deletes the old branch and its tests once no caller needs it. Cost: one transitional branch that lives for three commits.
+- **Ruling: the hidden link's fallback text has one resolver.** `eventLinkText(entry, config)` in `src/views/helpers.js` (Task 4) is the only place that spells out "the entry's title, else `i18n.openEvent`, else `Open event`"; `linkTitle` stays DOM-only and both hosts pass its result.
 - **Ruling: a title that already is or contains a link or a button is not wrapped.** A custom layout that made its title a link keeps it, and the hidden fallback link is added instead, so no link ends up inside a link (spec D1's fallback branch, applied to this case too).
 - **Task 10 (release) rebases on `origin/main` first.** Another branch (`feat/detail-title`, v0.13.1) is expected to merge before this one. If `origin/main` is still at `446a174` when Task 10 is reached, stop and report; the controller decides whether to wait.
 
@@ -147,8 +167,7 @@ git commit -m "feat(router): eventHref is the one writer of an event's link"
 **Interfaces:**
 - Consumes: `createElement(tag, className, attrs)` from `src/views/helpers.js`.
 - Produces, exported from `src/ui/event-link.js`:
-  - `LINK_HOST_CLASS`, the string `"already-link-host"`.
-  - `linkTitle(host, href, { titleSelector, linkClass, fallbackText })`: returns the `<a>` it placed, or `null` when `href` is `null`. The link carries the classes `already-event-link` and `linkClass`. The host gains `already-link-host`.
+  - `linkTitle(host, href, { titleSelector, linkClass, fallbackText })`: returns the `<a>` it placed, or `null` when `href` is `null`. The link carries the classes `already-event-link` and `linkClass`. The host gains the class `already-link-host` (a module-private constant; the stylesheet and the tests spell the string).
   - `eventAnchor(href, className)`: an `<a class=className href>` when `href` is not `null`, else a `<div class=className>`.
   Tasks 4, 5, and 6 consume these.
 
@@ -161,12 +180,12 @@ require("../setup-dom.cjs");
 const { describe, it, before } = require("node:test");
 const assert = require("node:assert");
 
-let linkTitle, eventAnchor, LINK_HOST_CLASS;
+let linkTitle, eventAnchor;
 before(async () => {
-  ({ linkTitle, eventAnchor, LINK_HOST_CLASS } = await import(
-    "../../src/ui/event-link.js"
-  ));
+  ({ linkTitle, eventAnchor } = await import("../../src/ui/event-link.js"));
 });
+
+const LINK_HOST_CLASS = "already-link-host";
 
 const opts = {
   titleSelector: ".card__title",
@@ -200,7 +219,6 @@ describe("linkTitle", () => {
     assert.ok(link.classList.contains("already-event-link"));
     assert.ok(link.classList.contains("card__link"));
     assert.ok(host.classList.contains(LINK_HOST_CLASS));
-    assert.strictEqual(LINK_HOST_CLASS, "already-link-host");
   });
 
   it("moves every child node of the title, in order", () => {
@@ -288,7 +306,7 @@ import { createElement } from "../views/helpers.js";
  * The element an event link stretches over. The stylesheet positions it and
  * draws its focus ring, so a host needs no CSS of its own.
  */
-export const LINK_HOST_CLASS = "already-link-host";
+const LINK_HOST_CLASS = "already-link-host";
 
 /**
  * Put an event's link in place inside `host`. The first element matching
@@ -362,19 +380,19 @@ git commit -m "feat: one primitive puts an event's link in place"
 
 **Interfaces:**
 - Consumes: nothing new.
-- Produces: `bindEventClick(el, event, viewName, config, { canNavigate } = {})`. `el` is the link (an `<a>` with an `href`) or `null`, in which case the call is a no-op. On a plain click it runs `canNavigate` (when given), then `config.onEventClick(event, viewName)`, and either prevents the default or prevents it and sets `window.location.hash` to the link's `href`. It sets no attribute. Tasks 4, 5, and 6 call it. `setEventDetail` no longer exists.
+- Produces: `bindEventClick(el, event, viewName, config, { canNavigate } = {})`. When `el` is a link (an element with an `href`), on a plain click it runs `canNavigate` (when given), then `config.onEventClick(event, viewName)`, and either prevents the default or prevents it and sets `window.location.hash` to the link's `href`; it sets no attribute. When `el` is `null` the call is a no-op. When `el` is an element with no `href`, the old button behaviour applies (`role="button"`, `tabindex="0"`, click, Enter, and Space navigate through `eventHref(event)`): that transitional branch exists so the sites Tasks 4, 5, and 6 have not yet moved keep working, and Task 6 deletes it. Tasks 4, 5, and 6 call the link form. `setEventDetail` no longer exists; `eventHref` is the route's only writer.
 
 - [ ] **Step 1: Confirm the old option and the old helper have no other users**
 
 Run: `grep -rn "stopPropagation: true\|setEventDetail\|RSVP_OPEN_CLASS" src`
 Expected: `setEventDetail` appears in `src/router.js` (its definition) and `src/views/helpers.js` (import and one call); `RSVP_OPEN_CLASS` appears in `src/views/helpers.js`, `src/ui/rsvp-form.js`, and `src/ui/rsvp-state.js`; `stopPropagation: true` appears nowhere. If anything else shows up, stop and report.
 
-- [ ] **Step 2: Rewrite the failing tests**
+- [ ] **Step 2: Add the failing tests**
 
-In `test/views/helpers.test.cjs`, replace the whole `describe("bindEventClick", () => { ... });` block (from `describe("bindEventClick"` through the closing `});` of the test named `"stops propagation when stopPropagation option is true"`) with:
+In `test/views/helpers.test.cjs`, the existing `describe("bindEventClick", ...)` block pins the button behaviour that the transitional branch keeps for an element with no `href`; it stays until Task 6 deletes it, with one exception: delete its last test, `"stops propagation when stopPropagation option is true"`, because that option goes away now (no caller passes it). Then add this new block directly after the existing one:
 
 ```js
-describe("bindEventClick", () => {
+describe("bindEventClick on a link", () => {
   const link = (href = "#event/evt-1") => {
     const a = document.createElement("a");
     a.setAttribute("href", href);
@@ -479,14 +497,6 @@ describe("bindEventClick", () => {
 
   it("is a no-op for an entry with no link", () => {
     assert.doesNotThrow(() => bindEventClick(null, { title: "No id" }, "grid", {}));
-    // A chip or block for an entry with no route is a plain div with no
-    // href (ui/event-link.js, eventAnchor); binding it must change nothing.
-    const plain = document.createElement("div");
-    document.body.appendChild(plain);
-    bindEventClick(plain, { title: "No id" }, "month", {});
-    const e = click(plain);
-    assert.strictEqual(e.defaultPrevented, false);
-    assert.strictEqual(window.location.hash, "");
   });
 });
 ```
@@ -500,11 +510,11 @@ Also add, inside the existing `beforeEach`, after `window.location.hash = "";`:
 - [ ] **Step 3: Run the test to verify it fails**
 
 Run: `node --test test/views/helpers.test.cjs`
-Expected: FAIL. "sets no role and no tabindex" fails (`'button'` is not `null`), "leaves a modifier click to the browser" fails (the hash is set), "prevents navigation when canNavigate says no" fails (the hash is set), and "is a no-op for an entry with no link" fails with a TypeError on `el.addEventListener` for `null`. The others pass, because the old handler also navigates on click.
+Expected: FAIL in the new block. "navigates to the link's href on a plain click" and "prevents navigation when onEventClick returns false" fail on `defaultPrevented` (the old handler never calls `preventDefault`); "prevents navigation when canNavigate says no" and "leaves a modifier click to the browser" fail because the hash is set; "sets no role and no tabindex" fails (`'button'` is not `null`); "is a no-op for an entry with no link" fails with a TypeError on `el.addEventListener` for `null`. "calls onEventClick before navigating" and "lets the click bubble" pass, because the old handler does both. The existing block passes except the deleted test.
 
 - [ ] **Step 4: Write the implementation**
 
-In `src/views/helpers.js`, replace the imports `import { setEventDetail } from "../router.js";` and `import { RSVP_OPEN_CLASS } from "../ui/rsvp-state.js";` by removing both lines (keep every other import), and replace the whole `bindEventClick` function, from its doc comment `/** Bind click and keyboard handlers to navigate to an event's detail view. */` through its closing `}`, with:
+In `src/views/helpers.js`, change the import `import { setEventDetail } from "../router.js";` to `import { eventHref } from "../router.js";` (keep the `RSVP_OPEN_CLASS` import: the transitional branch below still reads it, and Task 6 removes both), and replace the whole `bindEventClick` function, from its doc comment `/** Bind click and keyboard handlers to navigate to an event's detail view. */` through its closing `}`, with:
 
 ```js
 /**
@@ -515,9 +525,10 @@ In `src/views/helpers.js`, replace the imports `import { setEventDetail } from "
  * navigation, and then navigates by copying the link's own href into the
  * hash. That is the navigation the browser would have performed, done by
  * hand because the test environment does not navigate on anchor activation.
- * A middle or modifier click is left to the browser, which opens a new tab.
- * An entry with no route (router.eventHref) has no link: `el` is then null,
- * or a plain element with no href, and the call is a no-op.
+ * A middle or modifier click is left to the browser, which opens a new tab
+ * (browsers send those as auxclick, so the button check is a guard). An
+ * entry with no route (router.eventHref) has no link, and a null `el` is a
+ * no-op.
  */
 export function bindEventClick(
   el,
@@ -526,7 +537,11 @@ export function bindEventClick(
   config,
   { canNavigate } = {},
 ) {
-  if (el === null || !el.hasAttribute("href")) return;
+  if (el === null) return;
+  if (!el.hasAttribute("href")) {
+    bindButtonLikeElement(el, event, viewName, config);
+    return;
+  }
   el.addEventListener("click", (e) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
       return;
@@ -540,6 +555,35 @@ export function bindEventClick(
     window.location.hash = el.getAttribute("href");
   });
 }
+
+/**
+ * TRANSITIONAL: the button behaviour cards, rows, chips, and blocks had
+ * before they became links. It stays only until every site passes a link,
+ * so each commit on the way keeps the widget working, and is deleted with
+ * the last site. Nothing new may call it.
+ */
+function bindButtonLikeElement(el, event, viewName, config) {
+  const rsvpOpen = () => el.classList.contains(RSVP_OPEN_CLASS);
+  function handleClick() {
+    if (rsvpOpen()) return;
+    if (config.onEventClick) {
+      const result = config.onEventClick(event, viewName);
+      if (result === false) return;
+    }
+    const href = eventHref(event);
+    if (href !== null) window.location.hash = href;
+  }
+  el.addEventListener("click", handleClick);
+  el.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      if (rsvpOpen()) return;
+      e.preventDefault();
+      handleClick();
+    }
+  });
+  el.setAttribute("tabindex", "0");
+  el.setAttribute("role", "button");
+}
 ```
 
 In `src/router.js`, delete the `setEventDetail` function and its doc comment `/** Navigate to an event's detail view by setting the URL hash. */`.
@@ -550,15 +594,15 @@ Run: `node --test test/views/helpers.test.cjs test/router.test.cjs`
 Expected: PASS for every test in both files.
 
 Run: `npm test`
-Expected: tests that clicked a card, a chip, a block, or a row to navigate now fail (`grid.test.cjs` "navigates to detail on click", `list.test.cjs` "navigates to detail on click", `month.test.cjs` "navigates to detail on chip click", `week.test.cjs` "navigates to detail on event click", `day.test.cjs` "navigates to detail on click", `day-navigation.test.cjs` chip and block tests, the `event-popover.test.cjs` card tests, `composite-widget.test.cjs` and `calendar-composite.test.cjs` click tests, `rsvp-sites.test.cjs` "a card with an open RSVP form", `card-parts.test.cjs` through `bindEventClick` on cards, and `grid.test.cjs` "sets accessibility attributes"), because the views still call `bindEventClick` on a div with no `href`. Record the count of failing tests in the report. That is expected: Tasks 4, 5, and 6 move each site onto a link and bring the suite back to green, one site at a time. Commit this task only when `npm run check` is clean and the two files above pass; the global gate's `npm test` requirement is waived for Tasks 3 to 5 and restored at Task 6.
+Expected: PASS, every test. Every view still binds a plain element and gets the transitional button behaviour, so nothing a visitor sees has changed yet.
 
-- [ ] **Step 6: Check and commit**
+- [ ] **Step 6: Gate and commit**
 
 ```bash
 npm run check
 npm run build
 git add src/views/helpers.js src/router.js test/views/helpers.test.cjs dist
-git commit -m "refactor: bindEventClick binds an event's link, with no role or key handler"
+git commit -m "refactor: bindEventClick learns to bind an event's link"
 ```
 
 ---
@@ -567,18 +611,20 @@ git commit -m "refactor: bindEventClick binds an event's link, with no role or k
 
 **Files:**
 - Modify: `src/views/card-decoration.js`
+- Modify: `src/views/helpers.js` (add `eventLinkText`)
 - Modify: `src/ui/rsvp-form.js` (`decorateRsvp` puts `already-control` on the row it mounts into)
+- Modify: `src/ui/rsvp-state.js` (the header comment names its readers)
 - Modify: `src/layouts/badge/badge.js` (the Details link gets `already-control`)
 - Modify: `src/already-cal.js` (`I18N_DEFAULTS` gains `openEvent`)
 - Modify: `src/layouts/base.css` (remove `.already-card:focus-visible`)
 - Modify: `src/styles/base.css` (append the event link rules)
-- Modify: `test/views/grid.test.cjs`, `test/views/list.test.cjs`, `test/ui/event-popover.test.cjs`, `test/views/rsvp-sites.test.cjs`, `test/ui/card-parts.test.cjs`, `test/composite-widget.test.cjs`, `test/layouts/custom.test.cjs`
+- Modify: `test/views/helpers.test.cjs`, `test/views/grid.test.cjs`, `test/views/list.test.cjs`, `test/ui/event-popover.test.cjs`, `test/views/rsvp-sites.test.cjs`, `test/composite-widget.test.cjs`
 - Modify: `test/views/ordinary-card-markup.test.cjs`; replace `test/fixtures/ordinary-cards-v0.12.1.json` with `test/fixtures/ordinary-cards-v0.14.0.json`
 - Create: `test/views/card-link.test.cjs`
 
 **Interfaces:**
-- Consumes: `eventHref` (Task 1), `linkTitle` and `LINK_HOST_CLASS` (Task 2), `bindEventClick` with `canNavigate` (Task 3), `RSVP_OPEN_CLASS` from `src/ui/rsvp-state.js`, `decorateParts`, `decorateRsvp`.
-- Produces: every decorated card (grid, list, popover) has `a.already-event-link.already-card__link` inside `.already-card__title` with `href` from `eventHref`, the class `already-link-host` on the card, no `role` and no `tabindex`, and `already-control` on the Badge Details link and on the RSVP row. Task 8's a11y test and the consuming service's e2e specs rely on those class names.
+- Consumes: `eventHref` (Task 1), `linkTitle` (Task 2), `bindEventClick` with `canNavigate` (Task 3), `RSVP_OPEN_CLASS` from `src/ui/rsvp-state.js`, `decorateParts`, `decorateRsvp`.
+- Produces: `eventLinkText(entry, config)` exported from `src/views/helpers.js`, the one resolver of a hidden link's text (`entry.title`, else `config.i18n.openEvent`, else `"Open event"`); Task 5 consumes it. Every decorated card (grid, list, popover) has `a.already-event-link.already-card__link` inside `.already-card__title` with `href` from `eventHref`, the class `already-link-host` on the card, no `role` and no `tabindex`, and `already-control` on the Badge Details link and on the RSVP row. Task 8's a11y test and the consuming service's e2e specs rely on those class names. The shared focus ring reads the custom property `--already-link-ring-offset` (default `2px`); Task 5 sets it on day rows.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -746,6 +792,25 @@ describe("a card opens through its title link", () => {
 });
 ```
 
+In `test/views/helpers.test.cjs`, add `eventLinkText` to the names imported from the module in the `before` hook (`eventLinkText = mod.eventLinkText;` beside the others, and `let eventLinkText;` with the other declarations), and add this block after `describe("bindEventClick on a link", ...)`:
+
+```js
+describe("eventLinkText", () => {
+  it("is the entry's title", () => {
+    assert.strictEqual(eventLinkText({ title: "Burger Night" }, {}), "Burger Night");
+  });
+
+  it("falls back to the i18n openEvent text, then to the default", () => {
+    assert.strictEqual(
+      eventLinkText({ title: "" }, { i18n: { openEvent: "Abrir" } }),
+      "Abrir",
+    );
+    assert.strictEqual(eventLinkText({ title: "" }, {}), "Open event");
+    assert.strictEqual(eventLinkText({}, undefined), "Open event");
+  });
+});
+```
+
 Then update the existing tests that pinned the old behaviour:
 
 - `test/views/grid.test.cjs`, test "sets accessibility attributes": replace its two assertions with
@@ -767,10 +832,23 @@ Then update the existing tests that pinned the old behaviour:
 
 - [ ] **Step 2: Run the new test to verify it fails**
 
-Run: `node --test test/views/card-link.test.cjs`
-Expected: FAIL. Every test in "a card opens through its title link" fails: there is no `a.already-card__link` (the cards are still buttons), the `already-control` tests find no class, and the orphan test finds `role="button"`.
+Run: `node --test test/views/card-link.test.cjs test/views/helpers.test.cjs`
+Expected: FAIL. Every test in "a card opens through its title link" fails: there is no `a.already-card__link` (the cards are still buttons through the transitional branch), the `already-control` tests find no class, and the orphan test finds `role="button"`. The `eventLinkText` tests fail with `TypeError: eventLinkText is not a function`.
 
 - [ ] **Step 3: Write the implementation**
+
+`src/views/helpers.js`: add, after `createElement`:
+
+```js
+/**
+ * The text of an event link that has no visible title to carry it (a layout
+ * that rendered no title element). One resolver for every host, so the rule
+ * cannot drift between cards and rows.
+ */
+export function eventLinkText(entry, config) {
+  return entry?.title || config?.i18n?.openEvent || "Open event";
+}
+```
 
 `src/views/card-decoration.js`: replace the whole file with:
 
@@ -781,29 +859,32 @@ import { decorateRsvp } from "../ui/rsvp-form.js";
 import { RSVP_OPEN_CLASS } from "../ui/rsvp-state.js";
 import { eventHref } from "../router.js";
 import { isPast } from "../util/dates.js";
-import { bindEventClick } from "./helpers.js";
+import { bindEventClick, eventLinkText } from "./helpers.js";
 
 /**
- * The state classes, the data attribute, and the link of a card. Private to
- * this module on purpose: the only way to apply it is through
- * decorateEventCard, which has already turned away an error card.
- *
- * The link is the title (or a hidden link when the layout rendered none),
- * stretched over the card by the stylesheet, so the card is clickable
- * everywhere without being a button that contains other controls. A card
- * with its RSVP form open stays put: navigating would discard what the
- * visitor typed.
+ * The state classes and the data attribute of a card. Private to this module
+ * on purpose: the only way to apply it is through decorateEventCard, which
+ * has already turned away an error card.
  */
-function applyCardState(card, event, viewName, config) {
+function applyCardState(card, event) {
   if (isPast(event.end || event.start))
     card.classList.add("already-card--past");
   if (event.featured) card.classList.add("already-card--featured");
   card.dataset.eventId = event.id;
-  const i18n = config.i18n || {};
+}
+
+/**
+ * The link that opens the card's event: its title (or a hidden link when the
+ * layout rendered none), stretched over the card by the stylesheet, so the
+ * card is clickable everywhere without being a button that contains other
+ * controls. A card with its RSVP form open stays put: navigating would
+ * discard what the visitor typed.
+ */
+function linkCard(card, event, viewName, config) {
   const link = linkTitle(card, eventHref(event), {
     titleSelector: ".already-card__title",
     linkClass: "already-card__link",
-    fallbackText: event.title || i18n.openEvent || "Open event",
+    fallbackText: eventLinkText(event, config),
   });
   bindEventClick(link, event, viewName, config, {
     canNavigate: () => !card.classList.contains(RSVP_OPEN_CLASS),
@@ -812,7 +893,7 @@ function applyCardState(card, event, viewName, config) {
 
 /**
  * Everything a view adds to a card once its layout has rendered it, in one
- * fixed order: the state classes and the link, a composite's parts, and the
+ * fixed order: the state classes, the link, a composite's parts, and the
  * RSVP control. Grid, list, and the popover all call this. A card site that
  * listed its decorators by hand could leave one out, and a card that misses
  * the parts decorator silently loses events.
@@ -834,11 +915,14 @@ export function decorateEventCard(
   // again on its own, because it is exported and tested as a standalone
   // decorator (ui/rsvp-form.js).
   if (card.classList.contains("already-card--error")) return;
-  applyCardState(card, event, viewName, config);
+  applyCardState(card, event);
+  linkCard(card, event, viewName, config);
   decorateParts(card, event, config, { timezone });
   if (rsvp) decorateRsvp(card, event, config);
 }
 ```
+
+`src/ui/rsvp-state.js`: its header comment says the class lives in its own module "because the form module imports views/helpers.js, which reads this class too". Change "which reads this class too" to "and views/card-decoration.js reads this class too" (the reader moved; Task 6 removes the last read from helpers.js).
 
 `src/ui/rsvp-form.js`, in `decorateRsvp`: change `actionFooter.classList.add("already-card__footer--rsvp");` to `actionFooter.classList.add("already-card__footer--rsvp", "already-control");` and change the created row's class string `"already-card__footer already-card__footer--rsvp already-card__rsvp"` to `"already-card__footer already-card__footer--rsvp already-card__rsvp already-control"`. Add to the `decorateRsvp` doc comment, after "meant for actions.": `The row carries already-control, which keeps it clickable above the card's stretched event link (ui/event-link.js); the controls inside it inherit that, so nothing else in this module knows about the link.`
 
@@ -891,14 +975,11 @@ export function decorateEventCard(
   outline: none;
 }
 
+/* A host that needs the ring inset (a row flush in a bordered list) sets
+   --already-link-ring-offset in its own rules; this block names no host. */
 .already-link-host:has(.already-event-link:focus-visible) {
   outline: 2px solid var(--already-primary);
-  outline-offset: 2px;
-}
-
-/* Day rows sit flush in a bordered list, where an outside ring is clipped. */
-.already-day-event.already-link-host:has(.already-event-link:focus-visible) {
-  outline-offset: -2px;
+  outline-offset: var(--already-link-ring-offset, 2px);
 }
 
 @supports not selector(:has(a)) {
@@ -943,10 +1024,10 @@ Expected: FAIL, 4 tests. Each diff shows the title's text now wrapped in `<a cla
 
 - [ ] **Step 6: Regenerate the markup fixture for v0.14.0**
 
-Create the new fixture by running the capture the old one was made with: `node --input-type=module -e "..."` is not needed; instead run this one-off script, which mirrors the test's own render, from the worktree root:
+Create the new fixture with this one-off command, which mirrors the test's own render (one plain command, with the usual `cd` prefix):
 
 ```bash
-node -e "process.env.TZ='UTC';require('./test/setup-dom.cjs');const {createTestEvent}=require('./test/helpers.cjs');(async()=>{const {renderGridView}=await import('./src/views/grid.js');const out={};for(const layout of ['clean','compact','badge','hero']){const c=document.createElement('div');renderGridView(c,[createTestEvent({id:'ev-1',title:'Autumn Market',description:'Stalls and music.',location:'Town Square',start:'2099-06-15T17:00:00Z',end:'2099-06-15T21:00:00Z',tags:[{key:'tag',value:'market'}],image:'https://x.example/market.jpg',links:[]})],'UTC',{locale:'en-US',i18n:{},_theme:{layout,orientation:'vertical',imagePosition:'left'}});out[layout]=c.querySelector('.already-card').outerHTML;}require('fs').writeFileSync('test/fixtures/ordinary-cards-v0.14.0.json',JSON.stringify(out,null,2)+'\n');console.log(Object.keys(out));})()"
+cd /Users/stavxyz/src/already-cal/.claude/worktrees/card-links && node -e "process.env.TZ='UTC';require('./test/setup-dom.cjs');const {createTestEvent}=require('./test/helpers.cjs');(async()=>{const {renderGridView}=await import('./src/views/grid.js');const out={};for(const layout of ['clean','compact','badge','hero']){const c=document.createElement('div');renderGridView(c,[createTestEvent({id:'ev-1',title:'Autumn Market',description:'Stalls and music.',location:'Town Square',start:'2099-06-15T17:00:00Z',end:'2099-06-15T21:00:00Z',tags:[{key:'tag',value:'market'}],image:'https://x.example/market.jpg',links:[]})],'UTC',{locale:'en-US',i18n:{},_theme:{layout,orientation:'vertical',imagePosition:'left'}});out[layout]=c.querySelector('.already-card').outerHTML;}require('fs').writeFileSync('test/fixtures/ordinary-cards-v0.14.0.json',JSON.stringify(out,null,2)+'\n');console.log(Object.keys(out));})()"
 ```
 
 Then in `test/views/ordinary-card-markup.test.cjs` change `require("../fixtures/ordinary-cards-v0.12.1.json")` to `require("../fixtures/ordinary-cards-v0.14.0.json")`, change the header comment to:
@@ -967,14 +1048,14 @@ Expected: PASS, 4 tests.
 - [ ] **Step 7: Run the suite**
 
 Run: `npm test`
-Expected: the only failing tests are the ones Tasks 5 and 6 own: day rows (`day.test.cjs`, `day-navigation.test.cjs` row tests, `calendar-composite.test.cjs` day tests, `composite-widget.test.cjs` "gets the part, with parentId, for a click on the part's own row"), and chips and blocks (`month.test.cjs`, `week.test.cjs`, `day-navigation.test.cjs` chip and block tests, `calendar-composite.test.cjs` month and week tests). List the failing names in the report. Any other failure stops this task.
+Expected: PASS, every test. Day rows, chips, and blocks still go through the transitional branch, so their tests are unchanged until Tasks 5 and 6.
 
-- [ ] **Step 8: Check and commit**
+- [ ] **Step 8: Gate and commit**
 
 ```bash
 npm run check
 npm run build
-git add src/views/card-decoration.js src/ui/rsvp-form.js src/layouts/badge/badge.js src/already-cal.js src/layouts/base.css src/styles/base.css test/views/card-link.test.cjs test/views/grid.test.cjs test/views/list.test.cjs test/views/rsvp-sites.test.cjs test/ui/event-popover.test.cjs test/composite-widget.test.cjs test/views/ordinary-card-markup.test.cjs test/fixtures/ordinary-cards-v0.14.0.json dist
+git add src/views/card-decoration.js src/views/helpers.js src/ui/rsvp-form.js src/ui/rsvp-state.js src/layouts/badge/badge.js src/already-cal.js src/layouts/base.css src/styles/base.css test/views/helpers.test.cjs test/views/card-link.test.cjs test/views/grid.test.cjs test/views/list.test.cjs test/views/rsvp-sites.test.cjs test/ui/event-popover.test.cjs test/composite-widget.test.cjs test/views/ordinary-card-markup.test.cjs test/fixtures/ordinary-cards-v0.14.0.json dist
 git commit -m "feat: cards open through their title link"
 ```
 
@@ -986,12 +1067,12 @@ git commit -m "feat: cards open through their title link"
 
 **Files:**
 - Modify: `src/views/day.js` (`renderRow`)
-- Modify: `src/styles/base.css` (remove `.already-day-event:focus-visible`)
-- Modify: `test/views/day.test.cjs`, `test/views/day-navigation.test.cjs`, `test/views/calendar-composite.test.cjs`, `test/composite-widget.test.cjs`
+- Modify: `src/styles/base.css` (the `.already-day-event` rule sets the ring offset; remove `.already-day-event:focus-visible`)
+- Modify: `test/views/day.test.cjs`, `test/views/calendar-composite.test.cjs`, `test/composite-widget.test.cjs`
 - Create: `test/views/day-link.test.cjs`
 
 **Interfaces:**
-- Consumes: `eventHref` (Task 1), `linkTitle` (Task 2), `bindEventClick` (Task 3).
+- Consumes: `eventHref` (Task 1), `linkTitle` (Task 2), `bindEventClick` (Task 3), `eventLinkText` (Task 4).
 - Produces: every `.already-day-event` row has `a.already-event-link.already-day-event__link` inside `.already-day-event-title`, the class `already-link-host`, and no `role` or `tabindex`. Task 8 relies on it.
 
 - [ ] **Step 1: Write the failing test**
@@ -1103,8 +1184,7 @@ describe("a day row opens through its title link", () => {
 Then update the existing tests:
 
 - `test/views/day.test.cjs`, "navigates to detail on click": `container.querySelector(".already-day-event").click();` becomes `container.querySelector(".already-day-event__link").click();`.
-- `test/views/day-navigation.test.cjs`: run `grep -n "already-day-event" test/views/day-navigation.test.cjs`; every `.click()` on a row that is meant to open the event becomes a click on the row's `.already-day-event__link`. Leave clicks that exercise the day navigation buttons alone.
-- `test/views/calendar-composite.test.cjs`, `describe("day view with a composite", ...)`: the test "opens the composite's detail from a part's row by the part's id" clicks the row's `a.already-day-event__link` instead of the row; any assertion that the row has `role="button"` or `tabindex` is replaced by an assertion that the link's `href` is `#event/<part id>`.
+- `test/views/calendar-composite.test.cjs`, `describe("day view with a composite", ...)`: the test "opens the composite's detail from a part's row by the part's id" clicks the row's `a.already-day-event__link` instead of the row (`c.querySelector(".already-day-event--part").click()` becomes `c.querySelector(".already-day-event--part .already-day-event__link").click()`). That file asserts no `role` or `tabindex` on rows, so nothing else changes there.
 - `test/composite-widget.test.cjs`: both tests that click `.already-day-event--part` ("gets the part, with parentId, for a click on the part's own row" and the one in `describe("a part with no id", ...)`): `c.querySelector(".already-day-event--part").click();` becomes `c.querySelector(".already-day-event--part .already-day-event__link").click();`.
 
 - [ ] **Step 2: Run the new test to verify it fails**
@@ -1114,7 +1194,7 @@ Expected: FAIL, every test (the row is still a button with no link).
 
 - [ ] **Step 3: Write the implementation**
 
-In `src/views/day.js`, add to the imports: `import { linkTitle } from "../ui/event-link.js";` and `import { eventHref } from "../router.js";` (Biome orders imports by path; let `npm run format` place them). Replace the `renderRow` function with:
+In `src/views/day.js`, add to the imports: `import { linkTitle } from "../ui/event-link.js";` and `import { eventHref } from "../router.js";`, and add `eventLinkText` to the names imported from `"./helpers.js"` (Biome orders imports by path; let `npm run format` place them). Replace the `renderRow` function with:
 
 ```js
   function renderRow(entry, isPart) {
@@ -1147,14 +1227,22 @@ In `src/views/day.js`, add to the imports: `import { linkTitle } from "../ui/eve
     const link = linkTitle(item, eventHref(entry), {
       titleSelector: ".already-day-event-title",
       linkClass: "already-day-event__link",
-      fallbackText: entry.title || config.i18n?.openEvent || "Open event",
+      fallbackText: eventLinkText(entry, config),
     });
     bindEventClick(link, entry, "day", config);
     return item;
   }
 ```
 
-In `src/styles/base.css`, delete the rule
+In `src/styles/base.css`, in the `.already-day-event {` rule, add after `padding: 0.75rem 1rem;`:
+
+```css
+  /* Rows sit flush in a bordered list, where an outside focus ring would be
+     clipped; the shared event-link ring reads this. */
+  --already-link-ring-offset: -2px;
+```
+
+and delete the rule
 
 ```css
 .already-day-event:focus-visible {
@@ -1163,19 +1251,19 @@ In `src/styles/base.css`, delete the rule
 }
 ```
 
-(the host rule with the day-row offset added in Task 4 replaces it).
+(the shared host ring added in Task 4 replaces it, with the offset above).
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `node --test test/views/day-link.test.cjs test/views/day.test.cjs test/views/day-navigation.test.cjs test/views/calendar-composite.test.cjs test/composite-widget.test.cjs`
-Expected: PASS for every test except the month and week ones Task 6 owns (in `day-navigation.test.cjs` and `calendar-composite.test.cjs`). Name them in the report.
+Run: `npm test`
+Expected: PASS, every test. Chips and blocks still go through the transitional branch until Task 6.
 
-- [ ] **Step 5: Check and commit**
+- [ ] **Step 5: Gate and commit**
 
 ```bash
 npm run check
 npm run build
-git add src/views/day.js src/styles/base.css test/views/day-link.test.cjs test/views/day.test.cjs test/views/day-navigation.test.cjs test/views/calendar-composite.test.cjs test/composite-widget.test.cjs dist
+git add src/views/day.js src/styles/base.css test/views/day-link.test.cjs test/views/day.test.cjs test/views/calendar-composite.test.cjs test/composite-widget.test.cjs dist
 git commit -m "feat: day rows open through their title link"
 ```
 
@@ -1185,12 +1273,13 @@ git commit -m "feat: day rows open through their title link"
 
 **Files:**
 - Modify: `src/views/month.js`, `src/views/week.js`
+- Modify: `src/views/helpers.js` (delete the transitional branch of `bindEventClick`)
 - Modify: `src/styles/base.css` (`.already-month-chip` and `.already-week-event` rules)
-- Modify: `test/views/month.test.cjs`, `test/views/week.test.cjs`, `test/views/day-navigation.test.cjs`, `test/views/calendar-composite.test.cjs`, `test/ui/event-popover.test.cjs`
+- Modify: `test/views/helpers.test.cjs`, `test/views/month.test.cjs`, `test/views/week.test.cjs`, `test/views/day-navigation.test.cjs`, `test/views/calendar-composite.test.cjs`, `test/ui/event-popover.test.cjs`
 
 **Interfaces:**
 - Consumes: `eventHref` (Task 1), `eventAnchor` (Task 2), `bindEventClick` (Task 3).
-- Produces: `.already-month-chip` and `.already-week-event` are `<a href="#event/<id>">` elements (a `<div>` for an entry with no route), with no `role` or `tabindex`. Task 8 relies on it.
+- Produces: `.already-month-chip` and `.already-week-event` are `<a href="#event/<id>">` elements (a `<div>` for an entry with no route), with no `role` or `tabindex`. `bindEventClick` is a no-op for an element with no `href`; the transitional button behaviour is gone. Task 8 relies on both.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1226,12 +1315,29 @@ In `test/views/month.test.cjs`, after the test "navigates to detail on chip clic
 
 In `test/views/week.test.cjs`, after the test "navigates to detail on event click", add the same two tests with `renderWeekView(container, place(events), "UTC", wednesday, {})`, the selector `.already-week-event`, the id `w-link`, and the names "renders a block as a link with no role" and "renders an entry with no route as a plain block".
 
-Existing tests: the chip and block click tests in `month.test.cjs`, `week.test.cjs`, `day-navigation.test.cjs`, `calendar-composite.test.cjs`, and `event-popover.test.cjs` click the chip or block element itself, which is now the link, so their `.click()` calls stay as they are. Replace any assertion that a chip or block has `role="button"` or `tabindex="0"` (run `grep -n 'role\|tabindex' test/views/month.test.cjs test/views/week.test.cjs test/views/day-navigation.test.cjs test/views/calendar-composite.test.cjs test/ui/event-popover.test.cjs`) with an assertion on `tagName === "A"` and the `href`.
+Existing tests: the chip and block click tests in `month.test.cjs`, `week.test.cjs`, `day-navigation.test.cjs`, `calendar-composite.test.cjs`, `composite-widget.test.cjs`, and `event-popover.test.cjs` click the chip or block element itself, which is now the link, so their `.click()` calls stay as they are. Replace any assertion that a chip or block has `role="button"` or `tabindex="0"` (run `grep -n 'role\|tabindex' test/views/month.test.cjs test/views/week.test.cjs test/views/day-navigation.test.cjs test/views/calendar-composite.test.cjs test/ui/event-popover.test.cjs`) with an assertion on `tagName === "A"` and the `href`; if the grep finds none, say so in the report.
+
+In `test/views/helpers.test.cjs`, delete the whole original `describe("bindEventClick", () => { ... });` block (the one that binds a `div` and asserts `role`, `tabindex`, Enter, and Space: the button behaviour it pins ends with this task), and in `describe("bindEventClick on a link", ...)` replace the test "is a no-op for an entry with no link" with:
+
+```js
+  it("is a no-op for an entry with no link", () => {
+    assert.doesNotThrow(() => bindEventClick(null, { title: "No id" }, "grid", {}));
+    // A chip or block for an entry with no route is a plain div with no
+    // href (ui/event-link.js, eventAnchor); binding it must change nothing.
+    const plain = document.createElement("div");
+    document.body.appendChild(plain);
+    bindEventClick(plain, { title: "No id" }, "month", {});
+    const e = click(plain);
+    assert.strictEqual(e.defaultPrevented, false);
+    assert.strictEqual(plain.getAttribute("role"), null);
+    assert.strictEqual(window.location.hash, "");
+  });
+```
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `node --test test/views/month.test.cjs test/views/week.test.cjs`
-Expected: FAIL. "renders a chip as a link with no role" fails on `tagName` (`'DIV'`), "navigates to detail on chip click" fails because the chip has no `href` to copy, and the week tests fail the same way.
+Run: `node --test test/views/month.test.cjs test/views/week.test.cjs test/views/helpers.test.cjs`
+Expected: FAIL. "renders a chip as a link with no role" fails on `tagName` (`'DIV'`), the week test the same way, and "is a no-op for an entry with no link" fails on `role` (`'button'`, from the transitional branch). "renders an entry with no route as a plain chip" passes already (a div, and the transitional branch does not navigate without a route); it pins that behaviour. "navigates to detail on chip click" also passes already, through the transitional branch.
 
 - [ ] **Step 3: Write the implementation**
 
@@ -1309,17 +1415,38 @@ In `src/styles/base.css`: a `div` is a block and an `a` is inline, so both rules
 
 and the same two lines in `.already-week-event { ... }` after its `font-size` line.
 
+In `src/views/helpers.js`, now that no site binds an element without an `href`: delete the `bindButtonLikeElement` function and its doc comment, replace the two lines
+
+```js
+  if (el === null) return;
+  if (!el.hasAttribute("href")) {
+    bindButtonLikeElement(el, event, viewName, config);
+    return;
+  }
+```
+
+with
+
+```js
+  if (el === null || !el.hasAttribute("href")) return;
+```
+
+change the last sentence of the doc comment from "An entry with no route (router.eventHref) has no link, and a null `el` is a no-op." to "An entry with no route (router.eventHref) has no link: `el` is then null, or a plain element with no href, and the call is a no-op.", and remove the imports of `eventHref` (from `"../router.js"`) and `RSVP_OPEN_CLASS` (from `"../ui/rsvp-state.js"`) if nothing else in the file uses them (`npm run check` reports an unused import).
+
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `npm test`
-Expected: PASS, every test. The global gate's `npm test` requirement is in force again from here on.
+Expected: PASS, every test.
 
-- [ ] **Step 5: Check and commit**
+Run: `grep -rn 'role", "button"\|bindButtonLikeElement' src`
+Expected: no output. No element the widget renders for an event is a button any more.
+
+- [ ] **Step 5: Gate and commit**
 
 ```bash
 npm run check
 npm run build
-git add src/views/month.js src/views/week.js src/styles/base.css test/views/month.test.cjs test/views/week.test.cjs test/views/day-navigation.test.cjs test/views/calendar-composite.test.cjs test/ui/event-popover.test.cjs dist
+git add src/views/month.js src/views/week.js src/views/helpers.js src/styles/base.css test/views/helpers.test.cjs test/views/month.test.cjs test/views/week.test.cjs test/views/day-navigation.test.cjs test/views/calendar-composite.test.cjs test/ui/event-popover.test.cjs dist
 git commit -m "feat: month chips are links, as are week blocks"
 ```
 
@@ -1417,9 +1544,11 @@ In `src/ui/rsvp-form.js`:
   // Every card's button reads "RSVP"; the name says which event, so a screen
   // reader user hears the difference. The visible text stays inside the name.
   if (event.title) {
+    // A function replacer, so a title containing `$&` or `$'` is inserted
+    // as it is instead of being read as a replacement pattern.
     button.setAttribute(
       "aria-label",
-      (i18n.rsvpFor || "RSVP for {title}").replace("{title}", event.title),
+      (i18n.rsvpFor || "RSVP for {title}").replace("{title}", () => event.title),
     );
   }
 ```
@@ -1484,12 +1613,12 @@ git commit -m "feat: the RSVP button names its event"
 - [ ] **Step 1: Install axe-core and prove it runs under the suite's jsdom**
 
 Run: `npm install --save-dev axe-core`
-Expected: `package.json` gains `"axe-core"` under `devDependencies` and `package-lock.json` changes. `node_modules` is a symlink to another worktree's install; `npm install` follows it and installs there. If the install fails because of the symlink, stop and report.
+Expected: `package.json` gains `"axe-core"` under `devDependencies` and `package-lock.json` changes. If the install fails, stop and report.
 
-Run this probe from the worktree root:
+Run this probe (one plain command, with the usual `cd` prefix):
 
 ```bash
-node -e "require('./test/setup-dom.cjs');globalThis.Element=window.Element;globalThis.NodeList=window.NodeList;const axe=require('axe-core');document.body.innerHTML='<div role=\"button\" tabindex=\"0\">Night <button type=\"button\">RSVP</button></div>';axe.run(document.body,{runOnly:{type:'rule',values:['nested-interactive','button-name','link-name']}}).then(r=>console.log(r.violations.map(v=>v.id)))"
+cd /Users/stavxyz/src/already-cal/.claude/worktrees/card-links && node -e "require('./test/setup-dom.cjs');globalThis.Element=window.Element;globalThis.NodeList=window.NodeList;const axe=require('axe-core');document.body.innerHTML='<div role=\"button\" tabindex=\"0\">Night <button type=\"button\">RSVP</button></div>';axe.run(document.body,{runOnly:{type:'rule',values:['nested-interactive','button-name','link-name']}}).then(r=>console.log(r.violations.map(v=>v.id)))"
 ```
 
 Expected: `[ 'nested-interactive' ]`. If axe throws under this jsdom, stop and report the error: the spec's fallback (a homegrown nested-interactive walk) is a controller decision.
@@ -1735,12 +1864,12 @@ In the `### i18n keys` table, directly after the row that begins ``| `compositeP
 
 In the sentence at the line that contains `pass every card through \`decorateEventCard()\``, append after that call: ` (which makes the title the event's link, adds a composite's parts, and mounts the RSVP control)`. If the sentence already lists what the decoration does, replace that list with this one.
 
-In the module list line that begins `- **\`views/card-decoration.js\`** imports:`, add `ui/event-link.js` and `router.js` to its import list, and after `exports \`decorateEventCard\`` keep the rest of the line.
+In the module list line that begins `- **\`views/card-decoration.js\`** imports:`, add `ui/event-link.js`, `ui/rsvp-state.js`, and `router.js` to its import list, and after `exports \`decorateEventCard\`` keep the rest of the line. In the line that begins `- **\`views/helpers.js\`** imports:`, remove `router.js` and `ui/rsvp-state.js` from its import list (Task 6 removed both imports) and add `eventLinkText` to its exports.
 
 Add a line for the new module, directly after the `views/card-decoration.js` line:
 
 ```markdown
-- **`ui/event-link.js`** imports: `views/helpers.js` (createElement); exports `linkTitle` (moves a title's text into the event link and marks the host), `eventAnchor` (an element that is the link itself), `LINK_HOST_CLASS`
+- **`ui/event-link.js`** imports: `views/helpers.js` (createElement); exports `linkTitle` (moves a title's text into the event link and marks the host) and `eventAnchor` (an element that is the link itself)
 ```
 
 In the `### Hash Routing` section's bullet list, replace the bullet
@@ -1835,7 +1964,7 @@ Expected: every command succeeds. `npm run build` changes the bundles under `dis
 - [ ] **Step 4: Confirm nothing else is unstaged, then commit**
 
 Run: `git status --short`
-Expected: only `package.json`, `package-lock.json`, and files under `dist/` (plus the untracked `node_modules` symlink, which is never staged).
+Expected: only `package.json`, `package-lock.json`, and files under `dist/`.
 
 ```bash
 git add package.json package-lock.json dist
@@ -1849,4 +1978,4 @@ npm run build
 git status --short
 ```
 
-Expected: `git status --short` prints only `?? node_modules`.
+Expected: `git status --short` prints nothing.

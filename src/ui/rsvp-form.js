@@ -223,9 +223,11 @@ export function appendRsvpControl(container, event, config) {
  * end of the body. A footer without an action is not reused because it
  * holds information (Hero's location and date), not things to click. Every
  * layout that renders cards therefore offers the button, always in a row
- * meant for actions.
+ * meant for actions. The fallback card a failed layout renders says the
+ * event could not be displayed, so it offers nothing to act on.
  */
 export function decorateRsvp(card, event, config) {
+  if (card.classList.contains("already-card--error")) return;
   if (!offersRsvp(event, config)) return;
   const actionFooter = [...card.querySelectorAll(".already-card__footer")].find(
     (footer) => footer.querySelector(".already-card__action"),

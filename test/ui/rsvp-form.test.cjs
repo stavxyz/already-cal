@@ -580,3 +580,16 @@ describe("open-state class on the card", () => {
     assert.strictEqual(document.querySelector(`.${OPEN}`), null);
   });
 });
+
+describe("decorateRsvp on an error card", () => {
+  it("adds no row and no button", () => {
+    const card = document.createElement("div");
+    card.className = "already-card already-card--error";
+    const body = document.createElement("div");
+    body.className = "already-card__body";
+    card.appendChild(body);
+    decorateRsvp(card, flagged(), cfg());
+    assert.strictEqual(card.querySelector(".already-card__rsvp"), null);
+    assert.strictEqual(card.querySelector(".already-rsvp__open"), null);
+  });
+});

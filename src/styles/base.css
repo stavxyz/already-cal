@@ -1811,9 +1811,17 @@ button.already-card__action {
   inset: 0;
 }
 
+/* A hidden link (a host with no usable title) covers the host itself rather
+   than sitting in its flow; see ui/event-link.js. */
+.already-event-link--hidden {
+  position: absolute;
+  inset: 0;
+}
+
 /* The ring belongs on the host, which is what the visitor sees as the
    clickable thing, not on the title text. Browsers without :has() fall back
-   to the ring on the link text, which is still visible. */
+   to the ring on the link itself: the title text, or the whole host box for
+   a hidden link, either of which is visible. */
 .already-event-link:focus-visible {
   outline: none;
 }

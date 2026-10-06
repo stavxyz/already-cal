@@ -20,9 +20,10 @@ const CONTROL_SELECTOR =
  * contains a control (a link, a button, an input, or anything with a
  * `tabindex` or a button or link role: a custom layout's own control, which
  * must not end up inside a link), a link with visually hidden `fallbackText`
- * is prepended to `host` instead. That link stays statically positioned and hides only its text:
- * an absolutely positioned link would be the containing block of its own
- * stretched pseudo-element.
+ * is prepended to `host` instead. That hidden link also carries
+ * `already-event-link--hidden`, which takes it out of the host's flow and
+ * sizes it to the host, so its stretched pseudo-element, whose containing
+ * block it then is, still covers the host.
  *
  * DOM only: this knows nothing about events or i18n. The caller resolves
  * the href (router.eventHref) and the fallback text. A null `href` means
@@ -50,6 +51,11 @@ export function linkTitle(
     const text = createElement("span", "already-sr-only");
     text.textContent = fallbackText;
     link.appendChild(text);
+    // Out of the host's flow: an in-flow anchor with no visible content is
+    // still a flex or grid item, and a day row's gap would push its time
+    // column aside. The anchor covers the host itself, so the focus-ring
+    // fallback for browsers without :has() has a box to draw on.
+    link.classList.add("already-event-link--hidden");
     // First in the host, so the event's own link comes before the layout's
     // controls in reading and tab order, as a title does.
     host.prepend(link);

@@ -4664,6 +4664,7 @@ ${text}</tr>
       const text = createElement("span", "already-sr-only");
       text.textContent = fallbackText;
       link2.appendChild(text);
+      link2.classList.add("already-event-link--hidden");
       host.prepend(link2);
     }
     host.classList.add(LINK_HOST_CLASS);

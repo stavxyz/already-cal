@@ -33,6 +33,7 @@ describe("linkTitle", () => {
     assert.strictEqual(link.getAttribute("href"), "http://localhost/#event/e1");
     assert.strictEqual(link.textContent, "Burger Night");
     assert.strictEqual(title.textContent, "Burger Night");
+    assert.ok(!link.classList.contains("already-event-link--hidden"));
   });
 
   it("gives the link both classes and marks the host", () => {
@@ -54,7 +55,7 @@ describe("linkTitle", () => {
     assert.strictEqual(link.textContent, "* Burger Night");
   });
 
-  it("appends a hidden link with the fallback text when there is no title", () => {
+  it("prepends a hidden link with the fallback text when there is no title", () => {
     const host = document.createElement("div");
     host.innerHTML = '<div class="card__meta">10:00</div>';
     const link = linkTitle(host, "http://localhost/#event/e1", opts);
@@ -65,9 +66,10 @@ describe("linkTitle", () => {
     assert.strictEqual(hidden.textContent, "Open event");
     assert.strictEqual(link.textContent, "Open event");
     assert.ok(host.classList.contains(LINK_HOST_CLASS));
+    assert.ok(link.classList.contains("already-event-link--hidden"));
   });
 
-  it("appends the hidden link when the title element holds no text", () => {
+  it("prepends the hidden link when the title element holds no text", () => {
     // Built-in layouts render the title element for a blank title too; a
     // link that holds nothing would have no accessible name.
     const host = hostWithTitle("   ");

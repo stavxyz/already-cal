@@ -488,6 +488,40 @@ describe("inputs the rules do not spell out", () => {
     assert.deepStrictEqual(partIds(events[0]), ["early"]);
   });
 
+  for (const start of ["2026-06-15 23:30", "June 15, 2026 23:30"]) {
+    it(`leaves a part starting ${JSON.stringify(start)} out, since only ISO values decide membership`, () => {
+      // `new Date` reads this value in the viewer's zone, which this file
+      // pins to Auckland: 11:30 UTC on the 15th, inside the all-day parent
+      // as Chicago sees it. Another viewer would read another instant.
+      const { events } = compose([
+        parent("day", "2026-06-15", "2026-06-16"),
+        ev("x", start, undefined),
+      ]);
+      assert.deepStrictEqual(ids(events), ["day", "x"]);
+      assert.deepStrictEqual(partIds(events[0]), []);
+    });
+  }
+
+  it("gives no parts to a flagged entry whose own hours are not ISO values", () => {
+    // Read in Auckland, the parent's hours run from 22:00 UTC on the 14th to
+    // 08:00 UTC on the 15th, which would contain this entry.
+    const { events } = compose([
+      parent("p", "June 15, 2026 10:00", "June 15, 2026 20:00"),
+      ev("x", "2026-06-15T01:00:00Z", "2026-06-15T02:00:00Z"),
+    ]);
+    assert.deepStrictEqual(ids(events), ["p", "x"]);
+    assert.deepStrictEqual(partIds(events[0]), []);
+  });
+
+  it("still composes values that state their offset", () => {
+    const { events } = compose([
+      parent("p", "2026-06-15T10:00:00-05:00", "2026-06-15T20:00:00-05:00"),
+      ev("x", "2026-06-15T17:00:00.000Z", "2026-06-15T18:00:00.000Z"),
+    ]);
+    assert.deepStrictEqual(ids(events), ["p"]);
+    assert.deepStrictEqual(partIds(events[0]), ["x"]);
+  });
+
   it("gives no parts to a flagged entry that has no id", () => {
     // Parts point at their parent by id, so a parent without one could not
     // be told apart from an event whose host put its own `parts` on it.

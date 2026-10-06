@@ -25,15 +25,27 @@ const FLOATING_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/;
 const isFloating = (value) =>
   typeof value === "string" && FLOATING_RE.test(value);
 
+// An ISO date-time that states its UTC offset, such as
+// "2026-06-15T19:00:00-05:00" or "2026-06-15T19:00:00Z".
+const OFFSET_RE =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/;
+
 /**
- * A start or end as a number that is the same for every viewer. A value with
- * a UTC offset is its instant, and a date-only value is its UTC midnight. A
- * timed value with NO offset is a wall-clock time, which `new Date` would
- * read in the viewer's zone, so it is read as that wall clock in UTC. Every
- * comparison that decides membership goes through here.
+ * A start or end as a number that is the same for every viewer, or NaN.
+ * Every comparison that decides membership goes through here, and it reads
+ * three forms only. A date-only value is its UTC midnight. An ISO value with
+ * a UTC offset is its instant. An ISO value with NO offset is a wall-clock
+ * time, read as that clock reading in UTC. Anything else `new Date` could
+ * parse would be read in the viewer's zone, so it is NaN: the entry takes no
+ * part in composition and is shown on its own.
  */
 function zoneFreeTime(value) {
-  return new Date(isFloating(value) ? `${value}Z` : value).getTime();
+  if (isDateOnly(value)) return new Date(value).getTime();
+  if (isFloating(value)) return new Date(`${value}Z`).getTime();
+  if (typeof value === "string" && OFFSET_RE.test(value)) {
+    return new Date(value).getTime();
+  }
+  return Number.NaN;
 }
 
 const sourceOf = (entry) => entry._sourceKey ?? null;

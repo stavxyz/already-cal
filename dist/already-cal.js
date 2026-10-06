@@ -298,8 +298,14 @@ var Already = (() => {
   }
   var FLOATING_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/;
   var isFloating = (value) => typeof value === "string" && FLOATING_RE.test(value);
+  var OFFSET_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/;
   function zoneFreeTime(value) {
-    return new Date(isFloating(value) ? `${value}Z` : value).getTime();
+    if (isDateOnly(value)) return new Date(value).getTime();
+    if (isFloating(value)) return (/* @__PURE__ */ new Date(`${value}Z`)).getTime();
+    if (typeof value === "string" && OFFSET_RE.test(value)) {
+      return new Date(value).getTime();
+    }
+    return Number.NaN;
   }
   var sourceOf = (entry) => entry._sourceKey ?? null;
   var startInstant = (entry) => zoneFreeTime(entry.start);

@@ -91,10 +91,18 @@ describe("reserved key-value forms", () => {
     assert.deepStrictEqual(r.tokens, []);
     assert.strictEqual(r.composite, false);
     assert.strictEqual(r.partOf, false);
+    assert.strictEqual(r.standalone, false);
     assert.ok(!r.description.includes("#already"));
     assert.ok(!r.description.includes("lineup"));
     const event = enrichEvent(base("x #already:part-of:lineup"), {});
     assert.deepStrictEqual(event.tags, []);
+  });
+
+  it("a reserved key with an empty name is removed and sets no flag", () => {
+    const r = extractDirectives("A #already:composite: B");
+    assert.strictEqual(r.composite, false);
+    assert.strictEqual(r.tokens.length, 0);
+    assert.strictEqual(r.description, "A  B");
   });
 
   it("still turns an unknown key-value directive into a tag", () => {

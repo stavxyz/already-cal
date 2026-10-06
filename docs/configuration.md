@@ -152,7 +152,7 @@ Resolve a custom `onRsvp` with `{ partySize }` to confirm, or reject to show a f
 | `rsvp` | `'RSVP'` | RSVP button on a card and in the detail view |
 | `rsvpFor` | `'RSVP for {title}'` | Accessible name of the RSVP button on a card and in the detail view (`{title}` is replaced); the visible text stays `rsvp`. It must contain the `rsvp` text: when it does not, the name is the `rsvp` text, a colon, and the title |
 | `details` | `'Details'` | Badge footer link to the Google event page |
-| `openEvent` | `'Open event'` | Name of an event link that has nothing visible to name it: the hidden link a card or day row gets when its title element is missing, holds no text, or already holds a control, and the hidden text a month chip or week block gets when its title is blank |
+| `openEvent` | `'Open event'` | Name of an event link whose event has no title to name it with: the text of the hidden link a card or day row gets, and the hidden text a month chip or week block gets. An event with a title names these with the title |
 | `rsvpName` | `'Name'` | RSVP form name field |
 | `rsvpEmail` | `'Email'` | RSVP form email field |
 | `rsvpPartySize` | `'How many are coming?'` | RSVP form party size field |

@@ -2,9 +2,11 @@ require("../setup-dom.cjs");
 const { describe, it, before } = require("node:test");
 const assert = require("node:assert");
 
-let linkTitle, eventAnchor;
+let linkTitle, eventAnchor, fillEventAnchor;
 before(async () => {
-  ({ linkTitle, eventAnchor } = await import("../../src/ui/event-link.js"));
+  ({ linkTitle, eventAnchor, fillEventAnchor } = await import(
+    "../../src/ui/event-link.js"
+  ));
 });
 
 const LINK_HOST_CLASS = "already-link-host";
@@ -143,5 +145,33 @@ describe("eventAnchor", () => {
     assert.strictEqual(el.tagName, "DIV");
     assert.strictEqual(el.hasAttribute("href"), false);
     assert.strictEqual(el.className, "chip");
+  });
+});
+
+describe("fillEventAnchor", () => {
+  it("shows the title as the element's text", () => {
+    const el = eventAnchor("http://localhost/#event/e1", "chip");
+    fillEventAnchor(el, "Burger Night", "Open event");
+    assert.strictEqual(el.textContent, "Burger Night");
+    assert.strictEqual(el.querySelector(".already-sr-only"), null);
+  });
+
+  it("names a link whose title is blank with a hidden span", () => {
+    const el = eventAnchor("http://localhost/#event/e1", "chip");
+    fillEventAnchor(el, "   ", "Open event");
+    assert.strictEqual(
+      el.querySelector(".already-sr-only").textContent,
+      "Open event",
+    );
+    assert.strictEqual(el.textContent.trim(), "Open event");
+  });
+
+  it("leaves a plain div for an entry with no route unnamed", () => {
+    // The div is not a control; announcing "Open event" on it would promise
+    // an action that does nothing.
+    const el = eventAnchor(null, "chip");
+    fillEventAnchor(el, "", "Open event");
+    assert.strictEqual(el.querySelector(".already-sr-only"), null);
+    assert.strictEqual(el.textContent, "");
   });
 });

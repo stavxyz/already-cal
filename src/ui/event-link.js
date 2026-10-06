@@ -68,12 +68,13 @@ export function linkTitle(
  * Give an element that is itself the event's link (a chip, a block) its
  * text: the title, or, when the title is blank, a visually hidden span with
  * the fallback text, so the link still has an accessible name and the
- * element still looks as it did.
+ * element still looks as it did. A plain element (eventAnchor's div for an
+ * entry with no route) is not a control, so it gets no name to announce.
  */
 export function fillEventAnchor(el, title, fallbackText) {
   const text = String(title ?? "");
   el.textContent = text;
-  if (text.trim() !== "") return;
+  if (text.trim() !== "" || el.tagName !== "A") return;
   const hidden = createElement("span", "already-sr-only");
   hidden.textContent = fallbackText;
   el.appendChild(hidden);

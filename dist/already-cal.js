@@ -4673,7 +4673,7 @@ ${text}</tr>
   function fillEventAnchor(el, title, fallbackText) {
     const text = String(title ?? "");
     el.textContent = text;
-    if (text.trim() !== "") return;
+    if (text.trim() !== "" || el.tagName !== "A") return;
     const hidden = createElement("span", "already-sr-only");
     hidden.textContent = fallbackText;
     el.appendChild(hidden);

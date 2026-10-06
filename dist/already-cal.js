@@ -30,6 +30,7 @@ var Already = (() => {
     init: () => init,
     registerLayout: () => registerLayout,
     registerTheme: () => registerTheme,
+    rsvpViaFetch: () => rsvpViaFetch,
     setConfig: () => setConfig
   });
 
@@ -3205,7 +3206,8 @@ ${text}</tr>
         description,
         featured: false,
         hidden: false,
-        imageShuffle: false
+        imageShuffle: false,
+        rsvp: false
       };
     description = decodeAmp(description).replace(
       LINKED_VALUE,
@@ -3219,6 +3221,7 @@ ${text}</tr>
     let featured = false;
     let hidden = false;
     let imageShuffle = false;
+    let rsvp = false;
     const matches = [...description.matchAll(DIRECTIVE_PATTERN)];
     for (const match of matches) {
       const body = match[1];
@@ -3235,6 +3238,10 @@ ${text}</tr>
         imageShuffle = true;
         continue;
       }
+      if (bodyLower === "rsvp") {
+        rsvp = true;
+        continue;
+      }
       const token = parseDirective(body);
       if (!token) continue;
       if (!seen.has(token.canonicalId)) {
@@ -3248,7 +3255,7 @@ ${text}</tr>
         matches.map((m) => ({ index: m.index, text: m[0] }))
       )
     );
-    return { tokens, description: cleaned, featured, hidden, imageShuffle };
+    return { tokens, description: cleaned, featured, hidden, imageShuffle, rsvp };
   }
 
   // src/util/hash.js
@@ -3305,6 +3312,7 @@ ${text}</tr>
     let featured = event.featured || false;
     let hidden = event.hidden || false;
     let imageShuffle = event.imageShuffle || false;
+    let rsvp = event.rsvp || false;
     const tokenSet = new TokenSet();
     description = stripComments(description);
     if (description) {
@@ -3314,6 +3322,7 @@ ${text}</tr>
       if (result.featured) featured = true;
       if (result.hidden) hidden = true;
       if (result.imageShuffle) imageShuffle = true;
+      if (result.rsvp) rsvp = true;
     }
     if (images.length === 0 && description) {
       const result = extractImageTokens(description, config);
@@ -3394,6 +3403,7 @@ ${text}</tr>
       featured,
       hidden,
       imageShuffle,
+      rsvp,
       htmlLink: event.htmlLink || ""
     };
   }
@@ -4007,13 +4017,13 @@ ${text}</tr>
     }
     if (event.htmlLink) {
       const actions = createElement("div", "already-card__footer");
-      const rsvp = createElement("a", "already-card__action", {
+      const details = createElement("a", "already-card__action", {
         href: event.htmlLink,
         target: "_blank",
         rel: "noopener noreferrer"
       });
-      rsvp.textContent = "RSVP";
-      actions.appendChild(rsvp);
+      details.textContent = options2.config?.i18n?.details || "Details";
+      actions.appendChild(details);
       body.appendChild(actions);
     }
     card.appendChild(body);
@@ -5191,6 +5201,42 @@ ${text}</tr>
     }
   }
 
+  // src/util/rsvp-transport.js
+  function rsvpViaFetch(url, fetchImpl = globalThis.fetch) {
+    return async function onRsvp(event, fields) {
+      let res;
+      try {
+        res = await fetchImpl(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId: event.id, ...fields })
+        });
+      } catch (cause) {
+        throw rsvpError("network_error", 0, cause);
+      }
+      let body = null;
+      try {
+        body = await res.json();
+      } catch {
+        body = null;
+      }
+      if (!res.ok) {
+        const code = body && typeof body.error === "string" ? body.error : `http_${res.status}`;
+        throw rsvpError(code, res.status);
+      }
+      if (!body || typeof body !== "object")
+        throw rsvpError("bad_response", res.status);
+      return body;
+    };
+  }
+  function rsvpError(code, status, cause) {
+    const err = new Error(`rsvp: ${code}`);
+    err.code = code;
+    err.status = status;
+    if (cause) err.cause = cause;
+    return err;
+  }
+
   // src/util/throttle.js
   function makeThrottle({ thresholdMs, now }) {
     let lastAdmittedAt = -Infinity;
@@ -5271,6 +5317,159 @@ ${text}</tr>
     }
     container.innerHTML = "";
     container.appendChild(day);
+  }
+
+  // src/ui/rsvp-form.js
+  var NAME_MAX = 80;
+  var EMAIL_MAX = 254;
+  var PARTY_MAX = 20;
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  function offersRsvp(event, config, now = /* @__PURE__ */ new Date()) {
+    if (!config || typeof config.onRsvp !== "function") return false;
+    if (!(event.rsvp || config.rsvpAllEvents)) return false;
+    if (!event.start) return false;
+    const start = parseEventDate(event.start);
+    if (Number.isNaN(start.getTime())) return false;
+    return start > now;
+  }
+  function field(form, name, labelText, attrs) {
+    const wrap = createElement("label", "already-rsvp__field");
+    const text = createElement("span", "already-rsvp__label");
+    text.textContent = labelText;
+    const input = createElement("input", "already-rsvp__input", {
+      name,
+      ...attrs
+    });
+    wrap.appendChild(text);
+    wrap.appendChild(input);
+    form.appendChild(wrap);
+    return input;
+  }
+  function createRsvpForm(event, config, onClose) {
+    const i18n = config.i18n || {};
+    const invalidText = i18n.rsvpInvalid || "Check your name, email and party size.";
+    const startedText = i18n.rsvpStarted || "This event has already started.";
+    const failedText = i18n.rsvpFailed || "Could not save your RSVP. Try again.";
+    const form = createElement("form", "already-rsvp", { novalidate: "" });
+    const name = field(form, "name", i18n.rsvpName || "Name", {
+      type: "text",
+      maxlength: String(NAME_MAX),
+      autocomplete: "name",
+      required: ""
+    });
+    const email = field(form, "email", i18n.rsvpEmail || "Email", {
+      type: "email",
+      maxlength: String(EMAIL_MAX),
+      autocomplete: "email",
+      required: ""
+    });
+    const size = field(
+      form,
+      "partySize",
+      i18n.rsvpPartySize || "How many are coming?",
+      {
+        type: "number",
+        min: "1",
+        max: String(PARTY_MAX),
+        value: "1",
+        inputmode: "numeric"
+      }
+    );
+    const website = createElement("input", "already-rsvp__hp", {
+      type: "text",
+      name: "website",
+      tabindex: "-1",
+      autocomplete: "off",
+      "aria-hidden": "true"
+    });
+    form.appendChild(website);
+    const actions = createElement("div", "already-rsvp__actions");
+    const submit = createElement("button", "already-rsvp__submit", {
+      type: "submit"
+    });
+    submit.textContent = i18n.rsvpSubmit || "RSVP";
+    const cancel = createElement("button", "already-rsvp__cancel", {
+      type: "button"
+    });
+    cancel.textContent = i18n.rsvpCancel || "Cancel";
+    actions.appendChild(submit);
+    actions.appendChild(cancel);
+    form.appendChild(actions);
+    const error = createElement("p", "already-rsvp__error", { role: "alert" });
+    error.hidden = true;
+    form.appendChild(error);
+    function showError(text) {
+      error.textContent = text;
+      error.hidden = false;
+    }
+    let pending = false;
+    form.addEventListener("click", (e) => e.stopPropagation());
+    form.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key !== "Escape") return;
+      if (pending) return;
+      onClose();
+    });
+    cancel.addEventListener("click", onClose);
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fields = {
+        name: name.value.trim(),
+        email: email.value.trim().toLowerCase(),
+        partySize: Number.parseInt(size.value, 10),
+        website: website.value
+      };
+      if (!fields.name || fields.name.length > NAME_MAX)
+        return showError(invalidText);
+      if (!EMAIL_RE.test(fields.email) || fields.email.length > EMAIL_MAX)
+        return showError(invalidText);
+      if (!Number.isInteger(fields.partySize) || fields.partySize < 1 || fields.partySize > PARTY_MAX)
+        return showError(invalidText);
+      error.hidden = true;
+      submit.disabled = true;
+      cancel.disabled = true;
+      pending = true;
+      try {
+        const result = await config.onRsvp(event, fields);
+        const count = result && Number.isInteger(result.partySize) ? result.partySize : fields.partySize;
+        const done = createElement("p", "already-rsvp__done", { role: "status" });
+        done.textContent = (i18n.rsvpDone || "You're on the list: {count} going").replaceAll("{count}", String(count));
+        form.replaceWith(done);
+      } catch (err) {
+        pending = false;
+        submit.disabled = false;
+        cancel.disabled = false;
+        showError(err && err.code === "event_started" ? startedText : failedText);
+      }
+    });
+    return { form, focus: () => name.focus() };
+  }
+  function appendRsvpControl(container, event, config) {
+    if (!offersRsvp(event, config)) return null;
+    const i18n = config.i18n || {};
+    const button = createElement(
+      "button",
+      "already-card__action already-rsvp__open",
+      { type: "button" }
+    );
+    button.textContent = i18n.rsvp || "RSVP";
+    button.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const { form, focus } = createRsvpForm(event, config, () => {
+        form.replaceWith(button);
+        button.focus();
+      });
+      button.replaceWith(form);
+      focus();
+    });
+    button.addEventListener("keydown", (e) => e.stopPropagation());
+    container.appendChild(button);
+    return button;
+  }
+  function decorateRsvp(card, event, config) {
+    const footer = card.querySelector(".already-card__footer");
+    if (!footer) return;
+    appendRsvpControl(footer, event, config);
   }
 
   // src/views/lightbox.js
@@ -5562,6 +5761,8 @@ ${text}</tr>
       }
       content.appendChild(linksDiv);
     }
+    const rsvpRow = createElement("div", "already-detail-rsvp");
+    if (appendRsvpControl(rsvpRow, event, config)) content.appendChild(rsvpRow);
     body.appendChild(content);
     detail.appendChild(body);
     container.innerHTML = "";
@@ -5589,6 +5790,7 @@ ${text}</tr>
         config
       });
       decorateCard(card, event, "grid", config);
+      decorateRsvp(card, event, config);
       grid.appendChild(card);
     }
     container.innerHTML = "";
@@ -5616,6 +5818,7 @@ ${text}</tr>
         config
       });
       decorateCard(card, event, "list", config);
+      decorateRsvp(card, event, config);
       list2.appendChild(card);
     }
     container.innerHTML = "";
@@ -5863,6 +6066,12 @@ ${text}</tr>
     onViewChange: null,
     onError: null,
     onDataLoad: null,
+    // Native RSVP: the view-wide switch and the host's submit function. Flat
+    // keys on purpose: init merges one level deep, so a nested object a host
+    // passed would replace the whole default.
+    rsvpAllEvents: false,
+    onRsvp: null,
+    // async (event, { name, email, partySize, website }) => ({ partySize })
     showHeader: true,
     headerTitle: null,
     // override calendar name
@@ -5908,7 +6117,18 @@ ${text}</tr>
     copied: "\u{1F4CB} Copied!",
     clearFilter: "Clear",
     loadMore: "Load more",
-    showEarlier: "Show earlier"
+    showEarlier: "Show earlier",
+    rsvp: "RSVP",
+    details: "Details",
+    rsvpName: "Name",
+    rsvpEmail: "Email",
+    rsvpPartySize: "How many are coming?",
+    rsvpSubmit: "RSVP",
+    rsvpCancel: "Cancel",
+    rsvpDone: "You're on the list: {count} going",
+    rsvpInvalid: "Check your name, email and party size.",
+    rsvpStarted: "This event has already started.",
+    rsvpFailed: "Could not save your RSVP. Try again."
   };
   function registerLayout(name, renderFn) {
     register("layout", name, renderFn);
@@ -6290,7 +6510,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.11.4" : "unknown"
+        true ? "0.12.0" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

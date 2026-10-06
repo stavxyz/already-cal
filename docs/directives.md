@@ -117,7 +117,7 @@ URL-valued tags are excluded from the tag filter bar and from card pills.
 
 ## Featured and Hidden
 
-These are flag directives — they have no value, just the keyword after `#already:`.
+These are flag directives — they have no value, just the keyword after `#already:`. `#already:rsvp` is a further flag directive, documented under RSVP below.
 
 ### Featured
 
@@ -140,6 +140,16 @@ These are flag directives — they have no value, just the keyword after `#alrea
 - Sets `event.hidden = true` on the event object
 
 `#already:image-shuffle` is a third flag directive; see [Shuffle the card image](#shuffle-the-card-image).
+
+## RSVP
+
+```
+#already:rsvp
+```
+
+- A flag, like `featured` and `hidden`: no value, just the keyword
+- Sets `event.rsvp = true` on the event object; the widget shows an RSVP button for the event when the host configured `onRsvp` (see the README's RSVP section)
+- `#already:rsvp:<url>` is not this flag: with a value it is a URL-valued tag and renders a link button labeled "Rsvp"
 
 ## Deduplication
 

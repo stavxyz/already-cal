@@ -30,7 +30,7 @@ src/
 │   ├── registry.js         # Layout registry — getLayout(name) with clean fallback
 │   ├── helpers.js          # Shared layout rendering utilities
 │   ├── base.css            # Shared card CSS primitives
-│   ├── badge/              # Badge layout: date overlay, tags, RSVP footer
+│   ├── badge/              # Badge layout: date overlay, tags, Details link footer
 │   ├── clean/              # Clean layout: minimal image + title + date + location
 │   ├── compact/            # Compact layout: no image, inline date badge, dense
 │   └── hero/               # Hero layout: large image, bold title, description preview

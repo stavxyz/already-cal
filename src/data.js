@@ -69,6 +69,7 @@ export function enrichEvent(event, config) {
   let featured = event.featured || false;
   let hidden = event.hidden || false;
   let imageShuffle = event.imageShuffle || false;
+  let rsvp = event.rsvp || false;
 
   const tokenSet = new TokenSet();
 
@@ -83,6 +84,7 @@ export function enrichEvent(event, config) {
     if (result.featured) featured = true;
     if (result.hidden) hidden = true;
     if (result.imageShuffle) imageShuffle = true;
+    if (result.rsvp) rsvp = true;
   }
 
   // Step 2: Extract images from description if not already set
@@ -186,6 +188,7 @@ export function enrichEvent(event, config) {
     featured,
     hidden,
     imageShuffle,
+    rsvp,
     htmlLink: event.htmlLink || "",
   };
 }

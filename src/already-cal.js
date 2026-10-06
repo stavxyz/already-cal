@@ -33,6 +33,7 @@ import {
   postInteractionToParent,
   postReadyToParent,
 } from "./util/ready-handshake.js";
+import { rsvpViaFetch } from "./util/rsvp-transport.js";
 import { makeThrottle } from "./util/throttle.js";
 import { renderDayView } from "./views/day.js";
 import { renderDetailView } from "./views/detail.js";
@@ -62,6 +63,11 @@ const DEFAULTS = {
   onViewChange: null,
   onError: null,
   onDataLoad: null,
+  // Native RSVP: the view-wide switch and the host's submit function. Flat
+  // keys on purpose: init merges one level deep, so a nested object a host
+  // passed would replace the whole default.
+  rsvpAllEvents: false,
+  onRsvp: null, // async (event, { name, email, partySize, website }) => ({ partySize })
   showHeader: true,
   headerTitle: null, // override calendar name
   headerDescription: null, // override calendar description
@@ -104,6 +110,17 @@ const I18N_DEFAULTS = {
   clearFilter: "Clear",
   loadMore: "Load more",
   showEarlier: "Show earlier",
+  rsvp: "RSVP",
+  details: "Details",
+  rsvpName: "Name",
+  rsvpEmail: "Email",
+  rsvpPartySize: "How many are coming?",
+  rsvpSubmit: "RSVP",
+  rsvpCancel: "Cancel",
+  rsvpDone: "You're on the list: {count} going",
+  rsvpInvalid: "Check your name, email and party size.",
+  rsvpStarted: "This event has already started.",
+  rsvpFailed: "Could not save your RSVP. Try again.",
 };
 
 // Expose defaults so consumers can extend rather than copy them
@@ -115,6 +132,7 @@ export {
   DEFAULT_ALLOWED_URL_SCHEMES,
   DEFAULT_RAW_TEXT_ELEMENTS,
   DEFAULTS,
+  rsvpViaFetch,
 };
 
 /**

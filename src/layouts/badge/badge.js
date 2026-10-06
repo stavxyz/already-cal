@@ -76,16 +76,17 @@ export function render(event, options) {
     body.appendChild(desc);
   }
 
-  // Action footer
+  // Action footer: the Google event page, under its honest name. The native
+  // RSVP button is a decoration the views add (src/ui/rsvp-form.js).
   if (event.htmlLink) {
     const actions = createElement("div", "already-card__footer");
-    const rsvp = createElement("a", "already-card__action", {
+    const details = createElement("a", "already-card__action", {
       href: event.htmlLink,
       target: "_blank",
       rel: "noopener noreferrer",
     });
-    rsvp.textContent = "RSVP";
-    actions.appendChild(rsvp);
+    details.textContent = options.config?.i18n?.details || "Details";
+    actions.appendChild(details);
     body.appendChild(actions);
   }
 

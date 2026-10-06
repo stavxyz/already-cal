@@ -275,13 +275,23 @@ describe("badge layout", () => {
     assert.strictEqual(el.querySelector(".already-card__tags"), null);
   });
 
-  it("renders action footer with RSVP link when htmlLink present", () => {
+  it("renders action footer with a Details link when htmlLink present", () => {
     const el = render(
       createTestEvent({ htmlLink: "https://calendar.google.com/event/abc" }),
       baseOptions,
     );
     const actions = el.querySelectorAll(".already-card__action");
     assert.ok(actions.length > 0);
+    assert.strictEqual(actions[0].textContent, "Details");
+  });
+
+  it("uses a configured i18n.details label for the action footer link", () => {
+    const el = render(
+      createTestEvent({ htmlLink: "https://calendar.google.com/event/abc" }),
+      { ...baseOptions, config: { i18n: { details: "More" } } },
+    );
+    const actions = el.querySelectorAll(".already-card__action");
+    assert.strictEqual(actions[0].textContent, "More");
   });
 
   it("omits action footer when no htmlLink", () => {

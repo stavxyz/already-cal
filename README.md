@@ -109,6 +109,10 @@ Already.init({
   headerIcon: null,                    // URL to icon/logo
   subscribeUrl: null,                  // auto-generated from calendarId if not set
 
+  // --- RSVP (see "RSVP" below) ---
+  rsvpAllEvents: false,                // every event takes RSVPs; otherwise only events flagged #already:rsvp
+  onRsvp: null,                        // async (event, { name, email, partySize, website }) => ({ partySize })
+
   // --- Views ---
   defaultView: 'month',
   views: ['month', 'week', 'day', 'grid', 'list'],
@@ -149,6 +153,17 @@ Already.init({
     clearFilter: 'Clear',
     loadMore: 'Load more',
     showEarlier: 'Show earlier',
+    rsvp: 'RSVP',
+    details: 'Details',
+    rsvpName: 'Name',
+    rsvpEmail: 'Email',
+    rsvpPartySize: 'How many are coming?',
+    rsvpSubmit: 'RSVP',
+    rsvpCancel: 'Cancel',
+    rsvpDone: "You're on the list: {count} going",
+    rsvpInvalid: 'Check your name, email and party size.',
+    rsvpStarted: 'This event has already started.',
+    rsvpFailed: 'Could not save your RSVP. Try again.',
   },
 
   // --- Responsive ---
@@ -242,7 +257,7 @@ Themes have two independent axes: **layouts** (card structure) and **palettes** 
 |--------|-------------|
 | `clean` | Image, title, date, location. Minimal and fast to scan. **(default)** |
 | `hero` | Large image, bold uppercase title, description preview, footer with icons |
-| `badge` | Date badge overlay on image, tags, description, RSVP action footer |
+| `badge` | Date badge overlay on image, tags, description, action footer (Details link, RSVP button when enabled) |
 | `compact` | No image, inline date badge, dense info. Great for text-heavy calendars |
 
 ### Palettes
@@ -431,6 +446,7 @@ Directives let you control already-cal behavior directly from event descriptions
 #already:featured                  → pins event to top, adds star badge
 #already:hidden                    → hides from views (still accessible via direct link)
 #already:image-shuffle             → a stable image per occurrence, chosen from the list by a hash of the occurrence id
+#already:rsvp                      → the event takes RSVPs when the host configured onRsvp
 ```
 
 A URL-valued directive pasted into Google Calendar is read from the link the editor turns it into (see [docs/directives.md](docs/directives.md)).
@@ -438,6 +454,24 @@ A URL-valued directive pasted into Google Calendar is read from the link the edi
 All 18 built-in platforms are supported as directives, plus aliases (`twitter` → X, `meet` → Google Meet, `forms` → Google Forms, `maps` → Google Maps). Directives and URLs are deduplicated — `#already:instagram:foo` and `https://instagram.com/foo` produce one button, not two.
 
 For the complete reference including all platforms, URL construction, tag types, and deduplication rules, see the **[directives reference](docs/directives.md)**.
+
+## RSVP
+
+Events flagged `#already:rsvp` (or every event, with `rsvpAllEvents: true`) get an RSVP button on Badge cards and in the event detail view when you supply `onRsvp`. The widget collects a name, an email and a party size and hands them to your function; it never knows where they go.
+
+```js
+Already.init({
+  el: '#cal',
+  google: { apiKey, calendarId },
+  onRsvp: Already.rsvpViaFetch('https://your-server.example/rsvp'),
+});
+```
+
+`Already.rsvpViaFetch(url)` posts `{ eventId, name, email, partySize, website }` as JSON and resolves with the response body; the done line shows `partySize` from the response. Write your own `onRsvp(event, fields)` for any other transport: resolve with `{ partySize }` to confirm, reject to show the failure message. `website` is a honeypot field; a real visitor never fills it. Labels come from `i18n` (`rsvp`, `rsvpName`, `rsvpEmail`, `rsvpPartySize`, `rsvpSubmit`, `rsvpCancel`, `rsvpDone`, `rsvpInvalid`, `rsvpStarted`, `rsvpFailed`), and the Badge footer's link to the Google event page is labeled `i18n.details`.
+
+Badge's footer link to the Google event page, previously labeled RSVP, is now labeled Details (i18n.details); the RSVP button is separate and appears only when onRsvp is configured.
+
+Rejections from rsvpViaFetch carry code and status; the form shows rsvpStarted for event_started and rsvpFailed for everything else.
 
 ## Tag Filtering
 

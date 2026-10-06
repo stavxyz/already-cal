@@ -361,14 +361,17 @@ describe("the three card sites", () => {
     assert.deepStrictEqual(lines(popover), expected);
   });
 
-  it("puts the RSVP row after the parts on a card", () => {
-    const config = cfg("clean", { onRsvp: async () => ({ partySize: 1 }) });
-    const c = grid([night([act(1, 18)], { rsvp: true })], config);
-    const parts = c.querySelector(".already-card__parts");
-    const rsvp = c.querySelector(".already-card__rsvp");
-    assert.ok(rsvp);
-    assert.ok(
-      parts.compareDocumentPosition(rsvp) & Node.DOCUMENT_POSITION_FOLLOWING,
-    );
-  });
+  for (const name of NAMES) {
+    it(`${name}: puts the RSVP button after the parts on a card`, () => {
+      const config = cfg(name, { onRsvp: async () => ({ partySize: 1 }) });
+      const c = grid([night([act(1, 18)], { rsvp: true })], config);
+      const parts = c.querySelector(".already-card__parts");
+      const open = c.querySelector(".already-rsvp__open");
+      assert.ok(parts);
+      assert.ok(open);
+      assert.ok(
+        parts.compareDocumentPosition(open) & Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    });
+  }
 });

@@ -5896,7 +5896,10 @@ ${text}</tr>
         }
         if (showTime && showTitle) head.append(" ");
         if (showTitle) {
-          const title = createElement("span", "already-detail-part-title");
+          const title = createElement("span", "already-detail-part-title", {
+            role: "heading",
+            "aria-level": needsDays ? "4" : "3"
+          });
           title.textContent = part.title;
           head.appendChild(title);
         }

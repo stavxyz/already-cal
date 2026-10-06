@@ -84,7 +84,12 @@ export function renderDetailParts(
       }
       if (showTime && showTitle) head.append(" ");
       if (showTitle) {
-        const title = createElement("span", "already-detail-part-title");
+        // The detail title is the page's h2 and a day heading is level 3, so
+        // a part's title sits one level below whichever is above it.
+        const title = createElement("span", "already-detail-part-title", {
+          role: "heading",
+          "aria-level": needsDays ? "4" : "3",
+        });
         title.textContent = part.title;
         head.appendChild(title);
       }

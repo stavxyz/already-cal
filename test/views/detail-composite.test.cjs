@@ -282,6 +282,43 @@ describe("detail view of a composite", () => {
     assert.strictEqual(headings[0].getAttribute("role"), "heading");
   });
 
+  it("makes each part's title a level 3 heading when there are no day headings", () => {
+    const c = render(night([act(), act({ title: "Second" })]));
+    const titles = [...c.querySelectorAll(".already-detail-part-title")];
+    assert.strictEqual(titles.length, 2);
+    for (const title of titles) {
+      assert.strictEqual(title.getAttribute("role"), "heading");
+      assert.strictEqual(title.getAttribute("aria-level"), "3");
+    }
+  });
+
+  it("makes each part's title a level 4 heading under the day headings", () => {
+    const c = render(
+      night(
+        [
+          act(),
+          act({
+            title: "Day Two",
+            start: "2099-06-16T18:00:00Z",
+            end: "2099-06-16T19:00:00Z",
+          }),
+        ],
+        { end: "2099-06-16T21:00:00Z" },
+      ),
+    );
+    const titles = [...c.querySelectorAll(".already-detail-part-title")];
+    assert.strictEqual(titles.length, 2);
+    for (const title of titles) {
+      assert.strictEqual(title.getAttribute("role"), "heading");
+      assert.strictEqual(title.getAttribute("aria-level"), "4");
+    }
+    const days = [...c.querySelectorAll(".already-detail-parts-day")];
+    assert.strictEqual(days.length, 2);
+    for (const day of days) {
+      assert.strictEqual(day.getAttribute("aria-level"), "3");
+    }
+  });
+
   it("marks the part a link named", () => {
     const c = render(night([act(), act({ title: "Second" })]), config(), {
       focusPartId: "part-2",

@@ -21,6 +21,18 @@ function decodeHashId(text) {
   }
 }
 
+/**
+ * The id as eventHref writes it into the hash. An id with a lone surrogate
+ * cannot be encoded; it goes in as it is rather than taking the render down.
+ */
+function encodeHashId(id) {
+  try {
+    return encodeURIComponent(id);
+  } catch {
+    return id;
+  }
+}
+
 /** The route a hash fragment (without its `#`) names, or null. */
 function routeFromHash(hash) {
   // #event/abc123. An empty argument is no route, as eventHref treats an
@@ -126,7 +138,7 @@ export function setDayView(dateStr, config) {
 export function eventHref(entry) {
   const id = entry?.id || entry?.parentId;
   if (!id) return null;
-  const fragment = `#event/${encodeURIComponent(id)}`;
+  const fragment = `#event/${encodeHashId(id)}`;
   // A relative fragment is the right href on almost every page: the browser
   // resolves it against the page's current URL each time it is used, so it
   // cannot go stale when a host changes the path or the query. A <base href>

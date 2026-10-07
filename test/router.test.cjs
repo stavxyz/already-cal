@@ -2,9 +2,11 @@ require("./setup-dom.cjs");
 const { describe, it, before, after, afterEach } = require("node:test");
 const assert = require("node:assert");
 
-let eventHref, parseHash, onHashChange;
+let eventHref, parseHash, onHashChange, getInitialView;
 before(async () => {
-  ({ eventHref, parseHash, onHashChange } = await import("../src/router.js"));
+  ({ eventHref, parseHash, onHashChange, getInitialView } = await import(
+    "../src/router.js"
+  ));
 });
 afterEach(() => {
   // replaceState, not `location.hash = ""`: the latter leaves a trailing `#`
@@ -90,6 +92,26 @@ describe("eventHref", () => {
     assert.strictEqual(eventHref({ id: "50%off" }), "#event/50%25off");
     assert.strictEqual(eventHref({ id: "café" }), "#event/caf%C3%A9");
   });
+
+  it("percent-encodes the id in the absolute form too", () => {
+    const base = document.createElement("base");
+    base.setAttribute("href", "/elsewhere/");
+    document.head.appendChild(base);
+    try {
+      assert.strictEqual(
+        eventHref({ id: "a b" }),
+        "http://localhost/#event/a%20b",
+      );
+    } finally {
+      base.remove();
+    }
+  });
+
+  it("keeps an id it cannot encode as it is instead of throwing", () => {
+    // A lone surrogate has no UTF-8 form; the old template string never
+    // threw on one, and a link that cannot open beats a render that fails.
+    assert.strictEqual(eventHref({ id: "a\uD800" }), "#event/a\uD800");
+  });
 });
 
 describe("parseHash with a hand-typed event hash", () => {
@@ -99,6 +121,30 @@ describe("parseHash with a hand-typed event hash", () => {
     // every version before the encoder did.
     window.location.hash = "#event/50%off";
     assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "50%off" });
+  });
+
+  it("still opens a Google id pasted with its bare @", () => {
+    window.location.hash = "#event/x@google.com";
+    assert.deepStrictEqual(parseHash(), {
+      view: "detail",
+      eventId: "x@google.com",
+    });
+  });
+
+  it("decodes a valid escape, so an id holding one must be encoded twice", () => {
+    // Earlier versions read `a%25b` as the id; the encoder writes such an id
+    // as `a%2525b`, and a hand-built hash has to do the same.
+    window.location.hash = "#event/a%25b";
+    assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "a%b" });
+  });
+});
+
+describe("getInitialView with initialEvent", () => {
+  it("passes the host's id through as it is, because it is an id and not a hash", () => {
+    assert.deepStrictEqual(
+      getInitialView("month", ["month"], { initialEvent: "a b" }),
+      { view: "detail", eventId: "a b" },
+    );
   });
 });
 

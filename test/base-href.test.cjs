@@ -1,7 +1,7 @@
 require("./setup-dom.cjs");
 const { describe, it, before, after, afterEach } = require("node:test");
 const assert = require("node:assert");
-const { createTestEvent } = require("./helpers.cjs");
+const { createTestEvent, until } = require("./helpers.cjs");
 
 // On a page with a <base href>, an event link's href is the page's absolute
 // URL plus the fragment, fixed when the view rendered (router.eventHref). A
@@ -34,15 +34,6 @@ function addBase() {
   base = document.createElement("base");
   base.setAttribute("href", "/elsewhere/");
   document.head.appendChild(base);
-}
-
-async function until(check, what) {
-  const deadline = Date.now() + 2000;
-  while (Date.now() < deadline) {
-    if (check()) return;
-    await new Promise((r) => setTimeout(r, 10));
-  }
-  assert.fail(`timed out waiting for ${what}`);
 }
 
 // The 15th of the current month at noon, local time: inside the month the
@@ -80,6 +71,7 @@ const bubbling = (type) => new window.Event(type, { bubbles: true });
 
 describe("an event link on a page with a base element", () => {
   for (const [gesture, type] of [
+    ["the pointer arriving", "pointerover"],
     ["a pointer going down", "pointerdown"],
     ["focus arriving", "focusin"],
     ["the context menu opening", "contextmenu"],
@@ -133,6 +125,48 @@ describe("an event link on a page with a base element", () => {
       other.getAttribute("href"),
       "http://localhost/cal/#grid",
     );
+  });
+
+  it("rewrites a host's own #event/ link inside the widget, which the base misdirects too", async () => {
+    // A description can carry such a link. Relative, it resolves against
+    // the base and opens the wrong page; rewritten, it opens this one.
+    window.history.replaceState({}, "", "/cal/");
+    addBase();
+    const c = mount("grid");
+    await until(() => c.querySelector("a.already-card__link"), "the card");
+    const own = document.createElement("a");
+    own.setAttribute("href", "#event/e1");
+    c.appendChild(own);
+    assert.strictEqual(own.href, "http://localhost/elsewhere/#event/e1");
+    window.history.pushState({}, "", "/cal/page2");
+    own.dispatchEvent(bubbling("pointerdown"));
+    assert.strictEqual(
+      own.getAttribute("href"),
+      "http://localhost/cal/page2#event/e1",
+    );
+  });
+
+  it("ignores a link whose href the URL parser rejects, without an error", async () => {
+    // The description sanitizer checks a link's scheme, not its shape, so a
+    // malformed href can reach the DOM; a gesture on it must not throw.
+    window.history.replaceState({}, "", "/cal/");
+    addBase();
+    const c = mount("grid");
+    await until(() => c.querySelector("a.already-card__link"), "the card");
+    const bad = document.createElement("a");
+    bad.setAttribute("href", "http://[bad");
+    c.appendChild(bad);
+    const errors = [];
+    const onError = (e) => errors.push(e.message);
+    window.addEventListener("error", onError);
+    try {
+      window.history.pushState({}, "", "/cal/page2");
+      bad.dispatchEvent(bubbling("pointerdown"));
+    } finally {
+      window.removeEventListener("error", onError);
+    }
+    assert.deepStrictEqual(errors, []);
+    assert.strictEqual(bad.getAttribute("href"), "http://[bad");
   });
 });
 

@@ -94,12 +94,24 @@ export function eventAnchor(href, className) {
   return createElement("a", className, { href });
 }
 
-/** The event link at or above `target`: an anchor whose fragment is a route to an event. */
+/**
+ * The event link at or above `target`, with its fragment: an anchor whose
+ * href names an event route, whoever wrote it. A host's own `#event/<id>`
+ * link in a description counts too, since on a page with a base element
+ * it is misdirected in the same way. An href the URL parser rejects (a
+ * malformed link a description can carry, as the sanitizer checks only
+ * the scheme) is no event link, rather than an error thrown from a gesture.
+ */
 function eventLinkAt(target) {
   // A text node or the document has no closest(); only elements do.
   const link = target?.closest?.("a[href]") ?? null;
   if (link === null) return null;
-  return new URL(link.href).hash.startsWith("#event/") ? link : null;
+  try {
+    const { hash } = new URL(link.href);
+    return hash.startsWith("#event/") ? { link, hash } : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -107,22 +119,23 @@ function eventLinkAt(target) {
  * There, router.eventHref writes each href as the page's absolute URL plus
  * the fragment, taken when the view rendered; a host that then changes its
  * path or query with pushState or replaceState while the widget stays
- * mounted would leave a middle click, "Open in new tab", or "Copy link
- * address" on the URL the page had at render time. So just before any of
- * those can read the href (pointerdown, focusin, contextmenu), the link
- * under the pointer or focus is rewritten from the current location. A
- * plain click never needed this: it moves only the fragment into
- * location.hash. On a page without a base element the hrefs are relative
- * and cannot go stale, and this does nothing. Returns the unbind function.
+ * mounted would leave the status bar, a middle click, "Open in new tab",
+ * or "Copy link address" on the URL the page had at render time. So just
+ * before any of those can read the href (pointerover for the hover,
+ * pointerdown, focusin, contextmenu), the link under the pointer or focus
+ * is rewritten from the current location. A plain click never needed
+ * this: it moves only the fragment into location.hash. On a page without
+ * a base element the hrefs are relative and cannot go stale, and this does
+ * nothing. Returns the unbind function.
  */
 export function keepEventHrefsCurrent(root) {
   const refresh = (e) => {
     if (document.querySelector("base[href]") === null) return;
-    const link = eventLinkAt(e.target);
-    if (link === null) return;
-    link.href = new URL(new URL(link.href).hash, window.location.href).href;
+    const found = eventLinkAt(e.target);
+    if (found === null) return;
+    found.link.href = new URL(found.hash, window.location.href).href;
   };
-  const types = ["pointerdown", "focusin", "contextmenu"];
+  const types = ["pointerover", "pointerdown", "focusin", "contextmenu"];
   for (const type of types) root.addEventListener(type, refresh);
   return () => {
     for (const type of types) root.removeEventListener(type, refresh);

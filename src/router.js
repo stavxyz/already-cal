@@ -120,16 +120,20 @@ export function eventHref(entry) {
 
 /** Register a callback for hash change events. Returns an unsubscribe function. */
 export function onHashChange(callback) {
+  // The URL the visitor arrived on. A change that lands back on it (the
+  // browser's Back through the entries the widget wrote) is read like the
+  // first load, path and all. Any other change is read from the hash alone,
+  // so a hash that names no route leaves the view where it is, as it always
+  // has on a page with no event path. `location.hash` alone could not tell
+  // the two apart: the bare `#` a host's <a href="#"> leaves and the
+  // fragment-less arrival URL both read as "", and falling back to the path
+  // on the former pulled a visitor who had left the event straight back in.
+  const arrival = window.location.href;
   const handler = () => {
-    // After the page has loaded, a hash that names no route (a host's own
-    // anchor, say) leaves the view alone, as it always has on a page with no
-    // event path. The path's event is read again only when the hash is
-    // empty, which is the browser's Back to the entry the visitor arrived
-    // on; falling back to it on any unknown hash would pull a visitor who
-    // had left that event straight back into it.
-    const hash = window.location.hash.slice(1);
     const parsed =
-      routeFromHash(hash) ?? (hash === "" ? routeFromPath() : null);
+      window.location.href === arrival
+        ? parseHash()
+        : routeFromHash(window.location.hash.slice(1));
     if (parsed) callback(parsed);
   };
   window.addEventListener("hashchange", handler);

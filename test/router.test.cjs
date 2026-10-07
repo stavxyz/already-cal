@@ -7,7 +7,9 @@ before(async () => {
   ({ eventHref, parseHash, onHashChange } = await import("../src/router.js"));
 });
 afterEach(() => {
-  window.location.hash = "";
+  // replaceState, not `location.hash = ""`: the latter leaves a trailing `#`
+  // and queues a hashchange task that would reach a later async test.
+  window.history.replaceState({}, "", window.location.pathname);
 });
 
 describe("eventHref", () => {
@@ -108,31 +110,85 @@ describe("parseHash on a page whose path is an event deep link", () => {
     assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "abc" });
   });
 
-  it("ignores a host's unknown hash after arrival, but reopens the path's event on an empty one", async () => {
+  it("ignores a hash that names no route, including the empty one a host link makes", async () => {
     // A hash the widget does not know (#main, a skip link) names no route,
-    // so a change to it must leave the view alone rather than fall back to
-    // the path's event the visitor may have just left. The browser's Back
-    // to the arrival entry gives an empty hash, where the path's event is
-    // the route again.
+    // and so does the bare `#` an <a href="#"> leaves behind; neither may
+    // pull the visitor back into the path's event they just left.
     const tick = () => new Promise((r) => setTimeout(r, 10));
-    // jsdom fires one hashchange task per assignment the earlier, synchronous
-    // tests made; let that backlog pass before listening.
-    await tick();
+    // jsdom queues one hashchange task per assignment the synchronous tests
+    // before this one made; let that backlog pass before listening.
     await tick();
     const seen = [];
     const off = onHashChange((state) => seen.push(state));
-    window.location.hash = "#grid";
+    try {
+      window.location.hash = "#grid";
+      await tick();
+      window.location.hash = "#main";
+      await tick();
+      const top = document.createElement("a");
+      top.href = "#";
+      document.body.appendChild(top);
+      top.click();
+      await tick();
+      assert.strictEqual(
+        window.location.href,
+        "http://localhost/cal/event/abc#",
+      );
+      assert.deepStrictEqual(seen, [{ view: "grid" }]);
+      top.remove();
+    } finally {
+      off();
+    }
+  });
+
+  it("reopens the path's event when the browser's Back returns to the arrival entry", async () => {
+    const tick = () => new Promise((r) => setTimeout(r, 10));
+    // jsdom queues one hashchange task per assignment the synchronous tests
+    // before this one made; let that backlog pass before listening.
     await tick();
-    window.location.hash = "#main";
+    const seen = [];
+    const off = onHashChange((state) => seen.push(state));
+    try {
+      window.location.hash = "#grid";
+      await tick();
+      window.history.back();
+      await tick();
+      assert.strictEqual(
+        window.location.href,
+        "http://localhost/cal/event/abc",
+      );
+      assert.deepStrictEqual(seen, [
+        { view: "grid" },
+        { view: "detail", eventId: "abc" },
+      ]);
+    } finally {
+      off();
+    }
+  });
+
+  it("reads the arrival entry like the first load even when it carries an unknown hash", async () => {
+    // A shared link can carry a fragment the widget does not know
+    // (/event/abc#main). Back to it must give what arriving there gave.
+    const tick = () => new Promise((r) => setTimeout(r, 10));
+    // jsdom queues one hashchange task per assignment the synchronous tests
+    // before this one made; let that backlog pass before listening.
     await tick();
-    assert.deepStrictEqual(seen, [{ view: "grid" }]);
-    window.location.hash = "";
-    await tick();
-    assert.deepStrictEqual(seen, [
-      { view: "grid" },
-      { view: "detail", eventId: "abc" },
-    ]);
-    off();
+    window.history.replaceState({}, "", "/cal/event/abc#main");
+    const seen = [];
+    const off = onHashChange((state) => seen.push(state));
+    try {
+      window.location.hash = "#grid";
+      await tick();
+      window.history.back();
+      await tick();
+      assert.strictEqual(window.location.hash, "#main");
+      assert.deepStrictEqual(seen, [
+        { view: "grid" },
+        { view: "detail", eventId: "abc" },
+      ]);
+    } finally {
+      off();
+    }
   });
 });
 

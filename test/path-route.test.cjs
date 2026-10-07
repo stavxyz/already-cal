@@ -96,10 +96,33 @@ describe("a page served at /event/<id>", () => {
     await until(() => detailTitle(c) === "Alpha", "the path's event");
     c.querySelector(".already-detail-back").click();
     await until(() => c.querySelector(".already-detail") === null, "Back");
-    // The browser's own Back lands on the entry before `#grid`: the path
-    // with no hash.
-    window.location.hash = "";
+    // The browser's own Back lands on the entry before `#grid`: the
+    // arrival URL, with no fragment at all.
+    window.history.back();
     await until(() => detailTitle(c) === "Alpha", "the path's event again");
+    assert.strictEqual(window.location.href, `http://localhost${PAGE}`);
+  });
+
+  it("stays on the calendar when a host link to # is clicked", async () => {
+    // <a href="#"> leaves a bare `#`, which reads as an empty hash too, and
+    // it is not the arrival entry.
+    const c = mount();
+    await until(() => detailTitle(c) === "Alpha", "the path's event");
+    c.querySelector(".already-detail-back").click();
+    await until(() => c.querySelector(".already-detail") === null, "Back");
+    const top = document.createElement("a");
+    top.href = "#";
+    document.body.appendChild(top);
+    const changed = new Promise((r) =>
+      window.addEventListener("hashchange", r, { once: true }),
+    );
+    top.click();
+    await changed;
+    await new Promise((r) => setTimeout(r, 0));
+    assert.strictEqual(window.location.href, `http://localhost${PAGE}#`);
+    assert.strictEqual(c.querySelector(".already-detail"), null);
+    assert.strictEqual(c.querySelectorAll(".already-card").length, 2);
+    top.remove();
   });
 
   it("stays on the calendar when a host sets a hash the widget does not know", async () => {
@@ -107,8 +130,14 @@ describe("a page served at /event/<id>", () => {
     await until(() => detailTitle(c) === "Alpha", "the path's event");
     c.querySelector(".already-detail-back").click();
     await until(() => c.querySelector(".already-detail") === null, "Back");
+    // Wait for the hashchange itself, then one more task so the widget's
+    // listener, registered earlier, has run before the view is read.
+    const changed = new Promise((r) =>
+      window.addEventListener("hashchange", r, { once: true }),
+    );
     window.location.hash = "#main";
-    await new Promise((r) => setTimeout(r, 30));
+    await changed;
+    await new Promise((r) => setTimeout(r, 0));
     assert.strictEqual(c.querySelector(".already-detail"), null);
     assert.strictEqual(c.querySelectorAll(".already-card").length, 2);
   });

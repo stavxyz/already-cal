@@ -4077,9 +4077,9 @@ ${text}</tr>
     return new URL(fragment, window.location.href).href;
   }
   function onHashChange(callback) {
+    const arrival = window.location.href;
     const handler = () => {
-      const hash = window.location.hash.slice(1);
-      const parsed = routeFromHash(hash) ?? (hash === "" ? routeFromPath() : null);
+      const parsed = window.location.href === arrival ? parseHash() : routeFromHash(window.location.hash.slice(1));
       if (parsed) callback(parsed);
     };
     window.addEventListener("hashchange", handler);

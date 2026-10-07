@@ -1170,7 +1170,7 @@ var Already = (() => {
     return text;
   }
 
-  // node_modules/marked/lib/marked.esm.js
+  // ../path-route/node_modules/marked/lib/marked.esm.js
   function _getDefaults() {
     return {
       async: false,
@@ -4023,9 +4023,16 @@ ${text}</tr>
     const prefix = config?.storageKeyPrefix || "already";
     return `${prefix}-view`;
   }
+  function decodeHashId(text) {
+    try {
+      return decodeURIComponent(text);
+    } catch {
+      return text;
+    }
+  }
   function routeFromHash(hash) {
     if (hash.startsWith("event/") && hash.length > 6) {
-      return { view: "detail", eventId: hash.slice(6) };
+      return { view: "detail", eventId: decodeHashId(hash.slice(6)) };
     }
     if (hash.startsWith("day/") && hash.length > 4) {
       return { view: "day", date: hash.slice(4) };
@@ -4074,7 +4081,7 @@ ${text}</tr>
   function eventHref(entry) {
     const id = entry?.id || entry?.parentId;
     if (!id) return null;
-    const fragment = `#event/${id}`;
+    const fragment = `#event/${encodeURIComponent(id)}`;
     if (document.querySelector("base[href]") === null) return fragment;
     return new URL(fragment, window.location.href).href;
   }

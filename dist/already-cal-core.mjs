@@ -723,7 +723,7 @@ function stripComments(description) {
   return text;
 }
 
-// node_modules/marked/lib/marked.esm.js
+// ../path-route/node_modules/marked/lib/marked.esm.js
 function _getDefaults() {
   return {
     async: false,

@@ -4037,10 +4037,12 @@ ${text}</tr>
   }
   function routeFromPath() {
     const pathMatch = window.location.pathname.match(EVENT_PATH_RE);
-    if (pathMatch) {
+    if (!pathMatch) return null;
+    try {
       return { view: "detail", eventId: decodeURIComponent(pathMatch[1]) };
+    } catch {
+      return null;
     }
-    return null;
   }
   function parseHash() {
     const hash = window.location.hash.slice(1);

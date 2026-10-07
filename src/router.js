@@ -35,10 +35,14 @@ function routeFromHash(hash) {
  */
 function routeFromPath() {
   const pathMatch = window.location.pathname.match(EVENT_PATH_RE);
-  if (pathMatch) {
+  if (!pathMatch) return null;
+  try {
     return { view: "detail", eventId: decodeURIComponent(pathMatch[1]) };
+  } catch {
+    // A malformed escape in the path (/event/%E0%A4%A) is no route; letting
+    // it throw would take the whole first render down with it.
+    return null;
   }
-  return null;
 }
 
 /**

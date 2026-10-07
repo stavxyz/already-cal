@@ -105,11 +105,6 @@ describe("parseHash on a page whose path is an event deep link", () => {
     assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "xyz" });
   });
 
-  it("treats an empty day in the hash as no route", () => {
-    window.location.hash = "#day/";
-    assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "abc" });
-  });
-
   it("treats an empty event id in the hash as no route", () => {
     window.location.hash = "#event/";
     assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "abc" });
@@ -194,6 +189,25 @@ describe("parseHash on a page whose path is an event deep link", () => {
     } finally {
       off();
     }
+  });
+
+  it("treats an empty day in the hash as no route", () => {
+    window.location.hash = "#day/";
+    assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "abc" });
+  });
+});
+
+describe("parseHash with a malformed event path", () => {
+  before(() => {
+    window.history.replaceState({}, "", "/cal/event/%E0%A4%A");
+  });
+  after(() => {
+    window.history.replaceState({}, "", "/");
+  });
+
+  it("names no route instead of throwing", () => {
+    window.location.hash = "";
+    assert.strictEqual(parseHash(), null);
   });
 });
 

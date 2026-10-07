@@ -4640,16 +4640,21 @@ ${text}</tr>
   function eventLinkAt(target) {
     const link2 = target?.closest?.("a[href]") ?? null;
     if (link2 === null) return null;
-    return new URL(link2.href).hash.startsWith("#event/") ? link2 : null;
+    try {
+      const { hash } = new URL(link2.href);
+      return hash.startsWith("#event/") ? { link: link2, hash } : null;
+    } catch {
+      return null;
+    }
   }
   function keepEventHrefsCurrent(root) {
     const refresh = (e) => {
       if (document.querySelector("base[href]") === null) return;
-      const link2 = eventLinkAt(e.target);
-      if (link2 === null) return;
-      link2.href = new URL(new URL(link2.href).hash, window.location.href).href;
+      const found = eventLinkAt(e.target);
+      if (found === null) return;
+      found.link.href = new URL(found.hash, window.location.href).href;
     };
-    const types = ["pointerdown", "focusin", "contextmenu"];
+    const types = ["pointerover", "pointerdown", "focusin", "contextmenu"];
     for (const type of types) root.addEventListener(type, refresh);
     return () => {
       for (const type of types) root.removeEventListener(type, refresh);

@@ -4030,6 +4030,13 @@ ${text}</tr>
       return text;
     }
   }
+  function encodeHashId(id) {
+    try {
+      return encodeURIComponent(id);
+    } catch {
+      return id;
+    }
+  }
   function routeFromHash(hash) {
     if (hash.startsWith("event/") && hash.length > 6) {
       return { view: "detail", eventId: decodeHashId(hash.slice(6)) };
@@ -4081,7 +4088,7 @@ ${text}</tr>
   function eventHref(entry) {
     const id = entry?.id || entry?.parentId;
     if (!id) return null;
-    const fragment = `#event/${encodeURIComponent(id)}`;
+    const fragment = `#event/${encodeHashId(id)}`;
     if (document.querySelector("base[href]") === null) return fragment;
     return new URL(fragment, window.location.href).href;
   }
@@ -7104,7 +7111,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.14.2" : "unknown"
+        true ? "0.14.3" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

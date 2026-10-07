@@ -1170,7 +1170,7 @@ var Already = (() => {
     return text;
   }
 
-  // ../path-route/node_modules/marked/lib/marked.esm.js
+  // node_modules/marked/lib/marked.esm.js
   function _getDefaults() {
     return {
       async: false,

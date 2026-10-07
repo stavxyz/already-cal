@@ -523,6 +523,8 @@ Events can be linked directly via hash or path:
 - **Hash:** `#event/<event-id>` — works on any page
 - **Path:** `/event/<event-id>` — requires server-side routing to serve the same page
 
+When a page has both, the hash wins. On a page served at `/event/<id>`, Back and the links to other events write the hash, so the visitor can leave the event while the path stays in the address bar; the path's event opens only when the hash names no view.
+
 Use `initialEvent` to open a specific event on load:
 
 ```js

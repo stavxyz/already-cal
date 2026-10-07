@@ -102,7 +102,7 @@ Grid and list views use `getLayout(theme.layout)` from `src/layouts/registry.js`
 
 `src/router.js` manages view state via URL hash:
 
-- `parseHash()` — reads `#event/{id}`, `#day/{date}`, or view names from the hash. Also checks the URL path for `/event/{id}` (server-side routing support).
+- `parseHash()` — reads `#event/{id}`, `#day/{date}`, or view names from the hash, and when the hash names none of them, `/event/{id}` from the URL path (server-side routing support). The hash is read first so that a page served at an event path can still navigate away from that event.
 - `getInitialView(defaultView, enabledViews, config)` — determines the first view to show. Priority: `config.initialEvent` > hash/path > localStorage > `config.defaultView`.
 - `setView(view, config)` — updates the hash and saves to localStorage with key `{storageKeyPrefix}-view`.
 - `eventHref(entry)`: the `#event/{id}` link that opens an entry, written once here so every card, row, chip, and block agrees with `parseHash`; on a page with a `<base href>` it is the page's absolute URL with that fragment, because a relative one would resolve against the base. A part with no id links to its parent; an entry with neither has no link.

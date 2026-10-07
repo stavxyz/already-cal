@@ -105,6 +105,11 @@ describe("parseHash on a page whose path is an event deep link", () => {
     assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "xyz" });
   });
 
+  it("treats an empty day in the hash as no route", () => {
+    window.location.hash = "#day/";
+    assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "abc" });
+  });
+
   it("treats an empty event id in the hash as no route", () => {
     window.location.hash = "#event/";
     assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "abc" });

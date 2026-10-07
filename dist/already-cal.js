@@ -4027,7 +4027,7 @@ ${text}</tr>
     if (hash.startsWith("event/") && hash.length > 6) {
       return { view: "detail", eventId: hash.slice(6) };
     }
-    if (hash.startsWith("day/")) {
+    if (hash.startsWith("day/") && hash.length > 4) {
       return { view: "day", date: hash.slice(4) };
     }
     if (VALID_VIEWS.includes(hash)) {

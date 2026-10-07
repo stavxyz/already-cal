@@ -9,13 +9,14 @@ function storageKey(config) {
 
 /** The route a hash fragment (without its `#`) names, or null. */
 function routeFromHash(hash) {
-  // #event/abc123. An empty id is no route, as eventHref treats it.
+  // #event/abc123. An empty argument is no route, as eventHref treats an
+  // empty id; the same holds for #day/ below.
   if (hash.startsWith("event/") && hash.length > 6) {
     return { view: "detail", eventId: hash.slice(6) };
   }
 
   // #day/2026-04-04
-  if (hash.startsWith("day/")) {
+  if (hash.startsWith("day/") && hash.length > 4) {
     return { view: "day", date: hash.slice(4) };
   }
 

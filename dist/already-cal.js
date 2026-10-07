@@ -4604,6 +4604,7 @@ ${text}</tr>
 
   // src/ui/event-link.js
   var LINK_HOST_CLASS = "already-link-host";
+  var ownLinks = /* @__PURE__ */ new WeakSet();
   var CONTROL_SELECTOR = 'a, button, input, select, textarea, [tabindex], [role="button"], [role="link"]';
   function hiddenName(text) {
     const span = createElement("span", "already-sr-only");
@@ -4613,6 +4614,7 @@ ${text}</tr>
   function linkTitle(host, href, { titleSelector, linkClass, fallbackText }) {
     if (href == null) return null;
     const link2 = createElement("a", `already-event-link ${linkClass}`, { href });
+    ownLinks.add(link2);
     const title = host.querySelector(titleSelector);
     const holdsControl = title !== null && (title.matches(CONTROL_SELECTOR) || title.querySelector(CONTROL_SELECTOR) !== null);
     const holdsText = title !== null && title.textContent.trim() !== "";
@@ -4635,11 +4637,15 @@ ${text}</tr>
   }
   function eventAnchor(href, className) {
     if (href == null) return createElement("div", className);
-    return createElement("a", className, { href });
+    const link2 = createElement("a", className, { href });
+    ownLinks.add(link2);
+    return link2;
   }
   function eventLinkAt(target) {
     const link2 = target?.closest?.("a[href]") ?? null;
     if (link2 === null) return null;
+    const ours = ownLinks.has(link2) || link2.getAttribute("href").startsWith("#");
+    if (!ours) return null;
     try {
       const { hash } = new URL(link2.href);
       return hash.startsWith("#event/") ? { link: link2, hash } : null;

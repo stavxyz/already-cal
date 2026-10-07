@@ -523,7 +523,7 @@ Events can be linked directly via hash or path:
 - **Hash:** `#event/<event-id>` — works on any page
 - **Path:** `/event/<event-id>` — requires server-side routing to serve the same page
 
-When a page has both, the hash wins. On a page served at `/event/<id>`, Back and the links to other events write the hash, so the visitor can leave the event while the path stays in the address bar. The path's event opens only when the hash names no route (a view, `event/<id>`, or `day/<date>`): on arrival, whatever the hash, and when the browser's own Back clears the hash. A reload after Back keeps the view the hash names, and a hash the widget does not know (a host's skip link, say) leaves the view alone once the page has loaded.
+When a page has both, the hash wins. On a page served at `/event/<id>`, Back and the links to other events write the hash, so the visitor can leave the event while the path stays in the address bar. The path's event opens only when the hash names no route (a view, `event/<id>`, or `day/<date>`): on arrival with no hash or an unknown one, and when the browser's own Back clears the hash. A reload after Back keeps the view the hash names, and a hash the widget does not know (a host's skip link, say) leaves the view alone once the page has loaded.
 
 Use `initialEvent` to open a specific event on load:
 

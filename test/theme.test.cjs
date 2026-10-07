@@ -378,3 +378,83 @@ describe("semantic border tokens", () => {
     );
   });
 });
+
+describe("the --already-* namespace holds theme tokens only", () => {
+  // Any theme key becomes `--already-<kebab-key>` on the mount element
+  // (applyTheme), so every `--already-*` property the stylesheet declares or
+  // reads is one a host can set, and the README and docs/configuration.md list
+  // them. A property the stylesheet uses for its own mechanics is named
+  // `--_already-*` instead; a consumer that keeps an allowlist of tokens would
+  // otherwise have to learn each one. This census fails when a property joins
+  // the public namespace without joining both lists, or leaves the stylesheet
+  // while a list still names it. It reads the built stylesheet (CI fails when
+  // dist is stale) and only the stylesheet: a property set from JavaScript
+  // would escape it, and today the only such write is applyTheme's.
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const read = (rel) =>
+    fs.readFileSync(path.join(__dirname, "..", rel), "utf8");
+  const css = read("dist/already-cal.css");
+  const readme = read("README.md");
+  const configuration = read("docs/configuration.md");
+  const toProperty = (key) =>
+    `--already-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
+
+  // Declarations are matched at the start of a line, which the unminified
+  // build guarantees; reads are matched anywhere.
+  const inStylesheet = new Set([
+    ...[...css.matchAll(/^\s*(--already-[a-z0-9-]+)\s*:/gm)].map((m) => m[1]),
+    ...[...css.matchAll(/var\(\s*(--already-[a-z0-9-]+)/g)].map((m) => m[1]),
+  ]);
+
+  // The README's list is the one paragraph of backticked keys under the
+  // heading, not the prose around it, so a backticked word in a sentence
+  // cannot widen the allowed set.
+  const heading = "### CSS Custom Properties";
+  const start = readme.indexOf(heading);
+  const sectionEnd = readme.indexOf("\n### ", start + heading.length);
+  const section = readme.slice(
+    start,
+    sectionEnd === -1 ? readme.length : sectionEnd,
+  );
+  const listLine = section
+    .split("\n")
+    .find((line) => /^`[a-z][A-Za-z0-9]*`(, `[a-z][A-Za-z0-9]*`)*$/.test(line));
+  const listed = new Set(
+    [...(listLine ?? "").matchAll(/`([a-z][A-Za-z0-9]*)`/g)].map((m) =>
+      toProperty(m[1]),
+    ),
+  );
+
+  // docs/configuration.md has the same tokens as a table whose second column
+  // is the property itself.
+  const inConfiguration = new Set(
+    [
+      ...configuration.matchAll(
+        /^\| `[a-z][A-Za-z0-9]*` \| `(--already-[a-z0-9-]+)` \|/gm,
+      ),
+    ].map((m) => m[1]),
+  );
+
+  it("finds the lists and the stylesheet's properties", () => {
+    assert.notStrictEqual(start, -1, "no CSS Custom Properties section");
+    assert.ok(listLine, "no list paragraph under the heading");
+    assert.ok(listed.has("--already-primary"));
+    assert.ok(inConfiguration.has("--already-primary"));
+    assert.ok(inStylesheet.has("--already-primary"));
+  });
+
+  it("lists every --already-* property the stylesheet declares or reads", () => {
+    const unlisted = [...inStylesheet].filter((p) => !listed.has(p)).sort();
+    assert.deepStrictEqual(unlisted, []);
+  });
+
+  it("uses every property the README lists", () => {
+    const unused = [...listed].filter((p) => !inStylesheet.has(p)).sort();
+    assert.deepStrictEqual(unused, []);
+  });
+
+  it("keeps the configuration table equal to the README's list", () => {
+    assert.deepStrictEqual([...inConfiguration].sort(), [...listed].sort());
+  });
+});

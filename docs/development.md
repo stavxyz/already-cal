@@ -192,5 +192,5 @@ Three GitHub Actions workflows in `.github/workflows/`:
 - **No frameworks** — vanilla JavaScript, CSS custom properties, `Intl.DateTimeFormat`
 - **IIFE bundle** — single `Already` global, no module consumers to worry about
 - **TokenSet deduplication** — all extraction stages (directives, images, links, attachments) share a `TokenSet` keyed by canonical IDs to prevent duplicates
-- **CSS custom properties for theming** — all visual values flow through `--already-*` properties
+- **CSS custom properties for theming** — every theme value flows through a `--already-*` property, and each one is listed in the README and `docs/configuration.md`; a property the stylesheet keeps for its own mechanics is named `--_already-*`, and a test holds the public namespace to the list
 - **Data attribute auto-init** — `[data-already-cal]` elements are auto-discovered on DOMContentLoaded

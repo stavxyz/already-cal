@@ -328,7 +328,7 @@ describe("the stylesheet holds its own in a host page", () => {
     );
     for (const decl of [
       "background-image: none;",
-      "background-color: var(--already-chip-background, var(--already-primary));",
+      "background-color: var(--_already-chip-background, var(--already-primary));",
       "border-bottom: 0;",
       "box-shadow: none;",
     ]) {
@@ -344,7 +344,7 @@ describe("the stylesheet holds its own in a host page", () => {
     const start = flatPrint.indexOf(".already-month-chip {");
     assert.notStrictEqual(start, -1);
     const block = flatPrint.slice(start, flatPrint.indexOf("}", start));
-    assert.ok(block.includes("--already-chip-background: #333;"));
+    assert.ok(block.includes("--_already-chip-background: #333;"));
   });
 
   it("draws the fallback ring at the host's own offset", () => {
@@ -352,7 +352,7 @@ describe("the stylesheet holds its own in a host page", () => {
     assert.notStrictEqual(start, -1);
     const block = flat.slice(start, flat.indexOf("} }", start));
     assert.ok(
-      block.includes("outline-offset: var(--already-link-ring-offset, 2px);"),
+      block.includes("outline-offset: var(--_already-link-ring-offset, 2px);"),
     );
   });
 

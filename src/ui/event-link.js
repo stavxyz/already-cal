@@ -6,6 +6,13 @@ import { createElement } from "../views/helpers.js";
  */
 const LINK_HOST_CLASS = "already-link-host";
 
+/**
+ * Every anchor this module makes, so keepEventHrefsCurrent can tell the
+ * widget's own event links from a host's, whatever class a view gave them,
+ * without a mark in the markup that hosts and the card markup tests pin.
+ */
+const ownLinks = new WeakSet();
+
 // What counts as a control inside a title: a link inside a link is the
 // nesting this module exists to remove, and anything else focusable or
 // announced as a control would be nested the same way.
@@ -43,6 +50,7 @@ export function linkTitle(
 ) {
   if (href == null) return null;
   const link = createElement("a", `already-event-link ${linkClass}`, { href });
+  ownLinks.add(link);
   const title = host.querySelector(titleSelector);
   const holdsControl =
     title !== null &&
@@ -91,21 +99,27 @@ export function fillEventAnchor(el, title, fallbackText) {
  */
 export function eventAnchor(href, className) {
   if (href == null) return createElement("div", className);
-  return createElement("a", className, { href });
+  const link = createElement("a", className, { href });
+  ownLinks.add(link);
+  return link;
 }
 
 /**
- * The event link at or above `target`, with its fragment: an anchor whose
- * href names an event route, whoever wrote it. A host's own `#event/<id>`
- * link in a description counts too, since on a page with a base element
- * it is misdirected in the same way. An href the URL parser rejects (a
- * malformed link a description can carry, as the sanitizer checks only
- * the scheme) is no event link, rather than an error thrown from a gesture.
+ * The event link at or above `target`, with its fragment: one of the
+ * widget's own anchors (made here), or a host's fragment-only
+ * `#event/<id>` link in a description, which a base element misdirects in
+ * the same way. A host's link to another page or site that happens to
+ * carry such a fragment is that page's business and is left alone. An
+ * href the URL parser rejects (a malformed link a description can carry,
+ * as the sanitizer checks only the scheme) is no event link, rather than
+ * an error thrown from a gesture.
  */
 function eventLinkAt(target) {
   // A text node or the document has no closest(); only elements do.
   const link = target?.closest?.("a[href]") ?? null;
   if (link === null) return null;
+  const ours = ownLinks.has(link) || link.getAttribute("href").startsWith("#");
+  if (!ours) return null;
   try {
     const { hash } = new URL(link.href);
     return hash.startsWith("#event/") ? { link, hash } : null;

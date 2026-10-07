@@ -10,11 +10,14 @@ const { createTestEvent, until } = require("./helpers.cjs");
 // address" on the URL the page had then (#105).
 let init;
 let keepEventHrefsCurrent;
+let eventAnchor;
 const instances = [];
 let base = null;
 before(async () => {
   ({ init } = await import("../src/already-cal.js"));
-  ({ keepEventHrefsCurrent } = await import("../src/ui/event-link.js"));
+  ({ keepEventHrefsCurrent, eventAnchor } = await import(
+    "../src/ui/event-link.js"
+  ));
 });
 after(() => {
   window.history.replaceState({}, "", "/");
@@ -146,6 +149,31 @@ describe("an event link on a page with a base element", () => {
     );
   });
 
+  it("leaves a host's link to another page or site alone, even with an event fragment", async () => {
+    // Those links mean the page they name; only a fragment-only link is
+    // misdirected by the base.
+    window.history.replaceState({}, "", "/cal/");
+    addBase();
+    const c = mount("grid");
+    await until(() => c.querySelector("a.already-card__link"), "the card");
+    const elsewhere = document.createElement("a");
+    elsewhere.setAttribute("href", "https://other.example/page#event/9");
+    const otherPage = document.createElement("a");
+    otherPage.setAttribute("href", "http://localhost/other/page#event/9");
+    c.append(elsewhere, otherPage);
+    window.history.pushState({}, "", "/cal/page2");
+    elsewhere.dispatchEvent(bubbling("pointerdown"));
+    otherPage.dispatchEvent(bubbling("pointerdown"));
+    assert.strictEqual(
+      elsewhere.getAttribute("href"),
+      "https://other.example/page#event/9",
+    );
+    assert.strictEqual(
+      otherPage.getAttribute("href"),
+      "http://localhost/other/page#event/9",
+    );
+  });
+
   it("ignores a link whose href the URL parser rejects, without an error", async () => {
     // The description sanitizer checks a link's scheme, not its shape, so a
     // malformed href can reach the DOM; a gesture on it must not throw.
@@ -186,8 +214,8 @@ describe("keepEventHrefsCurrent", () => {
   it("stops refreshing once unbound", () => {
     addBase();
     const root = document.createElement("div");
-    const link = document.createElement("a");
-    link.setAttribute("href", "http://localhost/cal/#event/x");
+    // An anchor the module made, as a chip or block is.
+    const link = eventAnchor("http://localhost/cal/#event/x", "chip");
     root.appendChild(link);
     document.body.appendChild(root);
     try {

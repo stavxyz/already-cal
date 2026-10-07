@@ -4644,7 +4644,7 @@ ${text}</tr>
   function eventLinkAt(target) {
     const link2 = target?.closest?.("a[href]") ?? null;
     if (link2 === null) return null;
-    const ours = ownLinks.has(link2) || link2.getAttribute("href").startsWith("#");
+    const ours = ownLinks.has(link2) || link2.getAttribute("href").trim().startsWith("#");
     if (!ours) return null;
     try {
       const { hash } = new URL(link2.href);

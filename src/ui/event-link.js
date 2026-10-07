@@ -118,7 +118,10 @@ function eventLinkAt(target) {
   // A text node or the document has no closest(); only elements do.
   const link = target?.closest?.("a[href]") ?? null;
   if (link === null) return null;
-  const ours = ownLinks.has(link) || link.getAttribute("href").startsWith("#");
+  // trim(): the URL parser strips leading whitespace, so " #event/x" is as
+  // fragment-only, and as misdirected by the base, as "#event/x".
+  const ours =
+    ownLinks.has(link) || link.getAttribute("href").trim().startsWith("#");
   if (!ours) return null;
   try {
     const { hash } = new URL(link.href);

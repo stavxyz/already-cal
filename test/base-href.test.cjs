@@ -139,12 +139,20 @@ describe("an event link on a page with a base element", () => {
     await until(() => c.querySelector("a.already-card__link"), "the card");
     const own = document.createElement("a");
     own.setAttribute("href", "#event/e1");
-    c.appendChild(own);
+    // Leading whitespace, which the URL parser strips, counts the same.
+    const padded = document.createElement("a");
+    padded.setAttribute("href", " #event/e1");
+    c.append(own, padded);
     assert.strictEqual(own.href, "http://localhost/elsewhere/#event/e1");
     window.history.pushState({}, "", "/cal/page2");
     own.dispatchEvent(bubbling("pointerdown"));
+    padded.dispatchEvent(bubbling("pointerdown"));
     assert.strictEqual(
       own.getAttribute("href"),
+      "http://localhost/cal/page2#event/e1",
+    );
+    assert.strictEqual(
+      padded.getAttribute("href"),
       "http://localhost/cal/page2#event/e1",
     );
   });

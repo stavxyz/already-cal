@@ -63,15 +63,42 @@ describe("eventHref", () => {
     assert.strictEqual(eventHref(null), null);
   });
 
-  it("writes the id as parseHash reads it, reserved characters included", () => {
-    // Characters a Google event id or a host's id can carry, none of which
-    // the URL fragment encodes.
-    const id = "evt/2026?x=1&y=2:z@w";
-    window.location.hash = new URL(
-      eventHref({ id }),
-      window.location.href,
-    ).hash;
-    assert.deepStrictEqual(parseHash(), { view: "detail", eventId: id });
+  it("round-trips every id through the hash, whatever characters it carries", () => {
+    // Google ids are ASCII letters, digits, `_`, and `@`; a host's own ids
+    // can hold anything. The browser percent-encodes a space or a non-ASCII
+    // character when the fragment is set, so the id is encoded on write and
+    // decoded on read, and both sides agree for every row (#106).
+    for (const id of [
+      "plain123",
+      "x@google.com",
+      "evt/2026?x=1&y=2:z@w",
+      "50%off",
+      "a b",
+      "café",
+      "日本",
+    ]) {
+      window.location.hash = new URL(
+        eventHref({ id }),
+        window.location.href,
+      ).hash;
+      assert.deepStrictEqual(parseHash(), { view: "detail", eventId: id }, id);
+    }
+  });
+
+  it("percent-encodes the id in the href", () => {
+    assert.strictEqual(eventHref({ id: "a b" }), "#event/a%20b");
+    assert.strictEqual(eventHref({ id: "50%off" }), "#event/50%25off");
+    assert.strictEqual(eventHref({ id: "café" }), "#event/caf%C3%A9");
+  });
+});
+
+describe("parseHash with a hand-typed event hash", () => {
+  it("keeps a malformed escape as written, so an id with a bare % still opens", () => {
+    // Nothing the widget writes looks like this; a visitor who typed it, or a
+    // host that built the hash without encoding, gets the raw text back, as
+    // every version before the encoder did.
+    window.location.hash = "#event/50%off";
+    assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "50%off" });
   });
 });
 

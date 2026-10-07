@@ -7,17 +7,8 @@ function storageKey(config) {
   return `${prefix}-view`;
 }
 
-/**
- * Parse the current URL hash or path into a view state object. The hash is
- * read first: on a page whose path is an event deep link (/event/<id>,
- * served by a host's routing and produced by the Share button), every route
- * the widget writes afterwards is a hash and the path never changes, so a
- * path read first kept such a page on its event for good. Back and the
- * links to other events changed the hash and the view stayed.
- */
-export function parseHash() {
-  const hash = window.location.hash.slice(1); // remove #
-
+/** The route a hash fragment (without its `#`) names, or null. */
+function routeFromHash(hash) {
   // #event/abc123
   if (hash.startsWith("event/")) {
     return { view: "detail", eventId: hash.slice(6) };
@@ -33,15 +24,32 @@ export function parseHash() {
     return { view: hash };
   }
 
-  // No route in the hash: the path may carry an event (server-side routing).
-  // EVENT_PATH_RE is shared with share-url.js's collapse so parse + collapse
-  // stay inverses.
+  return null;
+}
+
+/**
+ * The event the URL path names (/event/<id>, served by a host's routing),
+ * or null. EVENT_PATH_RE is shared with share-url.js's collapse so parse +
+ * collapse stay inverses.
+ */
+function routeFromPath() {
   const pathMatch = window.location.pathname.match(EVENT_PATH_RE);
   if (pathMatch) {
     return { view: "detail", eventId: decodeURIComponent(pathMatch[1]) };
   }
-
   return null;
+}
+
+/**
+ * Parse the current URL hash or path into a view state object. The hash is
+ * read before the path: every route the widget writes is a hash and the path
+ * never changes, so on a page served at an event deep link the path may
+ * supply the route only when the hash names none, or Back and the other
+ * events' links could never leave that event.
+ */
+export function parseHash() {
+  const hash = window.location.hash.slice(1); // remove #
+  return routeFromHash(hash) ?? routeFromPath();
 }
 
 /** Determine the initial view from config, URL, or localStorage. */
@@ -113,7 +121,15 @@ export function eventHref(entry) {
 /** Register a callback for hash change events. Returns an unsubscribe function. */
 export function onHashChange(callback) {
   const handler = () => {
-    const parsed = parseHash();
+    // After the page has loaded, a hash that names no route (a host's own
+    // anchor, say) leaves the view alone, as it always has on a page with no
+    // event path. The path's event is read again only when the hash is
+    // empty, which is the browser's Back to the entry the visitor arrived
+    // on; falling back to it on any unknown hash would pull a visitor who
+    // had left that event straight back into it.
+    const hash = window.location.hash.slice(1);
+    const parsed =
+      routeFromHash(hash) ?? (hash === "" ? routeFromPath() : null);
     if (parsed) callback(parsed);
   };
   window.addEventListener("hashchange", handler);

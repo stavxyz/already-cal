@@ -6,11 +6,12 @@ const { createTestEvent } = require("./helpers.cjs");
 // A visitor who arrives from a shared event link lands on a page whose path
 // is /event/<id>. The widget opens that event, and must then let them leave
 // it: Back and the links to other events write the hash, and the path stays.
+const PAGE = "/cal/event/e1";
 let init;
 const instances = [];
 before(async () => {
   ({ init } = await import("../src/already-cal.js"));
-  window.history.replaceState({}, "", "/cal/event/e1");
+  window.history.replaceState({}, "", PAGE);
 });
 after(() => {
   window.history.replaceState({}, "", "/");
@@ -21,10 +22,26 @@ afterEach(() => {
     inst.container.remove();
   }
   instances.length = 0;
-  window.location.hash = "";
+  delete navigator.share;
+  delete navigator._lastShare;
+  // replaceState, not `location.hash = ""`: the latter leaves a trailing `#`
+  // and queues a hashchange that would reach the next test.
+  window.history.replaceState({}, "", PAGE);
 });
 
-const settle = () => new Promise((r) => setTimeout(r, 20));
+// Rendering after `init` is asynchronous (the data load awaits), and a hash
+// change reaches the widget on a later task, so wait for the DOM to show
+// what the step should produce instead of for a fixed time.
+async function until(check, what) {
+  const deadline = Date.now() + 2000;
+  while (Date.now() < deadline) {
+    if (check()) return;
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  assert.fail(`timed out waiting for ${what}`);
+}
+const detailTitle = (c) =>
+  c.querySelector(".already-detail-title")?.textContent ?? null;
 
 function mount() {
   const container = document.createElement("div");
@@ -47,29 +64,70 @@ function mount() {
 
 describe("a page served at /event/<id>", () => {
   it("opens that event, and Back returns to the calendar", async () => {
-    const container = mount();
-    await settle();
-    assert.strictEqual(
-      container.querySelector(".already-detail-title").textContent,
-      "Alpha",
-    );
-    container.querySelector(".already-detail-back").click();
-    await settle();
-    assert.strictEqual(container.querySelector(".already-detail"), null);
-    assert.strictEqual(container.querySelectorAll(".already-card").length, 2);
-    assert.strictEqual(window.location.pathname, "/cal/event/e1");
+    const c = mount();
+    await until(() => detailTitle(c) === "Alpha", "the path's event");
+    c.querySelector(".already-detail-back").click();
+    await until(() => c.querySelector(".already-detail") === null, "Back");
+    assert.strictEqual(c.querySelectorAll(".already-card").length, 2);
+    assert.strictEqual(window.location.pathname, PAGE);
+    assert.strictEqual(window.location.hash, "#grid");
   });
 
   it("opens another event from its link", async () => {
-    const container = mount();
-    await settle();
-    container.querySelector(".already-detail-back").click();
-    await settle();
-    container.querySelector('a.already-card__link[href="#event/e2"]').click();
-    await settle();
+    const c = mount();
+    await until(() => detailTitle(c) === "Alpha", "the path's event");
+    c.querySelector(".already-detail-back").click();
+    await until(() => c.querySelector(".already-detail") === null, "Back");
+    const link = c.querySelector('a.already-card__link[href="#event/e2"]');
+    assert.ok(link, "Back shows the cards, with their links");
+    link.click();
+    await until(() => detailTitle(c) === "Beta", "the other event");
+  });
+
+  it("shows the view the hash names on a reload after Back", async () => {
+    window.location.hash = "#grid";
+    const c = mount();
+    await until(() => c.querySelectorAll(".already-card").length === 2, "grid");
+    assert.strictEqual(c.querySelector(".already-detail"), null);
+  });
+
+  it("reopens the path's event when the browser's Back clears the hash", async () => {
+    const c = mount();
+    await until(() => detailTitle(c) === "Alpha", "the path's event");
+    c.querySelector(".already-detail-back").click();
+    await until(() => c.querySelector(".already-detail") === null, "Back");
+    // The browser's own Back lands on the entry before `#grid`: the path
+    // with no hash.
+    window.location.hash = "";
+    await until(() => detailTitle(c) === "Alpha", "the path's event again");
+  });
+
+  it("stays on the calendar when a host sets a hash the widget does not know", async () => {
+    const c = mount();
+    await until(() => detailTitle(c) === "Alpha", "the path's event");
+    c.querySelector(".already-detail-back").click();
+    await until(() => c.querySelector(".already-detail") === null, "Back");
+    window.location.hash = "#main";
+    await new Promise((r) => setTimeout(r, 30));
+    assert.strictEqual(c.querySelector(".already-detail"), null);
+    assert.strictEqual(c.querySelectorAll(".already-card").length, 2);
+  });
+
+  it("shares the path's event as one /event/<id> path", async () => {
+    Object.defineProperty(navigator, "share", {
+      value: async (d) => {
+        navigator._lastShare = d;
+      },
+      configurable: true,
+    });
+    const c = mount();
+    await until(() => detailTitle(c) === "Alpha", "the path's event");
+    const share = c.querySelector(".already-detail-share");
+    share.click();
+    await share._shareResult;
     assert.strictEqual(
-      container.querySelector(".already-detail-title").textContent,
-      "Beta",
+      navigator._lastShare.url,
+      "http://localhost/cal/event/e1",
     );
   });
 });

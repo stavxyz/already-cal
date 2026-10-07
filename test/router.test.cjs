@@ -2,9 +2,9 @@ require("./setup-dom.cjs");
 const { describe, it, before, after, afterEach } = require("node:test");
 const assert = require("node:assert");
 
-let eventHref, parseHash;
+let eventHref, parseHash, onHashChange;
 before(async () => {
-  ({ eventHref, parseHash } = await import("../src/router.js"));
+  ({ eventHref, parseHash, onHashChange } = await import("../src/router.js"));
 });
 afterEach(() => {
   window.location.hash = "";
@@ -101,5 +101,32 @@ describe("parseHash on a page whose path is an event deep link", () => {
   it("lets another event in the hash win over the path", () => {
     window.location.hash = "#event/xyz";
     assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "xyz" });
+  });
+
+  it("ignores a host's unknown hash after arrival, but reopens the path's event on an empty one", async () => {
+    // A hash the widget does not know (#main, a skip link) names no route,
+    // so a change to it must leave the view alone rather than fall back to
+    // the path's event the visitor may have just left. The browser's Back
+    // to the arrival entry gives an empty hash, where the path's event is
+    // the route again.
+    const tick = () => new Promise((r) => setTimeout(r, 10));
+    // jsdom fires one hashchange task per assignment the earlier, synchronous
+    // tests made; let that backlog pass before listening.
+    await tick();
+    await tick();
+    const seen = [];
+    const off = onHashChange((state) => seen.push(state));
+    window.location.hash = "#grid";
+    await tick();
+    window.location.hash = "#main";
+    await tick();
+    assert.deepStrictEqual(seen, [{ view: "grid" }]);
+    window.location.hash = "";
+    await tick();
+    assert.deepStrictEqual(seen, [
+      { view: "grid" },
+      { view: "detail", eventId: "abc" },
+    ]);
+    off();
   });
 });

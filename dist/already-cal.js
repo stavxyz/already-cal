@@ -4602,6 +4602,60 @@ ${text}</tr>
     return { ...theme, overrideKeys };
   }
 
+  // src/ui/event-link.js
+  var LINK_HOST_CLASS = "already-link-host";
+  var CONTROL_SELECTOR = 'a, button, input, select, textarea, [tabindex], [role="button"], [role="link"]';
+  function hiddenName(text) {
+    const span = createElement("span", "already-sr-only");
+    span.textContent = text;
+    return span;
+  }
+  function linkTitle(host, href, { titleSelector, linkClass, fallbackText }) {
+    if (href == null) return null;
+    const link2 = createElement("a", `already-event-link ${linkClass}`, { href });
+    const title = host.querySelector(titleSelector);
+    const holdsControl = title !== null && (title.matches(CONTROL_SELECTOR) || title.querySelector(CONTROL_SELECTOR) !== null);
+    const holdsText = title !== null && title.textContent.trim() !== "";
+    if (holdsText && !holdsControl) {
+      while (title.firstChild) link2.appendChild(title.firstChild);
+      title.appendChild(link2);
+    } else {
+      link2.appendChild(hiddenName(fallbackText));
+      link2.classList.add("already-event-link--hidden");
+      host.prepend(link2);
+    }
+    host.classList.add(LINK_HOST_CLASS);
+    return link2;
+  }
+  function fillEventAnchor(el, title, fallbackText) {
+    const text = String(title ?? "");
+    el.textContent = text;
+    if (text.trim() !== "" || !el.hasAttribute("href")) return;
+    el.appendChild(hiddenName(fallbackText));
+  }
+  function eventAnchor(href, className) {
+    if (href == null) return createElement("div", className);
+    return createElement("a", className, { href });
+  }
+  function eventLinkAt(target) {
+    const link2 = target?.closest?.("a[href]") ?? null;
+    if (link2 === null) return null;
+    return new URL(link2.href).hash.startsWith("#event/") ? link2 : null;
+  }
+  function keepEventHrefsCurrent(root) {
+    const refresh = (e) => {
+      if (document.querySelector("base[href]") === null) return;
+      const link2 = eventLinkAt(e.target);
+      if (link2 === null) return;
+      link2.href = new URL(new URL(link2.href).hash, window.location.href).href;
+    };
+    const types = ["pointerdown", "focusin", "contextmenu"];
+    for (const type of types) root.addEventListener(type, refresh);
+    return () => {
+      for (const type of types) root.removeEventListener(type, refresh);
+    };
+  }
+
   // src/ui/card-parts.js
   var MAX_PARTS = 3;
   function partWhen(part, parent, { timezone, locale, i18n }) {
@@ -4656,42 +4710,6 @@ ${text}</tr>
     if (!slot) {
       (card.querySelector(".already-card__body") || card).appendChild(block2);
     }
-  }
-
-  // src/ui/event-link.js
-  var LINK_HOST_CLASS = "already-link-host";
-  var CONTROL_SELECTOR = 'a, button, input, select, textarea, [tabindex], [role="button"], [role="link"]';
-  function hiddenName(text) {
-    const span = createElement("span", "already-sr-only");
-    span.textContent = text;
-    return span;
-  }
-  function linkTitle(host, href, { titleSelector, linkClass, fallbackText }) {
-    if (href == null) return null;
-    const link2 = createElement("a", `already-event-link ${linkClass}`, { href });
-    const title = host.querySelector(titleSelector);
-    const holdsControl = title !== null && (title.matches(CONTROL_SELECTOR) || title.querySelector(CONTROL_SELECTOR) !== null);
-    const holdsText = title !== null && title.textContent.trim() !== "";
-    if (holdsText && !holdsControl) {
-      while (title.firstChild) link2.appendChild(title.firstChild);
-      title.appendChild(link2);
-    } else {
-      link2.appendChild(hiddenName(fallbackText));
-      link2.classList.add("already-event-link--hidden");
-      host.prepend(link2);
-    }
-    host.classList.add(LINK_HOST_CLASS);
-    return link2;
-  }
-  function fillEventAnchor(el, title, fallbackText) {
-    const text = String(title ?? "");
-    el.textContent = text;
-    if (text.trim() !== "" || !el.hasAttribute("href")) return;
-    el.appendChild(hiddenName(fallbackText));
-  }
-  function eventAnchor(href, className) {
-    if (href == null) return createElement("div", className);
-    return createElement("a", className, { href });
   }
 
   // src/ui/rsvp-state.js
@@ -7064,6 +7082,7 @@ ${text}</tr>
       }
     }
     let removeHashListener = null;
+    let removeHrefRefresh = null;
     let interactionCleanup = null;
     async function start() {
       captureOriginalMeta();
@@ -7096,8 +7115,9 @@ ${text}</tr>
       removeHashListener = onHashChange((viewState) => {
         renderView(viewState);
       });
+      removeHrefRefresh = keepEventHrefsCurrent(el);
       postReadyToParent(
-        true ? "0.14.2" : "unknown"
+        true ? "0.14.4" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({
@@ -7212,6 +7232,7 @@ ${text}</tr>
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("message", handleMessage);
       if (removeHashListener) removeHashListener();
+      if (removeHrefRefresh) removeHrefRefresh();
       if (interactionCleanup) interactionCleanup();
       closeEventPopover(el);
       headerContainer.querySelector(".already-header-share")?.destroy?.();

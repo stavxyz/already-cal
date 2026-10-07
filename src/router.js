@@ -9,8 +9,8 @@ function storageKey(config) {
 
 /** The route a hash fragment (without its `#`) names, or null. */
 function routeFromHash(hash) {
-  // #event/abc123
-  if (hash.startsWith("event/")) {
+  // #event/abc123. An empty id is no route, as eventHref treats it.
+  if (hash.startsWith("event/") && hash.length > 6) {
     return { view: "detail", eventId: hash.slice(6) };
   }
 

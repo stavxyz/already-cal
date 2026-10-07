@@ -103,6 +103,11 @@ describe("parseHash on a page whose path is an event deep link", () => {
     assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "xyz" });
   });
 
+  it("treats an empty event id in the hash as no route", () => {
+    window.location.hash = "#event/";
+    assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "abc" });
+  });
+
   it("ignores a host's unknown hash after arrival, but reopens the path's event on an empty one", async () => {
     // A hash the widget does not know (#main, a skip link) names no route,
     // so a change to it must leave the view alone rather than fall back to
@@ -128,5 +133,12 @@ describe("parseHash on a page whose path is an event deep link", () => {
       { view: "detail", eventId: "abc" },
     ]);
     off();
+  });
+});
+
+describe("parseHash with an empty event id and no event path", () => {
+  it("names no route", () => {
+    window.location.hash = "#event/";
+    assert.strictEqual(parseHash(), null);
   });
 });

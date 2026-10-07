@@ -4024,7 +4024,7 @@ ${text}</tr>
     return `${prefix}-view`;
   }
   function routeFromHash(hash) {
-    if (hash.startsWith("event/")) {
+    if (hash.startsWith("event/") && hash.length > 6) {
       return { view: "detail", eventId: hash.slice(6) };
     }
     if (hash.startsWith("day/")) {

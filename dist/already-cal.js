@@ -4024,12 +4024,7 @@ ${text}</tr>
     return `${prefix}-view`;
   }
   function parseHash() {
-    const pathMatch = window.location.pathname.match(EVENT_PATH_RE);
-    if (pathMatch) {
-      return { view: "detail", eventId: decodeURIComponent(pathMatch[1]) };
-    }
     const hash = window.location.hash.slice(1);
-    if (!hash) return null;
     if (hash.startsWith("event/")) {
       return { view: "detail", eventId: hash.slice(6) };
     }
@@ -4038,6 +4033,10 @@ ${text}</tr>
     }
     if (VALID_VIEWS.includes(hash)) {
       return { view: hash };
+    }
+    const pathMatch = window.location.pathname.match(EVENT_PATH_RE);
+    if (pathMatch) {
+      return { view: "detail", eventId: decodeURIComponent(pathMatch[1]) };
     }
     return null;
   }

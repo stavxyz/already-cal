@@ -7,17 +7,16 @@ function storageKey(config) {
   return `${prefix}-view`;
 }
 
-/** Parse the current URL hash or path into a view state object. */
+/**
+ * Parse the current URL hash or path into a view state object. The hash is
+ * read first: on a page whose path is an event deep link (/event/<id>,
+ * served by a host's routing and produced by the Share button), every route
+ * the widget writes afterwards is a hash and the path never changes, so a
+ * path read first kept such a page on its event for good. Back and the
+ * links to other events changed the hash and the view stayed.
+ */
 export function parseHash() {
-  // Check path for /event/{id} (allows server-side routing). EVENT_PATH_RE is
-  // shared with share-url.js's collapse so parse + collapse stay inverses.
-  const pathMatch = window.location.pathname.match(EVENT_PATH_RE);
-  if (pathMatch) {
-    return { view: "detail", eventId: decodeURIComponent(pathMatch[1]) };
-  }
-
   const hash = window.location.hash.slice(1); // remove #
-  if (!hash) return null;
 
   // #event/abc123
   if (hash.startsWith("event/")) {
@@ -32,6 +31,14 @@ export function parseHash() {
   // #month, #week, #grid, #list, #day
   if (VALID_VIEWS.includes(hash)) {
     return { view: hash };
+  }
+
+  // No route in the hash: the path may carry an event (server-side routing).
+  // EVENT_PATH_RE is shared with share-url.js's collapse so parse + collapse
+  // stay inverses.
+  const pathMatch = window.location.pathname.match(EVENT_PATH_RE);
+  if (pathMatch) {
+    return { view: "detail", eventId: decodeURIComponent(pathMatch[1]) };
   }
 
   return null;

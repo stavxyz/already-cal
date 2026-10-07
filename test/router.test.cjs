@@ -1,5 +1,5 @@
 require("./setup-dom.cjs");
-const { describe, it, before, afterEach } = require("node:test");
+const { describe, it, before, after, afterEach } = require("node:test");
 const assert = require("node:assert");
 
 let eventHref, parseHash;
@@ -70,5 +70,36 @@ describe("eventHref", () => {
       window.location.href,
     ).hash;
     assert.deepStrictEqual(parseHash(), { view: "detail", eventId: id });
+  });
+});
+
+describe("parseHash on a page whose path is an event deep link", () => {
+  // A host with server-side routing serves the calendar page at
+  // /event/<id> too, and share links use that form. Every route the widget
+  // writes afterwards is a hash; the path never changes.
+  before(() => {
+    window.history.replaceState({}, "", "/cal/event/abc");
+  });
+  after(() => {
+    window.history.replaceState({}, "", "/");
+  });
+
+  it("opens the path's event when the hash names no route", () => {
+    window.location.hash = "";
+    assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "abc" });
+    window.location.hash = "#nonsense";
+    assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "abc" });
+  });
+
+  it("lets a view in the hash win over the path, so Back leaves the event", () => {
+    window.location.hash = "#grid";
+    assert.deepStrictEqual(parseHash(), { view: "grid" });
+    window.location.hash = "#day/2026-04-04";
+    assert.deepStrictEqual(parseHash(), { view: "day", date: "2026-04-04" });
+  });
+
+  it("lets another event in the hash win over the path", () => {
+    window.location.hash = "#event/xyz";
+    assert.deepStrictEqual(parseHash(), { view: "detail", eventId: "xyz" });
   });
 });

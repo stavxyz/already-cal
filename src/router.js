@@ -7,25 +7,16 @@ function storageKey(config) {
   return `${prefix}-view`;
 }
 
-/** Parse the current URL hash or path into a view state object. */
-export function parseHash() {
-  // Check path for /event/{id} (allows server-side routing). EVENT_PATH_RE is
-  // shared with share-url.js's collapse so parse + collapse stay inverses.
-  const pathMatch = window.location.pathname.match(EVENT_PATH_RE);
-  if (pathMatch) {
-    return { view: "detail", eventId: decodeURIComponent(pathMatch[1]) };
-  }
-
-  const hash = window.location.hash.slice(1); // remove #
-  if (!hash) return null;
-
-  // #event/abc123
-  if (hash.startsWith("event/")) {
+/** The route a hash fragment (without its `#`) names, or null. */
+function routeFromHash(hash) {
+  // #event/abc123. An empty argument is no route, as eventHref treats an
+  // empty id; the same holds for #day/ below.
+  if (hash.startsWith("event/") && hash.length > 6) {
     return { view: "detail", eventId: hash.slice(6) };
   }
 
   // #day/2026-04-04
-  if (hash.startsWith("day/")) {
+  if (hash.startsWith("day/") && hash.length > 4) {
     return { view: "day", date: hash.slice(4) };
   }
 
@@ -35,6 +26,35 @@ export function parseHash() {
   }
 
   return null;
+}
+
+/**
+ * The event the URL path names (/event/<id>, served by a host's routing),
+ * or null. EVENT_PATH_RE is shared with share-url.js's collapse so parse +
+ * collapse stay inverses.
+ */
+function routeFromPath() {
+  const pathMatch = window.location.pathname.match(EVENT_PATH_RE);
+  if (!pathMatch) return null;
+  try {
+    return { view: "detail", eventId: decodeURIComponent(pathMatch[1]) };
+  } catch {
+    // A malformed escape in the path (/event/%E0%A4%A) is no route; letting
+    // it throw would take the whole first render down with it.
+    return null;
+  }
+}
+
+/**
+ * Parse the current URL hash or path into a view state object. The hash is
+ * read before the path: every route the widget writes is a hash and the path
+ * never changes, so on a page served at an event deep link the path may
+ * supply the route only when the hash names none, or Back and the other
+ * events' links could never leave that event.
+ */
+export function parseHash() {
+  const hash = window.location.hash.slice(1); // remove #
+  return routeFromHash(hash) ?? routeFromPath();
 }
 
 /** Determine the initial view from config, URL, or localStorage. */
@@ -105,8 +125,20 @@ export function eventHref(entry) {
 
 /** Register a callback for hash change events. Returns an unsubscribe function. */
 export function onHashChange(callback) {
+  // The URL the visitor arrived on. A change that lands back on it (the
+  // browser's Back through the entries the widget wrote) is read like the
+  // first load, path and all. Any other change is read from the hash alone,
+  // so a hash that names no route leaves the view where it is, as it always
+  // has on a page with no event path. `location.hash` alone could not tell
+  // the two apart: the bare `#` a host's <a href="#"> leaves and the
+  // fragment-less arrival URL both read as "", and falling back to the path
+  // on the former pulled a visitor who had left the event straight back in.
+  const arrival = window.location.href;
   const handler = () => {
-    const parsed = parseHash();
+    const parsed =
+      window.location.href === arrival
+        ? parseHash()
+        : routeFromHash(window.location.hash.slice(1));
     if (parsed) callback(parsed);
   };
   window.addEventListener("hashchange", handler);

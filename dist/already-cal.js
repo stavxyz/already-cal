@@ -4023,23 +4023,30 @@ ${text}</tr>
     const prefix = config?.storageKeyPrefix || "already";
     return `${prefix}-view`;
   }
-  function parseHash() {
-    const pathMatch = window.location.pathname.match(EVENT_PATH_RE);
-    if (pathMatch) {
-      return { view: "detail", eventId: decodeURIComponent(pathMatch[1]) };
-    }
-    const hash = window.location.hash.slice(1);
-    if (!hash) return null;
-    if (hash.startsWith("event/")) {
+  function routeFromHash(hash) {
+    if (hash.startsWith("event/") && hash.length > 6) {
       return { view: "detail", eventId: hash.slice(6) };
     }
-    if (hash.startsWith("day/")) {
+    if (hash.startsWith("day/") && hash.length > 4) {
       return { view: "day", date: hash.slice(4) };
     }
     if (VALID_VIEWS.includes(hash)) {
       return { view: hash };
     }
     return null;
+  }
+  function routeFromPath() {
+    const pathMatch = window.location.pathname.match(EVENT_PATH_RE);
+    if (!pathMatch) return null;
+    try {
+      return { view: "detail", eventId: decodeURIComponent(pathMatch[1]) };
+    } catch {
+      return null;
+    }
+  }
+  function parseHash() {
+    const hash = window.location.hash.slice(1);
+    return routeFromHash(hash) ?? routeFromPath();
   }
   function getInitialView(defaultView, enabledViews, config) {
     if (config?.initialEvent) {
@@ -4072,8 +4079,9 @@ ${text}</tr>
     return new URL(fragment, window.location.href).href;
   }
   function onHashChange(callback) {
+    const arrival = window.location.href;
     const handler = () => {
-      const parsed = parseHash();
+      const parsed = window.location.href === arrival ? parseHash() : routeFromHash(window.location.hash.slice(1));
       if (parsed) callback(parsed);
     };
     window.addEventListener("hashchange", handler);
@@ -7089,7 +7097,7 @@ ${text}</tr>
         renderView(viewState);
       });
       postReadyToParent(
-        true ? "0.14.1" : "unknown"
+        true ? "0.14.2" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

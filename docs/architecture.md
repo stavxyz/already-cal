@@ -77,7 +77,7 @@ Composition is in `src/composite.js`: the grouping, the lookup from an id to its
    - Guards against `destroyed` flag after await (in case `destroy()` was called during load)
    - Calls `onDataLoad` with the flat data, then composes the events once via `composeEvents()` and keeps the composed result
    - Renders the sticky header (calendar name, description, subscribe button) via `renderHeader(headerContainer, ...)` after data loads
-   - Determines initial view via `getInitialView()` (priority: `initialEvent` > URL hash/path > localStorage > `defaultView`). On mobile, `mobileDefaultView` overrides if no hash is present.
+   - Determines initial view via `getInitialView()` (priority: `initialEvent` > URL hash/path > localStorage > `defaultView`). On mobile, `mobileDefaultView` overrides when neither the hash nor the path names a route.
    - Calls `renderView()` with the initial view state
    - Registers a `hashchange` listener via `onHashChange()`
 6. Registers event listeners: `resize` (sticky offset recalculation) and `message` (postMessage API)
@@ -102,11 +102,11 @@ Grid and list views use `getLayout(theme.layout)` from `src/layouts/registry.js`
 
 `src/router.js` manages view state via URL hash:
 
-- `parseHash()` — reads `#event/{id}`, `#day/{date}`, or view names from the hash. Also checks the URL path for `/event/{id}` (server-side routing support).
+- `parseHash()` — reads `#event/{id}`, `#day/{date}`, or view names from the hash, and when the hash names none of them, `/event/{id}` from the URL path (server-side routing support). The hash is read first so that a page served at an event path can still navigate away from that event.
 - `getInitialView(defaultView, enabledViews, config)` — determines the first view to show. Priority: `config.initialEvent` > hash/path > localStorage > `config.defaultView`.
 - `setView(view, config)` — updates the hash and saves to localStorage with key `{storageKeyPrefix}-view`.
 - `eventHref(entry)`: the `#event/{id}` link that opens an entry, written once here so every card, row, chip, and block agrees with `parseHash`; on a page with a `<base href>` it is the page's absolute URL with that fragment, because a relative one would resolve against the base. A part with no id links to its parent; an entry with neither has no link.
-- `onHashChange(callback)` — registers a hashchange listener. Returns an unsubscribe function for cleanup.
+- `onHashChange(callback)` — registers a hashchange listener. Returns an unsubscribe function for cleanup. A change that lands back on the URL the visitor arrived on (the browser's Back through the entries the widget wrote) is read like the first load, path and all; any other change is read from the hash alone, so a hash that names no route, including the bare `#` a host's `href="#"` leaves, cannot pull the visitor back into the path's event.
 
 ## Theme System
 

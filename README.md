@@ -520,7 +520,7 @@ The clear button label is configurable via `i18n.clearFilter`.
 
 Events can be linked directly via hash or path:
 
-- **Hash:** `#event/<event-id>` — works on any page
+- **Hash:** `#event/<event-id>`, which works on any page. The id is percent-encoded the way `encodeURIComponent` does it, so an id with a space or a non-ASCII character opens too; the widget's own links already are.
 - **Path:** `/event/<event-id>` — requires server-side routing to serve the same page
 
 When the hash names a route, it wins over the path. On a page served at `/event/<id>`, the detail view's Back button and the links to other events write the hash, so the visitor can leave the event while the path stays in the address bar. The path's event opens when the hash names no route (a view, `event/<id>`, or `day/<date>`) on arrival, and again when the browser's own Back returns to the URL the visitor arrived on. Once the page has loaded, any other hash the widget does not know (a host's skip link, or the bare `#` a link to `#` leaves) leaves the view alone, and a reload keeps the view the hash names.

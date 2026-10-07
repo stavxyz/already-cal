@@ -1,3 +1,5 @@
+const assert = require("node:assert");
+
 function createTestEvent(overrides = {}) {
   return {
     id: overrides.id || `event-${Math.random().toString(36).slice(2, 8)}`,
@@ -66,4 +68,24 @@ function createComposite(parentOverrides = {}, partOverridesList = [{}]) {
   return { ...parent, parts };
 }
 
-module.exports = { createTestEvent, createComposite, captureConsoleError };
+/**
+ * Rendering after `init` is asynchronous (the data load awaits), and a hash
+ * change reaches the widget on a later task, so a test waits for the DOM to
+ * show what a step should produce instead of for a fixed time. `what` names
+ * the expectation in the failure message.
+ */
+async function until(check, what) {
+  const deadline = Date.now() + 2000;
+  while (Date.now() < deadline) {
+    if (check()) return;
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  assert.fail(`timed out waiting for ${what}`);
+}
+
+module.exports = {
+  createTestEvent,
+  createComposite,
+  captureConsoleError,
+  until,
+};

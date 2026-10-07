@@ -93,3 +93,38 @@ export function eventAnchor(href, className) {
   if (href == null) return createElement("div", className);
   return createElement("a", className, { href });
 }
+
+/** The event link at or above `target`: an anchor whose fragment is a route to an event. */
+function eventLinkAt(target) {
+  // A text node or the document has no closest(); only elements do.
+  const link = target?.closest?.("a[href]") ?? null;
+  if (link === null) return null;
+  return new URL(link.href).hash.startsWith("#event/") ? link : null;
+}
+
+/**
+ * Keep the event links inside `root` current on a page with a base element.
+ * There, router.eventHref writes each href as the page's absolute URL plus
+ * the fragment, taken when the view rendered; a host that then changes its
+ * path or query with pushState or replaceState while the widget stays
+ * mounted would leave a middle click, "Open in new tab", or "Copy link
+ * address" on the URL the page had at render time. So just before any of
+ * those can read the href (pointerdown, focusin, contextmenu), the link
+ * under the pointer or focus is rewritten from the current location. A
+ * plain click never needed this: it moves only the fragment into
+ * location.hash. On a page without a base element the hrefs are relative
+ * and cannot go stale, and this does nothing. Returns the unbind function.
+ */
+export function keepEventHrefsCurrent(root) {
+  const refresh = (e) => {
+    if (document.querySelector("base[href]") === null) return;
+    const link = eventLinkAt(e.target);
+    if (link === null) return;
+    link.href = new URL(new URL(link.href).hash, window.location.href).href;
+  };
+  const types = ["pointerdown", "focusin", "contextmenu"];
+  for (const type of types) root.addEventListener(type, refresh);
+  return () => {
+    for (const type of types) root.removeEventListener(type, refresh);
+  };
+}

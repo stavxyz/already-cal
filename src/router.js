@@ -7,12 +7,38 @@ function storageKey(config) {
   return `${prefix}-view`;
 }
 
+/**
+ * The id an event hash carries, percent-decoded as eventHref encoded it. A
+ * malformed escape (a bare `%` in a hash a visitor typed or a host built
+ * without encoding) is kept as written, which is what every version before
+ * the encoder read.
+ */
+function decodeHashId(text) {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return text;
+  }
+}
+
+/**
+ * The id as eventHref writes it into the hash. An id with a lone surrogate
+ * cannot be encoded; it goes in as it is rather than taking the render down.
+ */
+function encodeHashId(id) {
+  try {
+    return encodeURIComponent(id);
+  } catch {
+    return id;
+  }
+}
+
 /** The route a hash fragment (without its `#`) names, or null. */
 function routeFromHash(hash) {
   // #event/abc123. An empty argument is no route, as eventHref treats an
   // empty id; the same holds for #day/ below.
   if (hash.startsWith("event/") && hash.length > 6) {
-    return { view: "detail", eventId: hash.slice(6) };
+    return { view: "detail", eventId: decodeHashId(hash.slice(6)) };
   }
 
   // #day/2026-04-04
@@ -103,16 +129,16 @@ export function setDayView(dateStr, config) {
  * reads. A part with no id of its own (or an empty one) links to its
  * parent, where it is shown. An entry with neither has no route, so this
  * returns null and the caller renders nothing activatable in place of a
- * link to nowhere. The id goes into the fragment as it is; the URL parser
- * percent-encodes the few characters a fragment cannot carry (a space, a
- * quote, angle brackets, non-ASCII), exactly as assigning location.hash
- * does, and parseHash reads the hash as the browser holds it, so a
- * link and a click land on the same route.
+ * link to nowhere. The id is percent-encoded into the fragment and
+ * parseHash decodes it, so an id with a space or a non-ASCII character
+ * round-trips; left as it is, the browser would encode those characters
+ * when the fragment is set and the hash would name an id no event has
+ * (#106). The path form, /event/<id>, has always worked this way.
  */
 export function eventHref(entry) {
   const id = entry?.id || entry?.parentId;
   if (!id) return null;
-  const fragment = `#event/${id}`;
+  const fragment = `#event/${encodeHashId(id)}`;
   // A relative fragment is the right href on almost every page: the browser
   // resolves it against the page's current URL each time it is used, so it
   // cannot go stale when a host changes the path or the query. A <base href>

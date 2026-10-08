@@ -1,7 +1,7 @@
 require("./setup-dom.cjs");
 const { describe, it, before, after, afterEach } = require("node:test");
 const assert = require("node:assert");
-const { createTestEvent } = require("./helpers.cjs");
+const { createTestEvent, until } = require("./helpers.cjs");
 
 // A visitor who arrives from a shared event link lands on a page whose path
 // is /event/<id>. The widget opens that event, and must then let them leave
@@ -29,17 +29,6 @@ afterEach(() => {
   window.history.replaceState({}, "", PAGE);
 });
 
-// Rendering after `init` is asynchronous (the data load awaits), and a hash
-// change reaches the widget on a later task, so wait for the DOM to show
-// what the step should produce instead of for a fixed time.
-async function until(check, what) {
-  const deadline = Date.now() + 2000;
-  while (Date.now() < deadline) {
-    if (check()) return;
-    await new Promise((r) => setTimeout(r, 10));
-  }
-  assert.fail(`timed out waiting for ${what}`);
-}
 const detailTitle = (c) =>
   c.querySelector(".already-detail-title")?.textContent ?? null;
 

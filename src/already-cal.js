@@ -5,6 +5,7 @@ import { register } from "./registry.js";
 import { getInitialView, onHashChange, parseHash, setView } from "./router.js";
 import { applyTheme } from "./theme.js";
 import { addThemeName, getTheme, getThemeNames } from "./themes/registry.js";
+import { keepEventHrefsCurrent } from "./ui/event-link.js";
 import { closeEventPopover } from "./ui/event-popover.js";
 import { renderHeader } from "./ui/header.js";
 import { paginateEvents, renderPaginationButtons } from "./ui/pagination.js";
@@ -634,6 +635,7 @@ export function init(userConfig) {
 
   // Load and render
   let removeHashListener = null;
+  let removeHrefRefresh = null;
   let interactionCleanup = null;
 
   async function start() {
@@ -675,6 +677,9 @@ export function init(userConfig) {
     removeHashListener = onHashChange((viewState) => {
       renderView(viewState);
     });
+    // On a page with a <base href> the event links are absolute and fixed at
+    // render time; this keeps them current against a host's pushState.
+    removeHrefRefresh = keepEventHrefsCurrent(el);
 
     // Signal "I'm initialized" to the parent window so a framing host
     // that wants to send config via postMessage can gate its first send
@@ -874,6 +879,7 @@ export function init(userConfig) {
     window.removeEventListener("resize", handleResize);
     window.removeEventListener("message", handleMessage);
     if (removeHashListener) removeHashListener();
+    if (removeHrefRefresh) removeHrefRefresh();
     if (interactionCleanup) interactionCleanup();
     closeEventPopover(el);
     // Cancel any pending share-button revert timers — the header button

@@ -1161,7 +1161,8 @@ var Already = (() => {
 
   // src/util/comments.js
   var BR = "<br\\s*\\/?>";
-  var COMMENT_BODY = `[ \\t]*\\/\\/ (?:(?!${BR})[^\\n])*`;
+  var END = `${BR}|<\\/|<(?:p|div|ul|ol|li|h[1-6]|blockquote|pre|table|tr|td|th|hr)(?=[\\s/>])`;
+  var COMMENT_BODY = `[ \\t]*\\/\\/ (?:(?!${END})[^\\n])*`;
   var BR_COMMENT_RE = new RegExp(`${BR}${COMMENT_BODY}`, "gi");
   var LINE_COMMENT_RE = new RegExp(`^${COMMENT_BODY}(?:\\n|${BR})?`, "gmi");
   function stripComments(description) {
@@ -3476,8 +3477,8 @@ ${text}</tr>
 
   // src/util/directives.js
   var DIRECTIVE_PATTERN = /#already:([^\s<>]+)/gi;
-  var LINKED_VALUE = /(#already:[a-z0-9-]+:)[ \t]*<a\b([^<>]*)>[^<]*<\/a>/gi;
-  var SPACED_VALUE = /(#already:[a-z0-9-]+:)[ \t]+(?=<a\b|https?:\/\/)/gi;
+  var LINKED_VALUE = /(#already:[a-z0-9-]+:)<a\b([^<>]*)>[^<]*<\/a>/gi;
+  var SPACED_VALUE = /(#already:[a-z0-9-]+:)(?:[ \t]|&nbsp;|\u00a0)+(?=<a\b|https?:\/\/)/gi;
   var LINKED_HREF = /(?:^|\s)href\s*=\s*(["'])([^"']*)\1/i;
   var FLAG_FIELDS = /* @__PURE__ */ new Map([
     ["featured", "featured"],

@@ -40,7 +40,7 @@ Use comments to:
 - URLs with `://` are never affected — `https://example.com` is safe
 - Protocol-relative URLs (`//example.com`) are preserved — no space after `//`
 - Lines are delimited by `\n` (or `\r\n`).
-- A `<br>` (`<br>`, `<br/>`, `<br />`, any case) also ends a line for comments since v0.14.5, so a `// ` comment right after a `<br>` is removed together with that `<br>`. Such a comment ends at the next newline, `<br>` or tag, so the markup around its line is kept. Google Calendar's editor writes `<br>` between lines, so `Hello<br>// note<br>World` renders as `Hello<br>World`.
+- A `<br>` (`<br>`, `<br/>`, `<br />`, any case) also ends a line for comments since v0.14.5, so a `// ` comment right after a `<br>` is removed together with that `<br>`. A comment, after a `<br>` or on its own line, ends at the next newline, `<br>`, block-level tag, or closing tag that was not opened inside the comment, so the markup around its line is kept. Google Calendar's editor writes `<br>` between lines, so `Hello<br>// note<br>World` renders as `Hello<br>World`.
 
 ## Directives
 

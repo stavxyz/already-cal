@@ -40,13 +40,13 @@ Use comments to:
 - URLs with `://` are never affected — `https://example.com` is safe
 - Protocol-relative URLs (`//example.com`) are preserved — no space after `//`
 - Lines are delimited by `\n` (or `\r\n`).
-- A `<br>` (`<br>`, `<br/>`, `<br />`, any case) also ends a line for comments since v0.14.5, so a `// ` comment right after a `<br>` is removed together with that `<br>`. Google Calendar's editor writes `<br>` between lines, so `Hello<br>// note<br>World` renders as `Hello<br>World`
+- A `<br>` (`<br>`, `<br/>`, `<br />`, any case) also ends a line for comments since v0.14.5, so a `// ` comment right after a `<br>` is removed together with that `<br>`. Such a comment ends at the next newline, `<br>` or tag, so the markup around its line is kept. Google Calendar's editor writes `<br>` between lines, so `Hello<br>// note<br>World` renders as `Hello<br>World`.
 
 ## Directives
 
 Directives let you control already-cal behavior using `#already:<type>:<value>` syntax. They are extracted and removed from the rendered description.
 
-A space between the directive's colon and its value is ignored on the same line, so `#already:image: https://example.com/flyer.png` reads the same as `#already:image:https://example.com/flyer.png`. A value on the next line is not joined.
+A space (or tab, or `&nbsp;`) between the directive's colon and its value is ignored on the same line when the value is a linked or bare `http(s)://` URL, so `#already:image: https://example.com/flyer.png` reads the same as `#already:image:https://example.com/flyer.png`. A value on the next line is not joined, and a non-URL value is not joined either (`#already:tag: fundraiser` has no value).
 
 ```
 #already:instagram:savebigbend     → "Follow @savebigbend on Instagram"

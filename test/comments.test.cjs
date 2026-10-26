@@ -144,11 +144,30 @@ describe("stripComments", () => {
       );
     });
 
-    it("keeps an inline tag inside the comment text up to its closing tag", () => {
+    it("keeps an inline pair inside the comment text", () => {
       assert.strictEqual(
         stripComments("a<br>// see <b>this</b><br>c"),
-        "a</b><br>c",
+        "a<br>c",
       );
+      assert.strictEqual(
+        stripComments("// note with <b>bold</b> inside\nnext"),
+        "next",
+      );
+    });
+
+    it("stops at the wider block set", () => {
+      assert.strictEqual(stripComments("a<br>// x<tbody>b"), "a<tbody>b");
+    });
+
+    it("swallows an unclosed inline tag up to the newline", () => {
+      assert.strictEqual(stripComments("// <b>unclosed\nnext"), "next");
+    });
+
+    it("scans a long comment with many pairs in linear time", () => {
+      const text = `// ${"<b></b>".repeat(10000)}${"x".repeat(40000)}<br>end`;
+      const t = Date.now();
+      assert.strictEqual(stripComments(text), "end");
+      assert.ok(Date.now() - t < 2000);
     });
 
     it("handles CRLF together with <br>", () => {

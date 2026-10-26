@@ -3,9 +3,13 @@ import { decodeAmp } from "./html-entities.js";
 // A line break for comment purposes is a newline or a <br> in any spelling.
 // Google Calendar's editor writes <br> between lines, so a comment typed on
 // its own line there follows a <br>, not a newline. A comment runs to the
-// next newline or <br>.
+// first newline, <br>, closing tag, or opening block-level tag, so it never
+// swallows the markup around its line (`<p>a<br>// x</p><p>b</p>`). An inline
+// opening tag inside the text (`// see <b>this</b>`) belongs to the comment,
+// up to its closing tag.
 const BR = "<br\\s*\\/?>";
-const COMMENT_BODY = `[ \\t]*\\/\\/ (?:(?!${BR})[^\\n])*`;
+const END = `${BR}|<\\/|<(?:p|div|ul|ol|li|h[1-6]|blockquote|pre|table|tr|td|th|hr)(?=[\\s/>])`;
+const COMMENT_BODY = `[ \\t]*\\/\\/ (?:(?!${END})[^\\n])*`;
 // Comment after a <br>: remove the <br> with it, keep what follows.
 const BR_COMMENT_RE = new RegExp(`${BR}${COMMENT_BODY}`, "gi");
 // Comment at the start of a line: remove it with its line break (newline or
@@ -17,7 +21,8 @@ const LINE_COMMENT_RE = new RegExp(`^${COMMENT_BODY}(?:\\n|${BR})?`, "gmi");
  * Comments start with // (followed by a space) at the beginning of a line,
  * with optional leading whitespace. A line begins at the start of the text,
  * after a newline, or after a <br> (any spelling: <br>, <br/>, <br />, any
- * case). Entire comment lines are removed together with the line break that
+ * case). A comment ends at the next newline, <br>, closing tag or opening
+ * block-level tag. Entire comment lines are removed together with the line break that
  * preceded them (after a <br>) or followed them (after a newline).
  * Mixed input such as `line<br>// note\nnext` becomes `line\nnext`: the
  * <br> goes with the comment and the newline stays.

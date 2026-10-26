@@ -39,11 +39,27 @@ function addBase() {
   document.head.appendChild(base);
 }
 
-// The 15th of the current month at noon, local time: inside the month the
-// month view shows, whatever the zone, so the chip test has a chip to find.
+// Tomorrow at `hour` local time while tomorrow is still this month, else
+// today twelve hours later: inside the month the month view shows (so the
+// chip test has a chip to find) and not yet past (so the card renders at
+// all). The 15th was used before and the suite failed from the 16th on,
+// because a past event has no card. The only gap left is the last two hours
+// of a month's last day.
 function thisMonthAt(hour) {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 15, hour).toISOString();
+  const tomorrow = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+    hour,
+  );
+  if (tomorrow.getMonth() === now.getMonth()) return tomorrow.toISOString();
+  return new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    hour + 12,
+  ).toISOString();
 }
 
 function mount(view) {

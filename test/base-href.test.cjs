@@ -44,7 +44,8 @@ function addBase() {
 // chip test has a chip to find) and not yet past (so the card renders at
 // all). The 15th was used before and the suite failed from the 16th on,
 // because a past event has no card. The only gap left is the last two hours
-// of a month's last day.
+// of a month's last day. The fallback adds 12 hours, clamped to 23, which
+// keeps the start and end calls ordered as long as both hours are below 12.
 function thisMonthAt(hour) {
   const now = new Date();
   const tomorrow = new Date(
@@ -58,7 +59,7 @@ function thisMonthAt(hour) {
     now.getFullYear(),
     now.getMonth(),
     now.getDate(),
-    hour + 12,
+    Math.min(hour + 12, 23),
   ).toISOString();
 }
 

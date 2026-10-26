@@ -122,6 +122,47 @@ describe("stripComments", () => {
     assert.strictEqual(stripComments("content\n\n// trailing"), "content");
   });
   describe("after a <br>", () => {
+    it("does not swallow a closing tag after the comment", () => {
+      assert.strictEqual(
+        stripComments("<b>Hello<br>// note</b><br>World"),
+        "<b>Hello</b><br>World",
+      );
+      assert.strictEqual(
+        stripComments("<p>a<br>// x</p><p>b</p>"),
+        "<p>a</p><p>b</p>",
+      );
+    });
+
+    it("stops at an opening block tag", () => {
+      assert.strictEqual(
+        stripComments("<ul><li>a</li><br>// x</ul>tail"),
+        "<ul><li>a</li></ul>tail",
+      );
+      assert.strictEqual(
+        stripComments("a<br>// x<div>b</div>"),
+        "a<div>b</div>",
+      );
+    });
+
+    it("keeps an inline tag inside the comment text up to its closing tag", () => {
+      assert.strictEqual(
+        stripComments("a<br>// see <b>this</b><br>c"),
+        "a</b><br>c",
+      );
+    });
+
+    it("handles CRLF together with <br>", () => {
+      assert.strictEqual(stripComments("a\r\n<br>// x<br>b"), "a\n<br>b");
+    });
+
+    it("ends a newline-started comment at a <br>", () => {
+      assert.strictEqual(stripComments("a\n// x<br>b"), "a\nb");
+    });
+
+    it("keeps spaces before the <br>", () => {
+      assert.strictEqual(stripComments("a  <br>// x<br>b"), "a  <br>b");
+    });
+
     it("removes a comment between two <br> lines", () => {
       assert.strictEqual(
         stripComments("Hello<br>// note<br>World"),

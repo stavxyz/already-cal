@@ -470,6 +470,22 @@ describe("extractDirectives: space between the key and its value", () => {
     assert.strictEqual(many.tokens[0].url, url);
   });
 
+  it("accepts &nbsp; and U+00A0 as the gap", () => {
+    for (const gap of ["&nbsp;", "\u00a0", " &nbsp;\u00a0 "]) {
+      const linked = extractDirectives(`#already:preorder:${gap}${link(url)}`);
+      const bare = extractDirectives(`#already:preorder:${gap}${url}`);
+      assert.strictEqual(linked.tokens[0].url, url);
+      assert.strictEqual(bare.tokens[0].url, url);
+      assert.strictEqual(linked.description.trim(), "");
+      assert.strictEqual(bare.description.trim(), "");
+    }
+  });
+
+  it("does not join a space before a non-URL value", () => {
+    const result = extractDirectives("#already:tag: fundraiser");
+    assert.strictEqual(result.tokens.length, 0);
+  });
+
   it("accepts an uppercase key", () => {
     const result = extractDirectives(`#ALREADY:PREORDER: ${url}`);
     assert.strictEqual(result.tokens.length, 1);

@@ -1160,17 +1160,88 @@ var Already = (() => {
   }
 
   // src/util/comments.js
-  var BR = "<br\\s*\\/?>";
-  var END = `${BR}|<\\/|<(?:p|div|ul|ol|li|h[1-6]|blockquote|pre|table|tr|td|th|hr)(?=[\\s/>])`;
-  var COMMENT_BODY = `[ \\t]*\\/\\/ (?:(?!${END})[^\\n])*`;
-  var BR_COMMENT_RE = new RegExp(`${BR}${COMMENT_BODY}`, "gi");
-  var LINE_COMMENT_RE = new RegExp(`^${COMMENT_BODY}(?:\\n|${BR})?`, "gmi");
+  var BREAK_RE = /\n|<br\s*\/?>/gi;
+  var COMMENT_START_RE = /[ \t]*\/\/ /y;
+  var TAG_RE = /<(\/?)([a-z][a-z0-9]*)(?![\w-])[^<>]{0,1024}>/iy;
+  var BLOCK_TAGS = new Set(
+    "br p div ul ol li h1 h2 h3 h4 h5 h6 blockquote pre table tr td th hr tbody thead tfoot section article header footer nav aside figure dl dt dd form".split(" ")
+  );
+  var VOID_TAGS = /* @__PURE__ */ new Set(["img", "input", "wbr", "source", "area", "col"]);
+  function commentEnd(text, from) {
+    const open = [];
+    let j = from;
+    while (j < text.length) {
+      const c = text[j];
+      if (c === "\n") return j;
+      if (c !== "<") {
+        j++;
+        continue;
+      }
+      TAG_RE.lastIndex = j;
+      const m = TAG_RE.exec(text);
+      if (!m) {
+        j++;
+        continue;
+      }
+      const name = m[2].toLowerCase();
+      if (m[1]) {
+        const k = open.lastIndexOf(name);
+        if (k === -1) return j;
+        open.length = k;
+      } else if (BLOCK_TAGS.has(name)) {
+        return j;
+      } else if (!VOID_TAGS.has(name) && !m[0].endsWith("/>")) {
+        open.push(name);
+      }
+      j += m[0].length;
+    }
+    return j;
+  }
+  function commentAt(text, pos) {
+    COMMENT_START_RE.lastIndex = pos;
+    const m = COMMENT_START_RE.exec(text);
+    return m ? commentEnd(text, pos + m[0].length) : -1;
+  }
+  function removeComments(text) {
+    let out = "";
+    let i = 0;
+    let lineStart = true;
+    while (i <= text.length) {
+      if (lineStart) {
+        const end2 = commentAt(text, i);
+        if (end2 !== -1) {
+          BREAK_RE.lastIndex = end2;
+          const m2 = BREAK_RE.exec(text);
+          i = m2 && m2.index === end2 ? end2 + m2[0].length : end2;
+          lineStart = Boolean(m2 && m2.index === end2);
+          continue;
+        }
+      }
+      BREAK_RE.lastIndex = i;
+      const m = BREAK_RE.exec(text);
+      if (!m) {
+        out += text.slice(i);
+        break;
+      }
+      out += text.slice(i, m.index);
+      const after = m.index + m[0].length;
+      const end = m[0] === "\n" ? -1 : commentAt(text, after);
+      if (end !== -1) {
+        i = end;
+        lineStart = false;
+      } else {
+        out += m[0];
+        i = after;
+        lineStart = true;
+      }
+    }
+    return out;
+  }
   function stripComments(description) {
     if (!description) return "";
     let text = decodeAmp(description);
     text = text.replace(/\r\n/g, "\n");
-    text = text.replace(BR_COMMENT_RE, "");
-    text = text.replace(LINE_COMMENT_RE, "");
+    text = removeComments(text);
     text = text.replace(/\n{3,}/g, "\n\n").replace(/^\n+/, "").replace(/\n+$/, "");
     return text;
   }

@@ -13,14 +13,15 @@ const DIRECTIVE_PATTERN = /#already:([^\s<>]+)/gi;
 // (see #79 for this repo's history with super-linear patterns on untrusted
 // text). The href is read from the attribute string separately; `(?:^|\s)`
 // keeps `data-href` from matching.
-const LINKED_VALUE = /(#already:[a-z0-9-]+:)[ \t]*<a\b([^<>]*)>[^<]*<\/a>/gi;
+const LINKED_VALUE = /(#already:[a-z0-9-]+:)<a\b([^<>]*)>[^<]*<\/a>/gi;
 
 // People type a space after the directive's colon, so the editor stores
 // `#already:image: <a href=...>` or a bare `#already:image: https://...`.
-// Join the value to its key when the gap is spaces or tabs on the same line.
+// Join the value to its key when the gap is spaces, tabs or &nbsp; on the same line.
 // Same line only (never \s): a URL on the next line is the organizer's own
 // text, not the directive's value.
-const SPACED_VALUE = /(#already:[a-z0-9-]+:)[ \t]+(?=<a\b|https?:\/\/)/gi;
+const SPACED_VALUE =
+  /(#already:[a-z0-9-]+:)(?:[ \t]|&nbsp;|\u00a0)+(?=<a\b|https?:\/\/)/gi;
 const LINKED_HREF = /(?:^|\s)href\s*=\s*(["'])([^"']*)\1/i;
 
 // Flag directives: a bare keyword after `#already:` that sets one boolean on

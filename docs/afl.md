@@ -39,11 +39,14 @@ Use comments to:
 - `// ` mid-line is NOT a comment — `visit us // open daily` renders as-is
 - URLs with `://` are never affected — `https://example.com` is safe
 - Protocol-relative URLs (`//example.com`) are preserved — no space after `//`
-- Lines are delimited by `\n` (or `\r\n`). HTML `<br>` is not a comment boundary — write comments on real newlines, not after `<br>` tags
+- Lines are delimited by `\n` (or `\r\n`).
+- A `<br>` (`<br>`, `<br/>`, `<br />`, any case) also ends a line for comments since v0.14.5, so a `// ` comment right after a `<br>` is removed together with that `<br>`. Google Calendar's editor writes `<br>` between lines, so `Hello<br>// note<br>World` renders as `Hello<br>World`
 
 ## Directives
 
 Directives let you control already-cal behavior using `#already:<type>:<value>` syntax. They are extracted and removed from the rendered description.
+
+A space between the directive's colon and its value is ignored on the same line, so `#already:image: https://example.com/flyer.png` reads the same as `#already:image:https://example.com/flyer.png`. A value on the next line is not joined.
 
 ```
 #already:instagram:savebigbend     → "Follow @savebigbend on Instagram"

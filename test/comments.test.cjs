@@ -121,4 +121,132 @@ describe("stripComments", () => {
   it("strips a trailing comment that follows a blank line", () => {
     assert.strictEqual(stripComments("content\n\n// trailing"), "content");
   });
+  describe("after a <br>", () => {
+    it("does not swallow a closing tag after the comment", () => {
+      assert.strictEqual(
+        stripComments("<b>Hello<br>// note</b><br>World"),
+        "<b>Hello</b><br>World",
+      );
+      assert.strictEqual(
+        stripComments("<p>a<br>// x</p><p>b</p>"),
+        "<p>a</p><p>b</p>",
+      );
+    });
+
+    it("stops at an opening block tag", () => {
+      assert.strictEqual(
+        stripComments("<ul><li>a</li><br>// x</ul>tail"),
+        "<ul><li>a</li></ul>tail",
+      );
+      assert.strictEqual(
+        stripComments("a<br>// x<div>b</div>"),
+        "a<div>b</div>",
+      );
+    });
+
+    it("keeps an inline pair inside the comment text", () => {
+      assert.strictEqual(
+        stripComments("a<br>// see <b>this</b><br>c"),
+        "a<br>c",
+      );
+      assert.strictEqual(
+        stripComments("// note with <b>bold</b> inside\nnext"),
+        "next",
+      );
+    });
+
+    it("stops at the wider block set", () => {
+      assert.strictEqual(stripComments("a<br>// x<tbody>b"), "a<tbody>b");
+    });
+
+    it("swallows an unclosed inline tag up to the newline", () => {
+      assert.strictEqual(stripComments("// <b>unclosed\nnext"), "next");
+    });
+
+    it("scans a long comment with many pairs in linear time", () => {
+      const text = `// ${"<b></b>".repeat(10000)}${"x".repeat(40000)}<br>end`;
+      const t = Date.now();
+      assert.strictEqual(stripComments(text), "end");
+      assert.ok(Date.now() - t < 2000);
+    });
+
+    it("handles CRLF together with <br>", () => {
+      assert.strictEqual(stripComments("a\r\n<br>// x<br>b"), "a\n<br>b");
+    });
+
+    it("ends a newline-started comment at a <br>", () => {
+      assert.strictEqual(stripComments("a\n// x<br>b"), "a\nb");
+    });
+
+    it("keeps spaces before the <br>", () => {
+      assert.strictEqual(stripComments("a  <br>// x<br>b"), "a  <br>b");
+    });
+
+    it("removes a comment between two <br> lines", () => {
+      assert.strictEqual(
+        stripComments("Hello<br>// note<br>World"),
+        "Hello<br>World",
+      );
+    });
+
+    it("accepts <br/> and <BR /> spellings", () => {
+      assert.strictEqual(
+        stripComments("Hello<br/>// note<br/>World"),
+        "Hello<br/>World",
+      );
+      assert.strictEqual(
+        stripComments("Hello<BR />// note<BR />World"),
+        "Hello<BR />World",
+      );
+    });
+
+    it("leaves no trailing <br> for a comment after the last <br>", () => {
+      assert.strictEqual(stripComments("Hello<br>// note"), "Hello");
+    });
+
+    it("removes consecutive comment lines", () => {
+      assert.strictEqual(
+        stripComments("Hello<br>// a<br>// b<br>World"),
+        "Hello<br>World",
+      );
+    });
+
+    it("removes a comment at the start of the text that ends at a <br>", () => {
+      assert.strictEqual(stripComments("// note<br>World"), "World");
+      assert.strictEqual(stripComments("// a<br>// b<br>World"), "World");
+    });
+
+    it("handles a <br> then a newline: the <br> goes, the newline stays", () => {
+      assert.strictEqual(stripComments("line<br>// note\nnext"), "line\nnext");
+    });
+
+    it("allows whitespace between the <br> and //", () => {
+      assert.strictEqual(
+        stripComments("Hello<br>  // note<br>World"),
+        "Hello<br>World",
+      );
+    });
+
+    it("keeps mid-line // after text on the same line", () => {
+      assert.strictEqual(
+        stripComments("visit us // open daily<br>bye"),
+        "visit us // open daily<br>bye",
+      );
+    });
+
+    it("keeps URLs and //nospace after a <br>", () => {
+      assert.strictEqual(
+        stripComments("a<br>https://example.com<br>//example.com<br>//nospace"),
+        "a<br>https://example.com<br>//example.com<br>//nospace",
+      );
+    });
+  });
+
+  it("keeps mid-line // and removes a leading comment line", () => {
+    assert.strictEqual(
+      stripComments("visit us // open daily"),
+      "visit us // open daily",
+    );
+    assert.strictEqual(stripComments("// note\nkept"), "kept");
+  });
 });

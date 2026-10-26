@@ -139,3 +139,24 @@ describe("_sourceKey", () => {
     assert.ok(!("_sourceKey" in enrichGoogleEvent(item(), {})));
   });
 });
+
+describe("pasted Google Calendar description through enrichEvent", () => {
+  it("reads spaced linked directives separated by <br>", () => {
+    const burgers = "https://frenchcogrocer.com/burgers";
+    const img = "https://lh3.googleusercontent.com/x";
+    const event = enrichEvent(
+      base(
+        `#already:preorder: <a href="${burgers}">${burgers}</a><br>#already:image-shuffle<br>#already:image: <a href="${img}">${img}</a>`,
+      ),
+      {},
+    );
+    const preorder = event.tags.filter((t) => t.key === "preorder");
+    assert.strictEqual(preorder.length, 1);
+    assert.strictEqual(preorder[0].value, burgers);
+    assert.strictEqual(event.imageShuffle, true);
+    assert.deepStrictEqual(event.images, [img]);
+    assert.ok(
+      !/already|<a|frenchcogrocer|googleusercontent/.test(event.description),
+    );
+  });
+});

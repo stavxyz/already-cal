@@ -422,3 +422,90 @@ describe("extractDirectives: auto-linked values", () => {
     assert.ok(result.description.includes(`<a href="${URL_VALUE}">`));
   });
 });
+
+describe("extractDirectives: space between the key and its value", () => {
+  const url = "https://frenchcogrocer.com/burgers";
+  const link = (href) => `<a href="${href}">${href}</a>`;
+  const shape = (t) => ({
+    type: t.type,
+    url: t.url,
+    label: t.label,
+    canonicalId: t.canonicalId,
+  });
+
+  it("reads a spaced linked preorder like the no-space form", () => {
+    const spaced = extractDirectives(`#already:preorder: ${link(url)}`);
+    const tight = extractDirectives(`#already:preorder:${link(url)}`);
+    assert.strictEqual(spaced.tokens.length, 1);
+    assert.deepStrictEqual(shape(spaced.tokens[0]), shape(tight.tokens[0]));
+    assert.strictEqual(spaced.description.trim(), "");
+  });
+
+  it("reads a spaced linked image", () => {
+    const href = "https://lh3.googleusercontent.com/pw/abc=w1600";
+    const result = extractDirectives(`#already:image: ${link(href)}`);
+    assert.strictEqual(result.tokens.length, 1);
+    assert.strictEqual(result.tokens[0].type, "image");
+    assert.strictEqual(result.tokens[0].url, href);
+    assert.strictEqual(result.description.trim(), "");
+  });
+
+  it("reads a spaced bare image URL and cleans the description", () => {
+    const result = extractDirectives(
+      "Intro<br>#already:image: https://x.example/a.png<br>Outro",
+    );
+    assert.strictEqual(result.tokens.length, 1);
+    assert.strictEqual(result.tokens[0].type, "image");
+    assert.strictEqual(result.tokens[0].url, "https://x.example/a.png");
+    assert.ok(!result.description.includes("x.example"));
+    assert.ok(!result.description.includes("#already"));
+    assert.ok(result.description.includes("Intro"));
+    assert.ok(result.description.includes("Outro"));
+  });
+
+  it("accepts a tab and several spaces", () => {
+    const tab = extractDirectives(`#already:preorder:\t${link(url)}`);
+    const many = extractDirectives(`#already:preorder:   ${url}`);
+    assert.strictEqual(tab.tokens[0].url, url);
+    assert.strictEqual(many.tokens[0].url, url);
+  });
+
+  it("accepts &nbsp; and U+00A0 as the gap", () => {
+    for (const gap of ["&nbsp;", "\u00a0", " &nbsp;\u00a0 "]) {
+      const linked = extractDirectives(`#already:preorder:${gap}${link(url)}`);
+      const bare = extractDirectives(`#already:preorder:${gap}${url}`);
+      assert.strictEqual(linked.tokens[0].url, url);
+      assert.strictEqual(bare.tokens[0].url, url);
+      assert.strictEqual(linked.description.trim(), "");
+      assert.strictEqual(bare.description.trim(), "");
+    }
+  });
+
+  it("does not join a space before a non-URL value", () => {
+    const result = extractDirectives("#already:tag: fundraiser");
+    assert.strictEqual(result.tokens.length, 0);
+  });
+
+  it("accepts an uppercase key", () => {
+    const result = extractDirectives(`#ALREADY:PREORDER: ${url}`);
+    assert.strictEqual(result.tokens.length, 1);
+    assert.strictEqual(result.tokens[0].url, url);
+  });
+
+  it("does not join a value on the next line", () => {
+    const result = extractDirectives(`#already:preorder:\n${url}`);
+    assert.strictEqual(result.tokens.length, 0);
+    assert.ok(result.description.includes(url));
+  });
+
+  it("still reads the no-space forms", () => {
+    assert.strictEqual(
+      extractDirectives(`#already:preorder:${url}`).tokens[0].url,
+      url,
+    );
+    assert.strictEqual(
+      extractDirectives(`#already:preorder:${link(url)}`).tokens[0].url,
+      url,
+    );
+  });
+});

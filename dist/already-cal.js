@@ -1160,12 +1160,16 @@ var Already = (() => {
   }
 
   // src/util/comments.js
-  var COMMENT_RE = /^[ \t]*\/\/ .*$\n?/gm;
+  var BR = "<br\\s*\\/?>";
+  var COMMENT_BODY = `[ \\t]*\\/\\/ (?:(?!${BR})[^\\n])*`;
+  var BR_COMMENT_RE = new RegExp(`${BR}${COMMENT_BODY}`, "gi");
+  var LINE_COMMENT_RE = new RegExp(`^${COMMENT_BODY}(?:\\n|${BR})?`, "gmi");
   function stripComments(description) {
     if (!description) return "";
     let text = decodeAmp(description);
     text = text.replace(/\r\n/g, "\n");
-    text = text.replace(COMMENT_RE, "");
+    text = text.replace(BR_COMMENT_RE, "");
+    text = text.replace(LINE_COMMENT_RE, "");
     text = text.replace(/\n{3,}/g, "\n\n").replace(/^\n+/, "").replace(/\n+$/, "");
     return text;
   }
@@ -3472,7 +3476,8 @@ ${text}</tr>
 
   // src/util/directives.js
   var DIRECTIVE_PATTERN = /#already:([^\s<>]+)/gi;
-  var LINKED_VALUE = /(#already:[a-z0-9-]+:)<a\b([^<>]*)>[^<]*<\/a>/gi;
+  var LINKED_VALUE = /(#already:[a-z0-9-]+:)[ \t]*<a\b([^<>]*)>[^<]*<\/a>/gi;
+  var SPACED_VALUE = /(#already:[a-z0-9-]+:)[ \t]+(?=<a\b|https?:\/\/)/gi;
   var LINKED_HREF = /(?:^|\s)href\s*=\s*(["'])([^"']*)\1/i;
   var FLAG_FIELDS = /* @__PURE__ */ new Map([
     ["featured", "featured"],
@@ -3663,13 +3668,10 @@ ${text}</tr>
   }
   function extractDirectives(description) {
     if (!description) return { tokens: [], description, ...noFlags() };
-    description = decodeAmp(description).replace(
-      LINKED_VALUE,
-      (m, key, attrs) => {
-        const href = LINKED_HREF.exec(attrs);
-        return href ? key + href[2] : m;
-      }
-    );
+    description = decodeAmp(description).replace(SPACED_VALUE, "$1").replace(LINKED_VALUE, (m, key, attrs) => {
+      const href = LINKED_HREF.exec(attrs);
+      return href ? key + href[2] : m;
+    });
     const tokens = [];
     const seen = /* @__PURE__ */ new Set();
     const flags = noFlags();
@@ -7142,7 +7144,7 @@ ${text}</tr>
       });
       removeHrefRefresh = keepEventHrefsCurrent(el);
       postReadyToParent(
-        true ? "0.14.4" : "unknown"
+        true ? "0.14.5" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

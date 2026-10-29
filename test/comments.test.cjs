@@ -249,4 +249,146 @@ describe("stripComments", () => {
     );
     assert.strictEqual(stripComments("// note\nkept"), "kept");
   });
+  describe("after a block-level tag", () => {
+    it("removes a comment that fills a paragraph, with the paragraph", () => {
+      assert.strictEqual(
+        stripComments("<p>A</p><p>// note</p><p>B</p>"),
+        "<p>A</p><p>B</p>",
+      );
+      assert.strictEqual(
+        stripComments("<div>A</div><div>// note</div><div>B</div>"),
+        "<div>A</div><div>B</div>",
+      );
+      assert.strictEqual(
+        stripComments("<ul><li>A</li><li>// note</li></ul>"),
+        "<ul><li>A</li></ul>",
+      );
+      assert.strictEqual(stripComments("<h2>// note</h2>"), "");
+      assert.strictEqual(stripComments('<p class="x">// note</p>'), "");
+      assert.strictEqual(stripComments("<P>// upper</P>"), "");
+    });
+
+    it("keeps the tag when the comment is not the whole element", () => {
+      assert.strictEqual(
+        stripComments("<p>// note<br>Real</p>"),
+        "<p>Real</p>",
+      );
+      assert.strictEqual(stripComments("<p>// note\nReal</p>"), "<p>Real</p>");
+      assert.strictEqual(
+        stripComments("<p>A</p>// between<p>B</p>"),
+        "<p>A</p><p>B</p>",
+      );
+      assert.strictEqual(
+        stripComments("<div>// a <b>bold</b> c</div><p>B</p>"),
+        "<p>B</p>",
+      );
+    });
+
+    it("still needs the space after //", () => {
+      assert.strictEqual(
+        stripComments("<p>A</p><p>//nospace</p>"),
+        "<p>A</p><p>//nospace</p>",
+      );
+    });
+
+    it("does not take a block tag that ends a comment at the start of the text", () => {
+      assert.strictEqual(stripComments("// note<p>B</p>"), "<p>B</p>");
+    });
+
+    it("leaves a comment after a br inside a paragraph as before", () => {
+      assert.strictEqual(
+        stripComments("<p>a<br>// x</p><p>b</p>"),
+        "<p>a</p><p>b</p>",
+      );
+    });
+
+    it("drops a wrapper the removed element alone filled", () => {
+      assert.strictEqual(stripComments("<div><p>// note</p></div>"), "");
+      assert.strictEqual(
+        stripComments("<ul>\n  <li>// a</li>\n  <li>// b</li>\n</ul>"),
+        "",
+      );
+      assert.strictEqual(
+        stripComments("<ul><li>// a</li><li>b</li></ul>"),
+        "<ul><li>b</li></ul>",
+      );
+      assert.strictEqual(
+        stripComments("<table><tr><td>// n</td></tr></table>x"),
+        "x",
+      );
+      assert.strictEqual(
+        stripComments("<tr><td>A</td><td>// n</td><td>C</td></tr>"),
+        "<tr><td>A</td><td>C</td></tr>",
+      );
+    });
+
+    it("takes a trailing break and still drops the element it fills", () => {
+      assert.strictEqual(stripComments("<p>// a\n</p>"), "");
+      assert.strictEqual(stripComments("<p>// n<br></p>x"), "x");
+      assert.strictEqual(stripComments("<p>// n<br>   </p>x"), "x");
+    });
+
+    it("removes text after a closing block tag on the same line", () => {
+      assert.strictEqual(
+        stripComments("<p>Visit us</p>// open daily"),
+        "<p>Visit us</p>",
+      );
+      assert.strictEqual(
+        stripComments("<p>Visit us</p>// open daily<p>x</p>"),
+        "<p>Visit us</p><p>x</p>",
+      );
+    });
+
+    it("leaves odd markup as it finds it", () => {
+      assert.strictEqual(stripComments("<p>// note"), "<p>");
+      assert.strictEqual(stripComments("</p>// note"), "</p>");
+      assert.strictEqual(stripComments("<p>// a<p>b</p>"), "<p><p>b</p>");
+      assert.strictEqual(stripComments("<p/>// n</p>"), "<p/></p>");
+      assert.strictEqual(stripComments("<p>// a</div>"), "<p></div>");
+    });
+
+    it("reads only real block tags as line starts", () => {
+      assert.strictEqual(
+        stripComments("<para>// x</para>"),
+        "<para>// x</para>",
+      );
+      assert.strictEqual(stripComments("<p-x>// x</p-x>"), "<p-x>// x</p-x>");
+      assert.strictEqual(
+        stripComments("<hr/>// note<p>x</p>"),
+        "<hr/><p>x</p>",
+      );
+      assert.strictEqual(stripComments('<p  class="x" >// note</p >'), "");
+      assert.strictEqual(
+        stripComments(`<p a="${"x".repeat(1100)}">// n</p>`),
+        `<p a="${"x".repeat(1100)}">// n</p>`,
+      );
+    });
+
+    it("handles CRLF and newlines around the blocks", () => {
+      assert.strictEqual(
+        stripComments("<p>// note\r\nReal</p>\r\n<p>// c</p>\r\n"),
+        "<p>Real</p>",
+      );
+      assert.strictEqual(
+        stripComments("<p>A</p>\n<p>// n</p>\n<p>B</p>"),
+        "<p>A</p>\n\n<p>B</p>",
+      );
+    });
+
+    it("stays linear on a long run of comment paragraphs", () => {
+      const text = "<p>// x</p>".repeat(50000) + "<p>end</p>";
+      const started = Date.now();
+      assert.strictEqual(stripComments(text), "<p>end</p>");
+      assert.ok(Date.now() - started < 2000, "took too long");
+    });
+
+    it("agrees with the feed's line breaks on a Google-style description", () => {
+      assert.strictEqual(
+        stripComments(
+          "<p>Friday is Burger Night</p><p>// TODO confirm the venue</p><p>Doors at 6</p>",
+        ),
+        "<p>Friday is Burger Night</p><p>Doors at 6</p>",
+      );
+    });
+  });
 });

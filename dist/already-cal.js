@@ -1160,13 +1160,16 @@ var Already = (() => {
   }
 
   // src/util/comments.js
-  var BREAK_RE = /\n|<br\s*\/?>/gi;
   var COMMENT_START_RE = /[ \t]*\/\/ /y;
   var TAG_RE = /<(\/?)([a-z][a-z0-9]*)(?![\w-])[^<>]{0,1024}>/iy;
   var BLOCK_TAGS = new Set(
     "br p div ul ol li h1 h2 h3 h4 h5 h6 blockquote pre table tr td th hr tbody thead tfoot section article header footer nav aside figure dl dt dd form".split(" ")
   );
   var VOID_TAGS = /* @__PURE__ */ new Set(["img", "input", "wbr", "source", "area", "col"]);
+  var BREAK_RE = new RegExp(
+    `\\n|<br\\s*\\/?>|<(\\/?)(${[...BLOCK_TAGS].filter((t) => t !== "br").join("|")})(?![\\w-])[^<>]{0,1024}>`,
+    "gi"
+  );
   function commentEnd(text, from) {
     const open = [];
     let j = from;
@@ -1202,6 +1205,38 @@ var Already = (() => {
     const m = COMMENT_START_RE.exec(text);
     return m ? commentEnd(text, pos + m[0].length) : -1;
   }
+  var BREAK_AT_RE = new RegExp(BREAK_RE.source, "iy");
+  var OPENER_AT_END_RE = /<([a-z][a-z0-9]*)(?![\w-])[^<>]{0,1024}>\s*$/i;
+  var CLOSERS = /* @__PURE__ */ new Map();
+  function lineBreakAt(text, pos) {
+    BREAK_AT_RE.lastIndex = pos;
+    const m = BREAK_AT_RE.exec(text);
+    return m && !m[2] ? m[0].length : 0;
+  }
+  function closingTagAt(text, pos, name) {
+    let re = CLOSERS.get(name);
+    if (!re) {
+      re = new RegExp(`\\s*</${name}\\s*>`, "iy");
+      CLOSERS.set(name, re);
+    }
+    re.lastIndex = pos;
+    const m = re.exec(text);
+    return m ? m[0].length : 0;
+  }
+  function dropEmptyWrappers(out, text, i) {
+    for (; ; ) {
+      const lt = out.lastIndexOf("<");
+      if (lt === -1) return { out, i };
+      const m = OPENER_AT_END_RE.exec(out.slice(lt));
+      if (!m || m[0].endsWith("/>")) return { out, i };
+      const name = m[1].toLowerCase();
+      if (!BLOCK_TAGS.has(name)) return { out, i };
+      const closing = closingTagAt(text, i, name);
+      if (!closing) return { out, i };
+      out = out.slice(0, lt);
+      i += closing;
+    }
+  }
   function removeComments(text) {
     let out = "";
     let i = 0;
@@ -1210,10 +1245,9 @@ var Already = (() => {
       if (lineStart) {
         const end2 = commentAt(text, i);
         if (end2 !== -1) {
-          BREAK_RE.lastIndex = end2;
-          const m2 = BREAK_RE.exec(text);
-          i = m2 && m2.index === end2 ? end2 + m2[0].length : end2;
-          lineStart = Boolean(m2 && m2.index === end2);
+          const taken2 = lineBreakAt(text, end2);
+          i = end2 + taken2;
+          lineStart = taken2 > 0;
           continue;
         }
       }
@@ -1226,14 +1260,29 @@ var Already = (() => {
       out += text.slice(i, m.index);
       const after = m.index + m[0].length;
       const end = m[0] === "\n" ? -1 : commentAt(text, after);
-      if (end !== -1) {
-        i = end;
-        lineStart = false;
-      } else {
+      if (end === -1) {
         out += m[0];
         i = after;
         lineStart = true;
+        continue;
       }
+      if (!m[2]) {
+        i = end;
+        lineStart = false;
+        continue;
+      }
+      const taken = lineBreakAt(text, end);
+      if (!m[1] && !m[0].endsWith("/>")) {
+        const closing = closingTagAt(text, end + taken, m[2]);
+        if (closing) {
+          ({ out, i } = dropEmptyWrappers(out, text, end + taken + closing));
+          lineStart = false;
+          continue;
+        }
+      }
+      out += m[0];
+      i = end + taken;
+      lineStart = taken > 0;
     }
     return out;
   }
@@ -7216,7 +7265,7 @@ ${text}</tr>
       });
       removeHrefRefresh = keepEventHrefsCurrent(el);
       postReadyToParent(
-        true ? "0.14.5" : "unknown"
+        true ? "0.14.6" : "unknown"
       );
       if (window.parent !== window && document.referrer) {
         const tryAdmitInteraction = makeThrottle({

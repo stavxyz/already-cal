@@ -41,6 +41,7 @@ Use comments to:
 - Protocol-relative URLs (`//example.com`) are preserved — no space after `//`
 - Lines are delimited by `\n` (or `\r\n`).
 - A `<br>` (`<br>`, `<br/>`, `<br />`, any case) also ends a line for comments since v0.14.5, so a `// ` comment right after a `<br>` is removed together with that `<br>`. A comment, after a `<br>` or on its own line, ends at the next newline, `<br>`, block-level tag, or closing tag that was not opened inside the comment, so the markup around its line is kept. Google Calendar's editor writes `<br>` between lines, so `Hello<br>// note<br>World` renders as `Hello<br>World`.
+- A block-level tag, opening or closing (`<p>`, `</p>`, `<div>`, `<li>`, headings, table cells, `<pre>` and the rest), also starts a line for comments since v0.14.6. A renderer that turns `<br>`, `</p>`, `</div>` and `</li>` into line breaks before it drops comment lines agrees on those. Text after a block tag on the same line is a line of its own, so `<p>Visit us</p>// open daily` renders as `<p>Visit us</p>`. The tag stays; an element the comment fills goes out with it, and so does a wrapper that element alone filled, so `<p>A</p><p>// note</p><p>B</p>` renders as `<p>A</p><p>B</p>` and `<div><p>// note</p></div>` renders as nothing. A comment-only table cell goes the same way, and the row loses that cell.
 
 ## Directives
 

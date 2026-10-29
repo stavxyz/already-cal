@@ -713,13 +713,16 @@ function labelForType(type) {
 }
 
 // src/util/comments.js
-var BREAK_RE = /\n|<br\s*\/?>/gi;
 var COMMENT_START_RE = /[ \t]*\/\/ /y;
 var TAG_RE = /<(\/?)([a-z][a-z0-9]*)(?![\w-])[^<>]{0,1024}>/iy;
 var BLOCK_TAGS = new Set(
   "br p div ul ol li h1 h2 h3 h4 h5 h6 blockquote pre table tr td th hr tbody thead tfoot section article header footer nav aside figure dl dt dd form".split(" ")
 );
 var VOID_TAGS = /* @__PURE__ */ new Set(["img", "input", "wbr", "source", "area", "col"]);
+var BREAK_RE = new RegExp(
+  `\\n|<br\\s*\\/?>|<(\\/?)(${[...BLOCK_TAGS].filter((t) => t !== "br").join("|")})(?![\\w-])[^<>]{0,1024}>`,
+  "gi"
+);
 function commentEnd(text, from) {
   const open = [];
   let j = from;
@@ -755,6 +758,17 @@ function commentAt(text, pos) {
   const m = COMMENT_START_RE.exec(text);
   return m ? commentEnd(text, pos + m[0].length) : -1;
 }
+function lineBreakAt(text, pos) {
+  BREAK_RE.lastIndex = pos;
+  const m = BREAK_RE.exec(text);
+  return m && m.index === pos && !m[2] ? m[0].length : 0;
+}
+function closingTagAt(text, pos, name) {
+  const re = new RegExp(`</${name}\\s*>`, "iy");
+  re.lastIndex = pos;
+  const m = re.exec(text);
+  return m ? m[0].length : 0;
+}
 function removeComments(text) {
   let out = "";
   let i = 0;
@@ -763,10 +777,9 @@ function removeComments(text) {
     if (lineStart) {
       const end2 = commentAt(text, i);
       if (end2 !== -1) {
-        BREAK_RE.lastIndex = end2;
-        const m2 = BREAK_RE.exec(text);
-        i = m2 && m2.index === end2 ? end2 + m2[0].length : end2;
-        lineStart = Boolean(m2 && m2.index === end2);
+        const taken2 = lineBreakAt(text, end2);
+        i = end2 + taken2;
+        lineStart = taken2 > 0;
         continue;
       }
     }
@@ -779,14 +792,29 @@ function removeComments(text) {
     out += text.slice(i, m.index);
     const after = m.index + m[0].length;
     const end = m[0] === "\n" ? -1 : commentAt(text, after);
-    if (end !== -1) {
-      i = end;
-      lineStart = false;
-    } else {
+    if (end === -1) {
       out += m[0];
       i = after;
       lineStart = true;
+      continue;
     }
+    if (!m[2]) {
+      i = end;
+      lineStart = false;
+      continue;
+    }
+    if (!m[1]) {
+      const closing = closingTagAt(text, end, m[2]);
+      if (closing) {
+        i = end + closing;
+        lineStart = false;
+        continue;
+      }
+    }
+    out += m[0];
+    const taken = lineBreakAt(text, end);
+    i = end + taken;
+    lineStart = taken > 0;
   }
   return out;
 }

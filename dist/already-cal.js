@@ -1205,16 +1205,37 @@ var Already = (() => {
     const m = COMMENT_START_RE.exec(text);
     return m ? commentEnd(text, pos + m[0].length) : -1;
   }
+  var BREAK_AT_RE = new RegExp(BREAK_RE.source, "iy");
+  var OPENER_AT_END_RE = /<([a-z][a-z0-9]*)(?![\w-])[^<>]{0,1024}>\s*$/i;
+  var CLOSERS = /* @__PURE__ */ new Map();
   function lineBreakAt(text, pos) {
-    BREAK_RE.lastIndex = pos;
-    const m = BREAK_RE.exec(text);
-    return m && m.index === pos && !m[2] ? m[0].length : 0;
+    BREAK_AT_RE.lastIndex = pos;
+    const m = BREAK_AT_RE.exec(text);
+    return m && !m[2] ? m[0].length : 0;
   }
   function closingTagAt(text, pos, name) {
-    const re = new RegExp(`</${name}\\s*>`, "iy");
+    let re = CLOSERS.get(name);
+    if (!re) {
+      re = new RegExp(`\\s*</${name}\\s*>`, "iy");
+      CLOSERS.set(name, re);
+    }
     re.lastIndex = pos;
     const m = re.exec(text);
     return m ? m[0].length : 0;
+  }
+  function dropEmptyWrappers(out, text, i) {
+    for (; ; ) {
+      const lt = out.lastIndexOf("<");
+      if (lt === -1) return { out, i };
+      const m = OPENER_AT_END_RE.exec(out.slice(lt));
+      if (!m || m[0].endsWith("/>")) return { out, i };
+      const name = m[1].toLowerCase();
+      if (!BLOCK_TAGS.has(name)) return { out, i };
+      const closing = closingTagAt(text, i, name);
+      if (!closing) return { out, i };
+      out = out.slice(0, lt);
+      i += closing;
+    }
   }
   function removeComments(text) {
     let out = "";
@@ -1250,16 +1271,16 @@ var Already = (() => {
         lineStart = false;
         continue;
       }
-      if (!m[1]) {
-        const closing = closingTagAt(text, end, m[2]);
+      const taken = lineBreakAt(text, end);
+      if (!m[1] && !m[0].endsWith("/>")) {
+        const closing = closingTagAt(text, end + taken, m[2]);
         if (closing) {
-          i = end + closing;
+          ({ out, i } = dropEmptyWrappers(out, text, end + taken + closing));
           lineStart = false;
           continue;
         }
       }
       out += m[0];
-      const taken = lineBreakAt(text, end);
       i = end + taken;
       lineStart = taken > 0;
     }

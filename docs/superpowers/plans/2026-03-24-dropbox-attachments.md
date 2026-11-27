@@ -63,7 +63,7 @@ it('passes through dl.dropboxusercontent.com URLs unchanged', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/stavxyz/src/og-cal && npm test`
+Run: `npm test`
 Expected: 5 new tests FAIL (normalizeImageUrl returns the URL unchanged for Dropbox)
 
 - [ ] **Step 3: Implement Dropbox normalization in `normalizeImageUrl`**
@@ -100,13 +100,13 @@ export function normalizeImageUrl(url) {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/stavxyz/src/og-cal && npm test`
+Run: `npm test`
 Expected: All tests PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && git add src/util/images.js test/images.test.js && git commit -m "feat: add Dropbox URL normalization to normalizeImageUrl"
+git add src/util/images.js test/images.test.js && git commit -m "feat: add Dropbox URL normalization to normalizeImageUrl"
 ```
 
 ---
@@ -195,7 +195,7 @@ describe('extractImage — Dropbox URLs', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/stavxyz/src/og-cal && npm test`
+Run: `npm test`
 Expected: New Dropbox extractImage tests FAIL
 
 - [ ] **Step 3: Implement Dropbox extraction in `extractImage`**
@@ -253,13 +253,13 @@ export { getPathExtension, NON_IMAGE_EXTENSIONS };
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/stavxyz/src/og-cal && npm test`
+Run: `npm test`
 Expected: All tests PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && git add src/util/images.js test/images.test.js && git commit -m "feat: extract Dropbox image URLs from event descriptions"
+git add src/util/images.js test/images.test.js && git commit -m "feat: extract Dropbox image URLs from event descriptions"
 ```
 
 ---
@@ -464,7 +464,7 @@ describe('deriveTypeFromMimeType', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/stavxyz/src/og-cal && npm test`
+Run: `npm test`
 Expected: All attachments tests FAIL (module not found)
 
 - [ ] **Step 3: Extract shared `stripUrl` to `sanitize.js`**
@@ -498,7 +498,7 @@ export const DRIVE_ID_PATTERN = /drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?
 
 - [ ] **Step 4: Run tests to verify refactor didn't break anything**
 
-Run: `cd /Users/stavxyz/src/og-cal && npm test`
+Run: `npm test`
 Expected: All existing tests PASS
 
 - [ ] **Step 5: Implement `src/util/attachments.js`**
@@ -635,13 +635,13 @@ export function labelForType(type) {
 
 - [ ] **Step 6: Run tests to verify they pass**
 
-Run: `cd /Users/stavxyz/src/og-cal && npm test`
+Run: `npm test`
 Expected: All tests PASS
 
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && git add src/util/sanitize.js src/util/images.js src/util/attachments.js test/attachments.test.js && git commit -m "feat: add host-agnostic attachment extraction for file URLs"
+git add src/util/sanitize.js src/util/images.js src/util/attachments.js test/attachments.test.js && git commit -m "feat: add host-agnostic attachment extraction for file URLs"
 ```
 
 ---
@@ -654,7 +654,7 @@ cd /Users/stavxyz/src/og-cal && git add src/util/sanitize.js src/util/images.js 
 
 - [ ] **Step 1: Read existing data tests**
 
-Run: `cd /Users/stavxyz/src/og-cal && cat test/data.test.js 2>/dev/null || echo "no data tests"`
+Run: `cat test/data.test.js 2>/dev/null || echo "no data tests"`
 
 - [ ] **Step 2: Add attachment extraction to `enrichEvent` in `data.js`**
 
@@ -759,13 +759,13 @@ And strip `_imageAttachments` from the return value (it's internal-only):
 
 - [ ] **Step 4: Run all tests to verify nothing is broken**
 
-Run: `cd /Users/stavxyz/src/og-cal && npm test`
+Run: `npm test`
 Expected: All tests PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && git add src/data.js && git commit -m "refactor: consolidate enrichment paths, add attachment extraction to pipeline"
+git add src/data.js && git commit -m "refactor: consolidate enrichment paths, add attachment extraction to pipeline"
 ```
 
 ---
@@ -845,13 +845,13 @@ And in the mobile section (around line 1099 where `.ogcal-detail-links` has mobi
 
 - [ ] **Step 3: Run tests to verify nothing is broken**
 
-Run: `cd /Users/stavxyz/src/og-cal && npm test`
+Run: `npm test`
 Expected: All tests PASS
 
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && git add src/views/detail.js og-cal.css && git commit -m "feat: render attachments in event detail view"
+git add src/views/detail.js og-cal.css && git commit -m "feat: render attachments in event detail view"
 ```
 
 ---
@@ -931,13 +931,13 @@ function renderGallery(images, altText) {
 
 - [ ] **Step 2: Run tests to verify nothing is broken**
 
-Run: `cd /Users/stavxyz/src/og-cal && npm test`
+Run: `npm test`
 Expected: All tests PASS
 
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && git add src/views/detail.js && git commit -m "fix: per-image error handling in gallery — skip broken images instead of removing gallery"
+git add src/views/detail.js && git commit -m "fix: per-image error handling in gallery — skip broken images instead of removing gallery"
 ```
 
 ---
@@ -949,18 +949,18 @@ cd /Users/stavxyz/src/og-cal && git add src/views/detail.js && git commit -m "fi
 
 - [ ] **Step 1: Run the full test suite**
 
-Run: `cd /Users/stavxyz/src/og-cal && npm test`
+Run: `npm test`
 Expected: All tests PASS
 
 - [ ] **Step 2: Build the dist**
 
-Run: `cd /Users/stavxyz/src/og-cal && npm run build`
+Run: `npm run build`
 Expected: Build succeeds, `dist/og-cal.js`, `dist/og-cal.min.js`, `dist/og-cal.css`, `dist/og-cal.min.css` updated
 
 - [ ] **Step 3: Commit the build**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && git add dist/ && git commit -m "build: rebuild dist with Dropbox image support and attachment extraction"
+git add dist/ && git commit -m "build: rebuild dist with Dropbox image support and attachment extraction"
 ```
 
 ---
@@ -977,5 +977,5 @@ Add a section documenting Dropbox image support (alongside the existing Drive do
 - [ ] **Step 2: Commit**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && git add README.md && git commit -m "docs: document Dropbox image support and attachment extraction"
+git add README.md && git commit -m "docs: document Dropbox image support and attachment extraction"
 ```

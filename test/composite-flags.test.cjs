@@ -142,7 +142,7 @@ describe("_sourceKey", () => {
 
 describe("pasted Google Calendar description through enrichEvent", () => {
   it("reads spaced linked directives separated by <br>", () => {
-    const burgers = "https://frenchcogrocer.com/burgers";
+    const burgers = "https://shop.example.com/burgers";
     const img = "https://lh3.googleusercontent.com/x";
     const event = enrichEvent(
       base(
@@ -156,7 +156,7 @@ describe("pasted Google Calendar description through enrichEvent", () => {
     assert.strictEqual(event.imageShuffle, true);
     assert.deepStrictEqual(event.images, [img]);
     assert.ok(
-      !/already|<a|frenchcogrocer|googleusercontent/.test(event.description),
+      !/already|<a|shop\.example\.com|googleusercontent/.test(event.description),
     );
   });
 });

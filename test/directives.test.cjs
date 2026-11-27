@@ -424,7 +424,7 @@ describe("extractDirectives: auto-linked values", () => {
 });
 
 describe("extractDirectives: space between the key and its value", () => {
-  const url = "https://frenchcogrocer.com/burgers";
+  const url = "https://shop.example.com/burgers";
   const link = (href) => `<a href="${href}">${href}</a>`;
   const shape = (t) => ({
     type: t.type,

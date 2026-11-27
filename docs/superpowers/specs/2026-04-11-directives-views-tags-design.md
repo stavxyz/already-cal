@@ -177,7 +177,7 @@ Thin integration layer:
 1. Run `scripts/copy-ogcal.js` to update og-cal dist assets in `workers/embed/static/`
 2. Pass `directives_config.prefix` through as `directivePrefix` in config (documentation concern — both prefixes already work)
 
-Server-side OG tag injection, event deep-link routing (`/v/{slug}/event/{eventId}`), and shareable URL strategy (per-customer subdomains like `freco.showcal.events`, `showcal.events/cal/{slug}`, etc.) are deferred to a future sub-project.
+Server-side OG tag injection, event deep-link routing (`/v/{slug}/event/{eventId}`), and shareable URL strategy (per-customer subdomains like `acme.showcal.events`, `showcal.events/cal/{slug}`, etc.) are deferred to a future sub-project.
 
 ## Out of Scope
 

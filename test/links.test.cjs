@@ -32,7 +32,10 @@ describe("handleAt — direct unit tests", () => {
   });
 
   it("returns prefixed path for Reddit /r/ and /u/", () => {
-    assert.strictEqual(handleAt("https://reddit.com/r/ExampleOrg"), "r/ExampleOrg");
+    assert.strictEqual(
+      handleAt("https://reddit.com/r/ExampleOrg"),
+      "r/ExampleOrg",
+    );
     assert.strictEqual(handleAt("https://reddit.com/u/someone"), "u/someone");
   });
 

@@ -7,7 +7,7 @@ Add CI/CD, code quality tooling, test coverage reporting, and a release pipeline
 ## Principles
 
 - **No behavior changes.** Only config files, workflow files, package.json scripts, and one formatting commit.
-- **Follow already.events precedent.** Biome for quality, separate workflow files, path filtering.
+- **Follow the host service precedent.** Biome for quality, separate workflow files, path filtering.
 - **Minimal dependencies.** Biome + c8 — nothing else.
 - **Manual releases.** Tag-driven, intentional versioning — no automated version bumps.
 
@@ -118,7 +118,7 @@ No new tests in this PR. Coverage tooling only. Filling coverage gaps is a separ
 
 ## Section 3: CI Workflows — GitHub Actions
 
-Three separate workflow files with path filtering, following the `already.events` pattern. All actions are pinned to commit SHAs for supply-chain security. Concurrency groups cancel superseded runs.
+Three separate workflow files with path filtering, following the host service pattern. All actions are pinned to commit SHAs for supply-chain security. Concurrency groups cancel superseded runs.
 
 ### `.github/workflows/quality.yml` — Biome
 

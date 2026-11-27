@@ -26,7 +26,7 @@ validated:
 
 ## Global Constraints
 
-- **No already.events references** anywhere — source, tests, comments, commits, PR. Use general language ("the embedding host page", "a host that server-renders per-event metadata").
+- **No references to the hosting service** anywhere — source, tests, comments, commits, PR. Use general language ("the embedding host page", "a host that server-renders per-event metadata").
 - **No Claude attribution** in commits — no `Co-Authored-By: Claude`, no `🤖 Generated with Claude Code`. Use `cat <<'EOF'` HEREDOCs for commit bodies.
 - **Vanilla JS ESM only** — no new dependencies, no framework, no TypeScript. DOM built by hand with the `createElement(tag, className, attrs)` helper (`src/views/helpers.js`).
 - **Conventional-commit prefixes** (`feat:`, `test:`, `docs:`, `style:`).

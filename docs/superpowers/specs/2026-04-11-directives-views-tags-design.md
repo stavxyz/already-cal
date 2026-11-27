@@ -2,11 +2,11 @@
 
 **Date**: 2026-04-11
 **Status**: Approved
-**Repo**: ~/src/og-cal (primary), ~/src/showcal (embed worker integration)
+**Repo**: this repository (primary), the embedding host repository (embed worker integration)
 
 ## Overview
 
-Sub-project 2 of ShowCal. Builds on the directive system and unified token pipeline from PR #8 to add `featured`/`hidden` directive behavior, refactor all 6 view renderers from innerHTML to DOM factories, add a tag filtering UI, and support event deep-linking with OG meta tags. Also brings view rendering test coverage from 0% to comprehensive.
+Sub-project 2 of the embedded calendar. Builds on the directive system and unified token pipeline from PR #8 to add `featured`/`hidden` directive behavior, refactor all 6 view renderers from innerHTML to DOM factories, add a tag filtering UI, and support event deep-linking with OG meta tags. Also brings view rendering test coverage from 0% to comprehensive.
 
 ## Decisions Log
 
@@ -170,19 +170,19 @@ Add `jsdom` as a dev dependency. Create `test/setup-dom.js` that provides `docum
 
 The 201 existing tests are untouched. They serve as the regression safety net during the view refactor.
 
-## 6. ShowCal Embed Worker Integration Summary
+## 6. Host Embed Worker Integration Summary
 
 Thin integration layer:
 
 1. Run `scripts/copy-ogcal.js` to update og-cal dist assets in `workers/embed/static/`
 2. Pass `directives_config.prefix` through as `directivePrefix` in config (documentation concern — both prefixes already work)
 
-Server-side OG tag injection, event deep-link routing (`/v/{slug}/event/{eventId}`), and shareable URL strategy (per-customer subdomains like `acme.showcal.events`, `showcal.events/cal/{slug}`, etc.) are deferred to a future sub-project.
+Server-side OG tag injection, event deep-link routing (`/v/{slug}/event/{eventId}`), and shareable URL strategy (per-customer subdomains like `acme.calendar-host.example`, `calendar-host.example/cal/{slug}`, etc.) are deferred to a future sub-project.
 
 ## Out of Scope
 
 - Server-side OG unfurling / crawler-friendly event URLs
-- Per-customer subdomains (`*.showcal.events`)
+- Per-customer subdomains (`*.calendar-host.example`)
 - Custom domains / Cloudflare for SaaS
 - Shareable URL strategy (which worker handles event links)
 - Tag filter URL persistence / deep-linkable tag filters

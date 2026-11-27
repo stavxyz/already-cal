@@ -58,7 +58,7 @@
 - [ ] **Step 1: Install jsdom**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm install --save-dev jsdom
+npm install --save-dev jsdom
 ```
 
 - [ ] **Step 2: Create test/setup-dom.js**
@@ -126,7 +126,7 @@ mkdir -p test/views
 - [ ] **Step 5: Verify existing tests still pass**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm test
+npm test
 ```
 
 Expected: All 201 existing tests pass.
@@ -292,7 +292,7 @@ describe('enrichEvent — featured/hidden propagation', () => {
 - [ ] **Step 2: Run tests — expect FAILURES for featured/hidden tests**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm test
+npm test
 ```
 
 Expected: Featured/hidden tests fail (extractDirectives doesn't return `featured`/`hidden` yet, enrichEvent not exported). Existing 201 tests still pass.
@@ -375,7 +375,7 @@ In `src/data.js`, make two changes:
 - [ ] **Step 5: Run all tests**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm test
+npm test
 ```
 
 Expected: All tests pass including new featured-hidden tests. Existing 201 tests unaffected.
@@ -693,7 +693,7 @@ export function sortFeaturedByDate(events, timezone, locale) {
 - [ ] **Step 3: Run all tests**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm test
+npm test
 ```
 
 Expected: All tests pass.
@@ -902,7 +902,7 @@ export function renderGridView(container, events, timezone, config) {
 - [ ] **Step 3: Run all tests**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm test
+npm test
 ```
 
 Expected: All tests pass including new grid tests.
@@ -1077,7 +1077,7 @@ export function renderListView(container, events, timezone, config) {
 - [ ] **Step 3: Run all tests**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm test
+npm test
 ```
 
 - [ ] **Step 4: Commit**
@@ -1281,7 +1281,7 @@ export function renderDayView(container, events, timezone, currentDate, config) 
 - [ ] **Step 3: Run all tests**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm test
+npm test
 ```
 
 - [ ] **Step 4: Commit**
@@ -1557,7 +1557,7 @@ Note: Month chips use inline click/keydown handlers (not `bindEventClick`) becau
 - [ ] **Step 3: Run all tests**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm test
+npm test
 ```
 
 - [ ] **Step 4: Commit**
@@ -1773,7 +1773,7 @@ export function renderWeekView(container, events, timezone, currentDate, config)
 - [ ] **Step 3: Run all tests**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm test
+npm test
 ```
 
 - [ ] **Step 4: Commit**
@@ -2103,7 +2103,7 @@ Key changes from original:
 - [ ] **Step 3: Run all tests**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm test
+npm test
 ```
 
 - [ ] **Step 4: Commit**
@@ -2374,7 +2374,7 @@ export function createTagFilter(onFilterChange) {
 - [ ] **Step 3: Run all tests**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm test
+npm test
 ```
 
 - [ ] **Step 4: Commit**
@@ -2470,7 +2470,7 @@ Then continue with the rest of `renderView()` unchanged (onViewChange, switch st
 - [ ] **Step 4: Run all tests**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm test
+npm test
 ```
 
 - [ ] **Step 5: Commit**
@@ -2634,7 +2634,7 @@ In the `start()` function, add `captureOriginalMeta()` as the first line:
 - [ ] **Step 6: Run all tests**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm test
+npm test
 ```
 
 - [ ] **Step 7: Commit**
@@ -2735,7 +2735,7 @@ Append to `og-cal.css`:
 - [ ] **Step 3: Run the build to verify CSS bundles correctly**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm run build
+npm run build
 ```
 
 - [ ] **Step 4: Commit**
@@ -2747,15 +2747,15 @@ git commit -m "style: add featured event accent styling and tag filter pill bar"
 
 ---
 
-### Task 14: Build Dist + ShowCal Integration
+### Task 14: Build Dist + Host Integration
 
 **Files:**
-- Modify: dist files (generated), ShowCal `workers/embed/static/`
+- Modify: dist files (generated), the host service's embed worker static assets
 
 - [ ] **Step 1: Run full test suite**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm test
+npm test
 ```
 
 Expected: All tests pass (201 existing + new tests).
@@ -2763,33 +2763,33 @@ Expected: All tests pass (201 existing + new tests).
 - [ ] **Step 2: Build dist**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && npm run build
+npm run build
 ```
 
 - [ ] **Step 3: Commit dist**
 
 ```bash
-cd /Users/stavxyz/src/og-cal && git add dist/
+git add dist/
 git commit -m "build: rebuild dist with directives, view refactor, and tag filtering"
 ```
 
-- [ ] **Step 4: Update ShowCal embed worker**
+- [ ] **Step 4: Update the host embed worker**
 
-Run the copy script to sync og-cal assets into the ShowCal embed worker:
+Run the copy script to sync og-cal assets into the host embed worker:
 
 ```bash
-cd /Users/stavxyz/src/showcal && node workers/embed/scripts/copy-ogcal.js
+cd <host-repo> && node workers/embed/scripts/copy-ogcal.js
 ```
 
 If the script doesn't exist or the path differs, manually copy:
 ```bash
-cp /Users/stavxyz/src/og-cal/dist/og-cal.min.js /Users/stavxyz/src/showcal/workers/embed/static/
-cp /Users/stavxyz/src/og-cal/dist/og-cal.min.css /Users/stavxyz/src/showcal/workers/embed/static/
+cp <repo>/dist/og-cal.min.js <host-repo>/workers/embed/static/
+cp <repo>/dist/og-cal.min.css <host-repo>/workers/embed/static/
 ```
 
-- [ ] **Step 5: Commit ShowCal update**
+- [ ] **Step 5: Commit host update**
 
 ```bash
-cd /Users/stavxyz/src/showcal && git add workers/embed/static/
+cd <host-repo> && git add workers/embed/static/
 git commit -m "chore: update og-cal dist with directives, view refactor, and tag filtering"
 ```

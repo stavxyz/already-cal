@@ -20,11 +20,11 @@ Replace the sequential extractor chain with a unified token-based pipeline. All 
 
 ```js
 {
-  canonicalId: 'instagram:savebigbend',    // dedup key
+  canonicalId: 'instagram:example-org',    // dedup key
   type: 'link',                             // 'link' | 'image' | 'attachment' | 'tag'
   source: 'url',                            // 'url' | 'directive'
-  url: 'https://instagram.com/savebigbend', // original URL (null for scalar tags)
-  label: 'Follow @savebigbend on Instagram', // display label
+  url: 'https://instagram.com/example-org', // original URL (null for scalar tags)
+  label: 'Follow @example-org on Instagram', // display label
   metadata: {},                             // type-specific extras
 }
 ```
@@ -63,8 +63,8 @@ Each token type produces a canonical ID by normalizing its input to a stable str
 
 | URL | Canonical ID |
 |-----|-------------|
-| `https://www.instagram.com/savebigbend/` | `instagram:savebigbend` |
-| `https://instagram.com/savebigbend` | `instagram:savebigbend` |
+| `https://www.instagram.com/example-org/` | `instagram:example-org` |
+| `https://instagram.com/example-org` | `instagram:example-org` |
 | `https://twitter.com/foo` | `x:foo` |
 | `https://x.com/foo` | `x:foo` |
 | `https://youtu.be/abc123` | `youtube:abc123` |
@@ -116,7 +116,7 @@ Directives can appear anywhere in the description text and are stripped after ex
 
 ```
 # Platform links
-#ogcal:instagram:savebigbend        → Follow @savebigbend on Instagram
+#ogcal:instagram:example-org        → Follow @example-org on Instagram
 #showcal:zoom:123456789             → Join Zoom
 #ogcal:eventbrite:12345             → RSVP on Eventbrite
 #ogcal:discord:AbCdEf               → Join Discord (invite code)
@@ -232,4 +232,4 @@ Tags are exposed as `event.tags` — a new field accessible to `eventTransform` 
 - **Stupid-proof:** The system gracefully handles careless event descriptions — duplicate links, inconsistent URL forms, sloppy formatting all resolve cleanly
 - **Easy to extend:** Adding a new platform means adding a `canonicalize` function alongside `pattern` and `labelFn`. Adding a new directive type means adding a case to the type resolution order.
 - **Single mental model:** Everything extracted from a description is a token with a canonical ID. Deduplication is set membership. No special cases.
-- **Directive-URL convergence:** `https://instagram.com/savebigbend` and `#ogcal:instagram:savebigbend` produce the same canonical ID and the same rendered output.
+- **Directive-URL convergence:** `https://instagram.com/example-org` and `#ogcal:instagram:example-org` produce the same canonical ID and the same rendered output.

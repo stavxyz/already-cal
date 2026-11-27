@@ -115,7 +115,7 @@ describe("postReadyToParent — no-op contexts", () => {
     const opaqueReferrers = [
       "about:blank",
       "data:text/html,<p>x</p>",
-      "file:///Users/x/page.html",
+      "file:///home/x/page.html",
     ];
     for (const referrer of opaqueReferrers) {
       const calls = [];

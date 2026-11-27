@@ -651,7 +651,7 @@ Each extracted token gets a canonical ID for deduplication:
 
 | Token type | ID format | Example |
 |-----------|-----------|---------|
-| Platform link | `<platform>:<handle>` | `instagram:savebigbend` |
+| Platform link | `<platform>:<handle>` | `instagram:example-org` |
 | Image (URL) | `image:<host><path>` | `image:example.com/pic.png` |
 | Image (Drive) | `image:drive:<fileId>` | `image:drive:ABC123` |
 | Scalar tag | `tag:<value>` | `tag:fundraiser` |

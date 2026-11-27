@@ -382,7 +382,7 @@ Use comments to:
 Directives let you control already-cal behavior using `#already:<type>:<value>` syntax. They are extracted and removed from the rendered description.
 
 ```
-#already:instagram:savebigbend     → "Follow @savebigbend on Instagram"
+#already:instagram:example-org     → "Follow @example-org on Instagram"
 #already:image:https://example.com/flyer.png  → adds image to gallery
 #already:tag:fundraiser            → filterable tag badge
 #already:featured                  → pins event to top

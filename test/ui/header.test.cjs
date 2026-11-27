@@ -81,19 +81,19 @@ describe("renderHeader header link", () => {
     const c = document.createElement("div");
     renderHeader(
       c,
-      { name: "No Big Bend Wall" },
+      { name: "Example Org" },
       baseConfig({
-        headerUrl: "https://nobigbendwall.org/",
+        headerUrl: "https://example.com/",
       }),
     );
     const link = c.querySelector(
       ".already-header-name a.already-header-name-link",
     );
     assert.ok(link, "title is wrapped in an anchor");
-    assert.strictEqual(link.getAttribute("href"), "https://nobigbendwall.org/");
+    assert.strictEqual(link.getAttribute("href"), "https://example.com/");
     assert.strictEqual(link.getAttribute("target"), "_blank");
     assert.strictEqual(link.getAttribute("rel"), "noopener noreferrer");
-    assert.strictEqual(link.textContent, "No Big Bend Wall");
+    assert.strictEqual(link.textContent, "Example Org");
   });
 
   it("links the title for a valid http URL too", () => {
@@ -112,11 +112,11 @@ describe("renderHeader header link", () => {
 
   it("leaves the title as plain text when headerUrl is unset", () => {
     const c = document.createElement("div");
-    renderHeader(c, { name: "No Big Bend Wall" }, baseConfig());
+    renderHeader(c, { name: "Example Org" }, baseConfig());
     const h = c.querySelector(".already-header-name");
     assert.ok(h, "title rendered");
     assert.strictEqual(h.querySelector("a"), null, "no anchor");
-    assert.strictEqual(h.textContent, "No Big Bend Wall");
+    assert.strictEqual(h.textContent, "Example Org");
   });
 
   it("ignores a non-http(s) headerUrl scheme (renders plain text)", () => {

@@ -15,22 +15,22 @@ before(async () => {
 describe("extractLinkTokens", () => {
   it("produces tokens with canonicalId for Instagram URL", () => {
     const result = extractLinkTokens(
-      "Follow us https://www.instagram.com/savebigbend/",
+      "Follow us https://www.instagram.com/example-org/",
     );
     assert.strictEqual(result.tokens.length, 1);
-    assert.strictEqual(result.tokens[0].canonicalId, "instagram:savebigbend");
+    assert.strictEqual(result.tokens[0].canonicalId, "instagram:example-org");
     assert.strictEqual(result.tokens[0].type, "link");
     assert.strictEqual(result.tokens[0].source, "url");
     assert.strictEqual(
       result.tokens[0].label,
-      "Follow @savebigbend on Instagram",
+      "Follow @example-org on Instagram",
     );
     assert.ok(!result.description.includes("instagram.com"));
   });
 
   it("deduplicates semantically equivalent URLs", () => {
     const result = extractLinkTokens(
-      "https://instagram.com/savebigbend https://www.instagram.com/savebigbend/",
+      "https://instagram.com/example-org https://www.instagram.com/example-org/",
     );
     assert.strictEqual(result.tokens.length, 1);
     assert.ok(!result.description.includes("instagram.com"));

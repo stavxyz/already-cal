@@ -197,7 +197,7 @@ Already.init({
   // Instagram, Facebook, X/Twitter, Reddit, YouTube, TikTok, LinkedIn,
   // Discord, Luma, Mobilize, Action Network, GoFundMe, Partiful.
   // Social platforms auto-detect handles:
-  //   "https://instagram.com/savebigbend" → "Follow @savebigbend on Instagram"
+  //   "https://instagram.com/example-org" → "Follow @example-org on Instagram"
   knownPlatforms: [
     ...Already.DEFAULTS.knownPlatforms,
     { pattern: /your-site\.com/i, label: 'Visit Our Site' },
@@ -404,12 +404,12 @@ URLs in event descriptions matching known platforms are extracted and rendered a
 | Google Maps | View on Map |
 | Zoom | Join Zoom |
 | Google Meet | Join Google Meet |
-| Instagram | Follow @savebigbend on Instagram |
-| Facebook | savebigbend on Facebook |
-| X / Twitter | Follow @savebigbend on X |
-| Reddit | r/BigBend on Reddit |
+| Instagram | Follow @example-org on Instagram |
+| Facebook | example-org on Facebook |
+| X / Twitter | Follow @example-org on X |
+| Reddit | r/ExampleOrg on Reddit |
 | YouTube | Watch on YouTube |
-| TikTok | @savebigbend on TikTok |
+| TikTok | @example-org on TikTok |
 | LinkedIn | View on LinkedIn |
 | Discord | Join Discord |
 | Luma | RSVP on Luma |
@@ -418,7 +418,7 @@ URLs in event descriptions matching known platforms are extracted and rendered a
 | GoFundMe | Donate on GoFundMe |
 | Partiful | RSVP on Partiful |
 
-Social platforms auto-detect handles from profile URLs (e.g. `instagram.com/savebigbend`). Links to individual posts, reels, or status pages get a generic label instead (e.g. "View on Instagram"). Facebook groups and Reddit communities (`/r/`, `/u/`) are recognized as profile-like destinations. Add your own platforms via `knownPlatforms` config.
+Social platforms auto-detect handles from profile URLs (e.g. `instagram.com/example-org`). Links to individual posts, reels, or status pages get a generic label instead (e.g. "View on Instagram"). Facebook groups and Reddit communities (`/r/`, `/u/`) are recognized as profile-like destinations. Add your own platforms via `knownPlatforms` config.
 
 ## Event Images
 
@@ -455,7 +455,7 @@ Attachments are rendered as a list of download links in the detail view, below t
 Directives let you control already-cal behavior directly from event descriptions using a `#already:<type>:<value>` syntax. The `#already:` prefix is case-insensitive. Directives are stripped from the rendered description.
 
 ```
-#already:instagram:savebigbend     → "Follow @savebigbend on Instagram"
+#already:instagram:example-org     → "Follow @example-org on Instagram"
 #already:image:https://example.com/flyer.png  → adds image to gallery
 #already:image:drive:FILE_ID       → Google Drive image by file ID
 #already:tag:fundraiser            → filterable tag badge

@@ -48,11 +48,11 @@ Add a platform button to an event without pasting the full URL. The directive va
 ### Examples
 
 ```
-#already:instagram:savebigbend     → "Follow @savebigbend on Instagram"
+#already:instagram:example-org     → "Follow @example-org on Instagram"
 #already:zoom:123456789            → "Join Zoom" (links to zoom.us/j/123456789)
 #already:discord:AbCdEf            → "Join Discord" (links to discord.gg/AbCdEf)
 #already:eventbrite:12345          → "RSVP on Eventbrite"
-#already:twitter:savebigbend       → "Follow @savebigbend on X" (alias for x)
+#already:twitter:example-org       → "Follow @example-org on X" (alias for x)
 ```
 
 ## Image Directives
@@ -220,13 +220,13 @@ The widget tells calendars apart by the optional `_sourceKey` field on each even
 
 Directives and URL-extracted links use the same canonical ID system. If a directive and a URL in the same description resolve to the same canonical ID, only one entry is produced.
 
-**Example:** An event description containing both `#already:instagram:savebigbend` and `https://instagram.com/savebigbend` produces a single Instagram button, not two.
+**Example:** An event description containing both `#already:instagram:example-org` and `https://instagram.com/example-org` produces a single Instagram button, not two.
 
 Each directive type generates canonical IDs as follows:
 
 | Type | Canonical ID format | Example |
 |------|-------------------|---------|
-| Platform link | `<canonicalPrefix>:<value>` | `instagram:savebigbend` |
+| Platform link | `<canonicalPrefix>:<value>` | `instagram:example-org` |
 | Image (URL) | `image:<hostname><path>` | `image:example.com/flyer.png` |
 | Image (Drive) | `image:drive:<fileId>` | `image:drive:ABC123` |
 | Scalar tag | `tag:<value>` | `tag:fundraiser` |
@@ -234,7 +234,7 @@ Each directive type generates canonical IDs as follows:
 
 Platform aliases share the same `canonicalPrefix` — `twitter` and `x` both use `x`, so `#already:twitter:foo` and `#already:x:foo` deduplicate.
 
-URL-extracted links use platform-specific `canonicalize()` functions that produce IDs in the same format. For example, `https://instagram.com/savebigbend` canonicalizes to `instagram:savebigbend`, matching the directive `#already:instagram:savebigbend`. Image directives and URL-extracted images also share a canonical ID function, so `#already:image:https://example.com/pic.png` and an inline `https://example.com/pic.png` deduplicate correctly.
+URL-extracted links use platform-specific `canonicalize()` functions that produce IDs in the same format. For example, `https://instagram.com/example-org` canonicalizes to `instagram:example-org`, matching the directive `#already:instagram:example-org`. Image directives and URL-extracted images also share a canonical ID function, so `#already:image:https://example.com/pic.png` and an inline `https://example.com/pic.png` deduplicate correctly.
 
 ## Extraction Order
 

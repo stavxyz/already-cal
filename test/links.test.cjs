@@ -13,8 +13,8 @@ before(async () => {
 describe("handleAt — direct unit tests", () => {
   it("returns handle for single-segment profile path", () => {
     assert.strictEqual(
-      handleAt("https://instagram.com/savebigbend"),
-      "savebigbend",
+      handleAt("https://instagram.com/example-org"),
+      "example-org",
     );
   });
 
@@ -32,7 +32,7 @@ describe("handleAt — direct unit tests", () => {
   });
 
   it("returns prefixed path for Reddit /r/ and /u/", () => {
-    assert.strictEqual(handleAt("https://reddit.com/r/BigBend"), "r/BigBend");
+    assert.strictEqual(handleAt("https://reddit.com/r/ExampleOrg"), "r/ExampleOrg");
     assert.strictEqual(handleAt("https://reddit.com/u/someone"), "u/someone");
   });
 
@@ -45,7 +45,7 @@ describe("handleAt — direct unit tests", () => {
 
   it("returns null for Reddit post with >2 segments", () => {
     assert.strictEqual(
-      handleAt("https://reddit.com/r/BigBend/comments/abc/post"),
+      handleAt("https://reddit.com/r/ExampleOrg/comments/abc/post"),
       null,
     );
   });
@@ -61,8 +61,8 @@ describe("handleAt — direct unit tests", () => {
 
 describe("Instagram link labels", () => {
   it("labels a profile URL with @handle", () => {
-    const { links } = extractLinks("https://www.instagram.com/savebigbend/");
-    assert.strictEqual(links[0].label, "Follow @savebigbend on Instagram");
+    const { links } = extractLinks("https://www.instagram.com/example-org/");
+    assert.strictEqual(links[0].label, "Follow @example-org on Instagram");
   });
 
   it("labels a post URL generically (not as a handle)", () => {
@@ -90,8 +90,8 @@ describe("Instagram link labels", () => {
 
 describe("X/Twitter link labels", () => {
   it("labels a profile URL with @handle", () => {
-    const { links } = extractLinks("https://x.com/nobigbendwall");
-    assert.strictEqual(links[0].label, "Follow @nobigbendwall on X");
+    const { links } = extractLinks("https://x.com/example-org");
+    assert.strictEqual(links[0].label, "Follow @example-org on X");
   });
 
   it("labels a status URL generically", () => {
@@ -102,22 +102,22 @@ describe("X/Twitter link labels", () => {
 
 describe("Facebook link labels", () => {
   it("labels a profile URL with name", () => {
-    const { links } = extractLinks("https://www.facebook.com/savebigbend");
-    assert.strictEqual(links[0].label, "savebigbend on Facebook");
+    const { links } = extractLinks("https://www.facebook.com/example-org");
+    assert.strictEqual(links[0].label, "example-org on Facebook");
   });
 
   it("labels a post URL generically", () => {
     const { links } = extractLinks(
-      "https://www.facebook.com/savebigbend/posts/123",
+      "https://www.facebook.com/example-org/posts/123",
     );
     assert.strictEqual(links[0].label, "View on Facebook");
   });
 
   it("labels a group URL with group name", () => {
     const { links } = extractLinks(
-      "https://www.facebook.com/groups/savebigbend",
+      "https://www.facebook.com/groups/example-org",
     );
-    assert.strictEqual(links[0].label, "groups/savebigbend on Facebook");
+    assert.strictEqual(links[0].label, "groups/example-org on Facebook");
   });
 
   it("labels an event URL generically", () => {
@@ -128,8 +128,8 @@ describe("Facebook link labels", () => {
 
 describe("Reddit link labels", () => {
   it("labels a subreddit URL", () => {
-    const { links } = extractLinks("https://www.reddit.com/r/BigBend");
-    assert.strictEqual(links[0].label, "r/BigBend on Reddit");
+    const { links } = extractLinks("https://www.reddit.com/r/ExampleOrg");
+    assert.strictEqual(links[0].label, "r/ExampleOrg on Reddit");
   });
 
   it("labels a user URL", () => {
@@ -139,7 +139,7 @@ describe("Reddit link labels", () => {
 
   it("labels a post URL generically", () => {
     const { links } = extractLinks(
-      "https://www.reddit.com/r/BigBend/comments/abc/some_post",
+      "https://www.reddit.com/r/ExampleOrg/comments/abc/some_post",
     );
     assert.strictEqual(links[0].label, "View on Reddit");
   });
@@ -147,8 +147,8 @@ describe("Reddit link labels", () => {
 
 describe("TikTok link labels", () => {
   it("labels a profile URL with @handle", () => {
-    const { links } = extractLinks("https://www.tiktok.com/@savebigbend");
-    assert.strictEqual(links[0].label, "@savebigbend on TikTok");
+    const { links } = extractLinks("https://www.tiktok.com/@example-org");
+    assert.strictEqual(links[0].label, "@example-org on TikTok");
   });
 
   it("labels a video URL generically", () => {
@@ -182,8 +182,8 @@ describe("platform canonicalization", () => {
       p.pattern.test("https://instagram.com/foo"),
     );
     assert.strictEqual(
-      platform.canonicalize("https://www.instagram.com/savebigbend/"),
-      "instagram:savebigbend",
+      platform.canonicalize("https://www.instagram.com/example-org/"),
+      "instagram:example-org",
     );
   });
 
@@ -202,8 +202,8 @@ describe("platform canonicalization", () => {
       p.pattern.test("https://x.com/foo"),
     );
     assert.strictEqual(
-      platform.canonicalize("https://x.com/nobigbendwall"),
-      "x:nobigbendwall",
+      platform.canonicalize("https://x.com/example-org"),
+      "x:example-org",
     );
   });
 
@@ -212,8 +212,8 @@ describe("platform canonicalization", () => {
       p.pattern.test("https://twitter.com/foo"),
     );
     assert.strictEqual(
-      platform.canonicalize("https://twitter.com/nobigbendwall"),
-      "x:nobigbendwall",
+      platform.canonicalize("https://twitter.com/example-org"),
+      "x:example-org",
     );
   });
 
@@ -222,8 +222,8 @@ describe("platform canonicalization", () => {
       p.pattern.test("https://facebook.com/foo"),
     );
     assert.strictEqual(
-      platform.canonicalize("https://www.facebook.com/savebigbend"),
-      "facebook:savebigbend",
+      platform.canonicalize("https://www.facebook.com/example-org"),
+      "facebook:example-org",
     );
   });
 
@@ -291,11 +291,11 @@ describe("platform canonicalization", () => {
 
   it("canonicalizes Reddit subreddit", () => {
     const platform = DEFAULT_PLATFORMS.find((p) =>
-      p.pattern.test("https://reddit.com/r/BigBend"),
+      p.pattern.test("https://reddit.com/r/ExampleOrg"),
     );
     assert.strictEqual(
-      platform.canonicalize("https://www.reddit.com/r/BigBend"),
-      "reddit:r/BigBend",
+      platform.canonicalize("https://www.reddit.com/r/ExampleOrg"),
+      "reddit:r/ExampleOrg",
     );
   });
 
@@ -304,8 +304,8 @@ describe("platform canonicalization", () => {
       p.pattern.test("https://tiktok.com/@foo"),
     );
     assert.strictEqual(
-      platform.canonicalize("https://www.tiktok.com/@savebigbend"),
-      "tiktok:savebigbend",
+      platform.canonicalize("https://www.tiktok.com/@example-org"),
+      "tiktok:example-org",
     );
   });
 
@@ -366,8 +366,8 @@ describe("platform canonicalization", () => {
       p.pattern.test("https://mobilize.us/foo"),
     );
     assert.strictEqual(
-      platform.canonicalize("https://www.mobilize.us/savebigbend/event/12345/"),
-      "mobilize:savebigbend/event/12345",
+      platform.canonicalize("https://www.mobilize.us/example-org/event/12345/"),
+      "mobilize:example-org/event/12345",
     );
   });
 

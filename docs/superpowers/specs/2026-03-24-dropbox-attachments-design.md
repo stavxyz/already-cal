@@ -5,7 +5,7 @@
 
 ## Problem
 
-og-cal extracts images from Google Drive URLs in event descriptions but doesn't handle Dropbox share links. A live event on nobigbendwall.org has three Dropbox image URLs that render as broken images. Additionally, non-image file links (PDFs, docs, etc.) from any host are ignored entirely — the og-cal schema has an `attachments` field that's never populated from descriptions.
+og-cal extracts images from Google Drive URLs in event descriptions but doesn't handle Dropbox share links. A live event on example-org.org has three Dropbox image URLs that render as broken images. Additionally, non-image file links (PDFs, docs, etc.) from any host are ignored entirely — the og-cal schema has an `attachments` field that's never populated from descriptions.
 
 ## Solution
 

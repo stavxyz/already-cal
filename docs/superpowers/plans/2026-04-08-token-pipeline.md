@@ -215,7 +215,7 @@ Append to `test/links.test.js`:
 describe('platform canonicalization', () => {
   it('canonicalizes Instagram profile URL', () => {
     const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://instagram.com/foo'));
-    assert.strictEqual(platform.canonicalize('https://www.instagram.com/savebigbend/'), 'instagram:savebigbend');
+    assert.strictEqual(platform.canonicalize('https://www.instagram.com/example-org/'), 'instagram:example-org');
   });
 
   it('canonicalizes Instagram post URL', () => {
@@ -225,17 +225,17 @@ describe('platform canonicalization', () => {
 
   it('canonicalizes X/Twitter profile — x.com', () => {
     const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://x.com/foo'));
-    assert.strictEqual(platform.canonicalize('https://x.com/nobigbendwall'), 'x:nobigbendwall');
+    assert.strictEqual(platform.canonicalize('https://x.com/example-org'), 'x:example-org');
   });
 
   it('canonicalizes X/Twitter profile — twitter.com', () => {
     const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://twitter.com/foo'));
-    assert.strictEqual(platform.canonicalize('https://twitter.com/nobigbendwall'), 'x:nobigbendwall');
+    assert.strictEqual(platform.canonicalize('https://twitter.com/example-org'), 'x:example-org');
   });
 
   it('canonicalizes Facebook profile', () => {
     const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://facebook.com/foo'));
-    assert.strictEqual(platform.canonicalize('https://www.facebook.com/savebigbend'), 'facebook:savebigbend');
+    assert.strictEqual(platform.canonicalize('https://www.facebook.com/example-org'), 'facebook:example-org');
   });
 
   it('canonicalizes Facebook group', () => {
@@ -269,13 +269,13 @@ describe('platform canonicalization', () => {
   });
 
   it('canonicalizes Reddit subreddit', () => {
-    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://reddit.com/r/BigBend'));
-    assert.strictEqual(platform.canonicalize('https://www.reddit.com/r/BigBend'), 'reddit:r/BigBend');
+    const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://reddit.com/r/ExampleOrg'));
+    assert.strictEqual(platform.canonicalize('https://www.reddit.com/r/ExampleOrg'), 'reddit:r/ExampleOrg');
   });
 
   it('canonicalizes TikTok profile', () => {
     const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://tiktok.com/@foo'));
-    assert.strictEqual(platform.canonicalize('https://www.tiktok.com/@savebigbend'), 'tiktok:savebigbend');
+    assert.strictEqual(platform.canonicalize('https://www.tiktok.com/@example-org'), 'tiktok:example-org');
   });
 
   it('canonicalizes Google Meet link', () => {
@@ -305,7 +305,7 @@ describe('platform canonicalization', () => {
 
   it('canonicalizes Mobilize URL', () => {
     const platform = DEFAULT_PLATFORMS.find(p => p.pattern.test('https://mobilize.us/foo'));
-    assert.strictEqual(platform.canonicalize('https://www.mobilize.us/savebigbend/event/12345/'), 'mobilize:savebigbend/event/12345');
+    assert.strictEqual(platform.canonicalize('https://www.mobilize.us/example-org/event/12345/'), 'mobilize:example-org/event/12345');
   });
 
   it('canonicalizes Action Network URL', () => {
@@ -417,19 +417,19 @@ before(async () => {
 
 describe('extractDirectives — platform link directives', () => {
   it('parses #ogcal:instagram:handle into a link token', () => {
-    const result = extractDirectives('#ogcal:instagram:savebigbend');
+    const result = extractDirectives('#ogcal:instagram:example-org');
     assert.strictEqual(result.tokens.length, 1);
     assert.strictEqual(result.tokens[0].type, 'link');
-    assert.strictEqual(result.tokens[0].canonicalId, 'instagram:savebigbend');
-    assert.strictEqual(result.tokens[0].label, 'Follow @savebigbend on Instagram');
+    assert.strictEqual(result.tokens[0].canonicalId, 'instagram:example-org');
+    assert.strictEqual(result.tokens[0].label, 'Follow @example-org on Instagram');
     assert.strictEqual(result.tokens[0].source, 'directive');
     assert.strictEqual(result.description.trim(), '');
   });
 
   it('parses #showcal:instagram:handle (showcal prefix)', () => {
-    const result = extractDirectives('#showcal:instagram:savebigbend');
+    const result = extractDirectives('#showcal:instagram:example-org');
     assert.strictEqual(result.tokens.length, 1);
-    assert.strictEqual(result.tokens[0].canonicalId, 'instagram:savebigbend');
+    assert.strictEqual(result.tokens[0].canonicalId, 'instagram:example-org');
   });
 
   it('is case-insensitive for the prefix', () => {
@@ -611,7 +611,7 @@ const DIRECTIVE_PLATFORMS = {
 };
 
 function parseDirective(body) {
-  // body is everything after #ogcal: or #showcal:, e.g., "instagram:savebigbend"
+  // body is everything after #ogcal: or #showcal:, e.g., "instagram:example-org"
   const colonIdx = body.indexOf(':');
   if (colonIdx === -1) return null; // malformed — no value
 
@@ -743,17 +743,17 @@ before(async () => {
 
 describe('extractLinkTokens', () => {
   it('produces tokens with canonicalId for Instagram URL', () => {
-    const result = extractLinkTokens('Follow us https://www.instagram.com/savebigbend/');
+    const result = extractLinkTokens('Follow us https://www.instagram.com/example-org/');
     assert.strictEqual(result.tokens.length, 1);
-    assert.strictEqual(result.tokens[0].canonicalId, 'instagram:savebigbend');
+    assert.strictEqual(result.tokens[0].canonicalId, 'instagram:example-org');
     assert.strictEqual(result.tokens[0].type, 'link');
     assert.strictEqual(result.tokens[0].source, 'url');
-    assert.strictEqual(result.tokens[0].label, 'Follow @savebigbend on Instagram');
+    assert.strictEqual(result.tokens[0].label, 'Follow @example-org on Instagram');
     assert.ok(!result.description.includes('instagram.com'));
   });
 
   it('deduplicates semantically equivalent URLs', () => {
-    const result = extractLinkTokens('https://instagram.com/savebigbend https://www.instagram.com/savebigbend/');
+    const result = extractLinkTokens('https://instagram.com/example-org https://www.instagram.com/example-org/');
     assert.strictEqual(result.tokens.length, 1);
     assert.ok(!result.description.includes('instagram.com'));
   });
@@ -1048,7 +1048,7 @@ describe('enrichEvent — token pipeline deduplication', () => {
       summary: 'Test', timeZone: 'UTC',
       items: [{
         id: '1', summary: 'Test',
-        description: 'https://instagram.com/savebigbend https://instagram.com/savebigbend',
+        description: 'https://instagram.com/example-org https://instagram.com/example-org',
         start: { dateTime: '2026-04-10T10:00:00Z' }, end: { dateTime: '2026-04-10T11:00:00Z' },
       }],
     });
@@ -1061,7 +1061,7 @@ describe('enrichEvent — token pipeline deduplication', () => {
       summary: 'Test', timeZone: 'UTC',
       items: [{
         id: '1', summary: 'Test',
-        description: 'https://instagram.com/savebigbend https://www.instagram.com/savebigbend/',
+        description: 'https://instagram.com/example-org https://www.instagram.com/example-org/',
         start: { dateTime: '2026-04-10T10:00:00Z' }, end: { dateTime: '2026-04-10T11:00:00Z' },
       }],
     });
@@ -1098,7 +1098,7 @@ describe('enrichEvent — token pipeline deduplication', () => {
       summary: 'Test', timeZone: 'UTC',
       items: [{
         id: '1', summary: 'Test',
-        description: '#ogcal:instagram:savebigbend https://instagram.com/savebigbend',
+        description: '#ogcal:instagram:example-org https://instagram.com/example-org',
         start: { dateTime: '2026-04-10T10:00:00Z' }, end: { dateTime: '2026-04-10T11:00:00Z' },
       }],
     });

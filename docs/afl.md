@@ -50,7 +50,7 @@ Directives let you control already-cal behavior using `#already:<type>:<value>` 
 A space (or tab, or `&nbsp;`) between the directive's colon and its value is ignored on the same line when the value is a linked or bare `http(s)://` URL, so `#already:image: https://example.com/flyer.png` reads the same as `#already:image:https://example.com/flyer.png`. A value on the next line is not joined, and a non-URL value is not joined either (`#already:tag: fundraiser` has no value).
 
 ```
-#already:instagram:savebigbend     → "Follow @savebigbend on Instagram"
+#already:instagram:example-org     → "Follow @example-org on Instagram"
 #already:image:https://example.com/flyer.png  → adds image to gallery
 #already:tag:fundraiser            → filterable tag badge
 #already:featured                  → pins event to top

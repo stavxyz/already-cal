@@ -93,13 +93,13 @@ Authoritative reference for the `#already:` directive system.
 
    | Directive name | Alias for | Example | Generated label | Constructed URL |
    |---|---|---|---|---|
-   | `instagram` | — | `#already:instagram:savebigbend` | Follow @savebigbend on Instagram | `https://instagram.com/savebigbend` |
-   | `facebook` | — | `#already:facebook:savebigbend` | savebigbend on Facebook | `https://facebook.com/savebigbend` |
-   | `x` | — | `#already:x:savebigbend` | Follow @savebigbend on X | `https://x.com/savebigbend` |
-   | `twitter` | `x` | `#already:twitter:savebigbend` | Follow @savebigbend on X | `https://x.com/savebigbend` |
-   | `reddit` | — | `#already:reddit:BigBend` | r/BigBend on Reddit | `https://reddit.com/r/BigBend` |
+   | `instagram` | — | `#already:instagram:example-org` | Follow @example-org on Instagram | `https://instagram.com/example-org` |
+   | `facebook` | — | `#already:facebook:example-org` | example-org on Facebook | `https://facebook.com/example-org` |
+   | `x` | — | `#already:x:example-org` | Follow @example-org on X | `https://x.com/example-org` |
+   | `twitter` | `x` | `#already:twitter:example-org` | Follow @example-org on X | `https://x.com/example-org` |
+   | `reddit` | — | `#already:reddit:ExampleOrg` | r/ExampleOrg on Reddit | `https://reddit.com/r/ExampleOrg` |
    | `youtube` | — | `#already:youtube:channel` | Watch on YouTube | `https://youtube.com/channel` |
-   | `tiktok` | — | `#already:tiktok:savebigbend` | @savebigbend on TikTok | `https://tiktok.com/@savebigbend` |
+   | `tiktok` | — | `#already:tiktok:example-org` | @example-org on TikTok | `https://tiktok.com/@example-org` |
    | `linkedin` | — | `#already:linkedin:handle` | View on LinkedIn | `https://linkedin.com/in/handle` |
    | `discord` | — | `#already:discord:AbCdEf` | Join Discord | `https://discord.gg/AbCdEf` |
    | `zoom` | — | `#already:zoom:123456789` | Join Zoom | `https://zoom.us/j/123456789` |
